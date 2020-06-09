@@ -1,0 +1,3230 @@
+Opened "SDSS_cube.h5" with sec2 driver.
+/                        Group
+    Location:  1:96
+    Links:     1
+/orig_data_cube          Group
+    Location:  1:800
+    Links:     1
+/orig_data_cube/7        Group
+    Location:  1:1832
+    Links:     1
+/orig_data_cube/7/29     Group
+    Location:  1:2864
+    Links:     1
+/orig_data_cube/7/29/117 Group
+    Location:  1:3896
+    Links:     1
+/orig_data_cube/7/29/117/469 Group
+    Location:  1:4928
+    Links:     1
+/orig_data_cube/7/29/117/469/1876 Group
+    Location:  1:5960
+    Links:     1
+/orig_data_cube/7/29/117/469/1876/7507 Group
+    Location:  1:6992
+    Links:     1
+/orig_data_cube/7/29/117/469/1876/7507/30030 Group
+    Location:  1:8024
+    Links:     1
+/orig_data_cube/7/29/117/469/1876/7507/30030/4600217209.9 Group
+    Location:  1:9056
+    Links:     1
+/orig_data_cube/7/29/117/469/1876/7507/30030/4600217209.9/g Group
+    Location:  1:10088
+    Links:     1
+/orig_data_cube/7/29/117/469/1876/7507/30030/4600217209.9/g/(1024,\ 744) Group
+    Location:  1:12152
+    Links:     1
+/orig_data_cube/7/29/117/469/1876/7507/30030/4600217209.9/g/(1024,\ 744)/frame-g-004797-1-0019.fits.bz2 Dataset {744/744, 1024/1024, 2/2}
+    Attribute: ALT scalar
+        Type:      native double
+        Data:  55.6574
+    Attribute: ASTRO_ID scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2009-05-16T18:30:31 19532"
+    Attribute: ASTR_VER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NOCVS:v5_24"
+    Attribute: ATVSN scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NOCVS:v5_24"
+    Attribute: AZ scalar
+        Type:      native double
+        Data:  339.852
+    Attribute: BADLINES scalar
+        Type:      native long
+        Data:  0
+    Attribute: BIAS_ID scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "PS"
+    Attribute: BITPIX scalar
+        Type:      native long
+        Data:  -32
+    Attribute: BSCALE scalar
+        Type:      native double
+        Data:  1
+    Attribute: BUNIT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "nanomaggy"
+    Attribute: BZERO scalar
+        Type:      native double
+        Data:  0
+    Attribute: CAMCOL scalar
+        Type:      native long
+        Data:  1
+    Attribute: CAMROW scalar
+        Type:      native long
+        Data:  5
+    Attribute: CCDLOC scalar
+        Type:      native long
+        Data:  51
+    Attribute: CCDMODE scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "DRIFT"
+    Attribute: CD1_1 scalar
+        Type:      native double
+        Data:  1.25763e-09
+    Attribute: CD1_2 scalar
+        Type:      native double
+        Data:  0.000110002
+    Attribute: CD2_1 scalar
+        Type:      native double
+        Data:  0.000109955
+    Attribute: CD2_2 scalar
+        Type:      native double
+        Data:  -7.82053e-09
+    Attribute: COLBIN scalar
+        Type:      native long
+        Data:  1
+    Attribute: COMMENT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  " TAI,RA,DEC,SPA,IPA,IPARATE,AZ,ALT,FOCUS at reading of col 0, row 0"
+    Attribute: CRPIX1 scalar
+        Type:      native double
+        Data:  1025
+    Attribute: CRPIX2 scalar
+        Type:      native double
+        Data:  745
+    Attribute: CRVAL1 scalar
+        Type:      native double
+        Data:  308.716
+    Attribute: CRVAL2 scalar
+        Type:      native double
+        Data:  -0.944426
+    Attribute: CTYPE1 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "RA---TAN"
+    Attribute: CTYPE2 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "DEC--TAN"
+    Attribute: CUNIT1 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "deg"
+    Attribute: CUNIT2 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "deg"
+    Attribute: C_OBS scalar
+        Type:      native long
+        Data:  26322
+    Attribute: DATE-OBS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2004-08-26"
+    Attribute: DAVERS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v14_47"
+    Attribute: DEC scalar
+        Type:      native double
+        Data:  0
+    Attribute: DERV_VER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NOCVS:v8_23"
+    Attribute: EQNX_SCN scalar
+        Type:      native double
+        Data:  2000
+    Attribute: EQUINOX scalar
+        Type:      native double
+        Data:  2000
+    Attribute: EXPTIME scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "53.907456"
+    Attribute: EXTEND scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: FILTER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "g"
+    Attribute: FLAVOR scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "science"
+    Attribute: FOCUS scalar
+        Type:      native double
+        Data:  -263.3
+    Attribute: FRAME scalar
+        Type:      native long
+        Data:  27
+    Attribute: FRAME_ID scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2009-09-22T15:50:36 05283"
+    Attribute: HISTORY scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "GSSSPUTAST: Sep 22 15:50:43 2009"
+    Attribute: INCL scalar
+        Type:      native double
+        Data:  0
+    Attribute: IPA scalar
+        Type:      native double
+        Data:  73.182
+    Attribute: IPARATE scalar
+        Type:      native double
+        Data:  0
+    Attribute: KO_VER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "devel"
+    Attribute: NAXIS scalar
+        Type:      native long
+        Data:  2
+    Attribute: NAXIS1 scalar
+        Type:      native long
+        Data:  2048
+    Attribute: NAXIS2 scalar
+        Type:      native long
+        Data:  1489
+    Attribute: NMGY scalar
+        Type:      native double
+        Data:  0.00347575
+    Attribute: NMGYIVAR scalar
+        Type:      native double
+        Data:  0.0412971
+    Attribute: NODE scalar
+        Type:      native double
+        Data:  95
+    Attribute: OBJECT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "82 N"
+    Attribute: OBSERVER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "harvanek"
+    Attribute: ORIGIN scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "SDSS"
+    Attribute: PCALIB scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "/clusterfs/riemann/raid006/bosswork/groups/boss/calib/2009-06-14/cal"
+    Attribute: PSKY scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "/clusterfs/riemann/raid006/bosswork/groups/boss/photo/sky"
+    Attribute: PS_ID scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2009-05-16T10:39:04 15233 camCol 1"
+    Attribute: RA scalar
+        Type:      native double
+        Data:  309.347
+    Attribute: RADECSYS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "ICRS"
+    Attribute: RERUN scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "301"
+    Attribute: ROWBIN scalar
+        Type:      native long
+        Data:  1
+    Attribute: RUN scalar
+        Type:      native long
+        Data:  4797
+    Attribute: SCDDECMF scalar
+        Type:      native long
+        Data:  1
+    Attribute: SCDDYNTH scalar
+        Type:      native long
+        Data:  -20
+    Attribute: SCDMETHD scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "sqrtDynamic"
+    Attribute: SCDOFSET scalar
+        Type:      native long
+        Data:  410
+    Attribute: SCDREDSZ scalar
+        Type:      native long
+        Data:  515
+    Attribute: SCDSKYL scalar
+        Type:      native long
+        Data:  2073
+    Attribute: SCDSKYR scalar
+        Type:      native long
+        Data:  2078
+    Attribute: SCDSTTHL scalar
+        Type:      native long
+        Data:  30
+    Attribute: SCDSTTHR scalar
+        Type:      native long
+        Data:  30
+    Attribute: SCDWIDTH scalar
+        Type:      native long
+        Data:  1280
+    Attribute: SIMPLE scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: SOFTBIAS scalar
+        Type:      native long
+        Data:  1000
+    Attribute: SPA scalar
+        Type:      native double
+        Data:  90
+    Attribute: STRIP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "N"
+    Attribute: STRIPE scalar
+        Type:      native long
+        Data:  82
+    Attribute: SYSTEM scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "FK5"
+    Attribute: SYS_SCN scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "mean"
+    Attribute: TAI scalar
+        Type:      native double
+        Data:  4.60022e+09
+    Attribute: TAIHMS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "06:06:49.90"
+    Attribute: TELESCOP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2.5m"
+    Attribute: TIMESYS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "TAI"
+    Attribute: VERSIDL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "7.0"
+    Attribute: VERSION scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_6_3"
+    Attribute: VERSPOP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v1_11_1"
+    Attribute: VERSUTIL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_5_5"
+    Attribute: XBORE scalar
+        Type:      native double
+        Data:  -22.74
+    Attribute: YBORE scalar
+        Type:      native double
+        Data:  0
+    Location:  1:24147792
+    Links:     1
+    Chunks:    {128, 128, 2} 131072 bytes
+    Storage:   6094848 logical bytes, 6291456 allocated bytes, 96.88% utilization
+    Type:      native float
+/orig_data_cube/7/29/117/469/1876/7507/30030/4600217209.9/g/(2048,\ 1489) Group
+    Location:  1:11120
+    Links:     1
+/orig_data_cube/7/29/117/469/1876/7507/30030/4600217209.9/g/(2048,\ 1489)/frame-g-004797-1-0019.fits.bz2 Dataset {1489/1489, 2048/2048, 2/2}
+    Attribute: ALT scalar
+        Type:      native double
+        Data:  55.6574
+    Attribute: ASTRO_ID scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2009-05-16T18:30:31 19532"
+    Attribute: ASTR_VER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NOCVS:v5_24"
+    Attribute: ATVSN scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NOCVS:v5_24"
+    Attribute: AZ scalar
+        Type:      native double
+        Data:  339.852
+    Attribute: BADLINES scalar
+        Type:      native long
+        Data:  0
+    Attribute: BIAS_ID scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "PS"
+    Attribute: BITPIX scalar
+        Type:      native long
+        Data:  -32
+    Attribute: BSCALE scalar
+        Type:      native double
+        Data:  1
+    Attribute: BUNIT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "nanomaggy"
+    Attribute: BZERO scalar
+        Type:      native double
+        Data:  0
+    Attribute: CAMCOL scalar
+        Type:      native long
+        Data:  1
+    Attribute: CAMROW scalar
+        Type:      native long
+        Data:  5
+    Attribute: CCDLOC scalar
+        Type:      native long
+        Data:  51
+    Attribute: CCDMODE scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "DRIFT"
+    Attribute: CD1_1 scalar
+        Type:      native double
+        Data:  1.25763e-09
+    Attribute: CD1_2 scalar
+        Type:      native double
+        Data:  0.000110002
+    Attribute: CD2_1 scalar
+        Type:      native double
+        Data:  0.000109955
+    Attribute: CD2_2 scalar
+        Type:      native double
+        Data:  -7.82053e-09
+    Attribute: COLBIN scalar
+        Type:      native long
+        Data:  1
+    Attribute: COMMENT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  " TAI,RA,DEC,SPA,IPA,IPARATE,AZ,ALT,FOCUS at reading of col 0, row 0"
+    Attribute: CRPIX1 scalar
+        Type:      native double
+        Data:  1025
+    Attribute: CRPIX2 scalar
+        Type:      native double
+        Data:  745
+    Attribute: CRVAL1 scalar
+        Type:      native double
+        Data:  308.716
+    Attribute: CRVAL2 scalar
+        Type:      native double
+        Data:  -0.944426
+    Attribute: CTYPE1 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "RA---TAN"
+    Attribute: CTYPE2 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "DEC--TAN"
+    Attribute: CUNIT1 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "deg"
+    Attribute: CUNIT2 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "deg"
+    Attribute: C_OBS scalar
+        Type:      native long
+        Data:  26322
+    Attribute: DATE-OBS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2004-08-26"
+    Attribute: DAVERS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v14_47"
+    Attribute: DEC scalar
+        Type:      native double
+        Data:  0
+    Attribute: DERV_VER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NOCVS:v8_23"
+    Attribute: EQNX_SCN scalar
+        Type:      native double
+        Data:  2000
+    Attribute: EQUINOX scalar
+        Type:      native double
+        Data:  2000
+    Attribute: EXPTIME scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "53.907456"
+    Attribute: EXTEND scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: FILTER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "g"
+    Attribute: FLAVOR scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "science"
+    Attribute: FOCUS scalar
+        Type:      native double
+        Data:  -263.3
+    Attribute: FRAME scalar
+        Type:      native long
+        Data:  27
+    Attribute: FRAME_ID scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2009-09-22T15:50:36 05283"
+    Attribute: HISTORY scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "GSSSPUTAST: Sep 22 15:50:43 2009"
+    Attribute: INCL scalar
+        Type:      native double
+        Data:  0
+    Attribute: IPA scalar
+        Type:      native double
+        Data:  73.182
+    Attribute: IPARATE scalar
+        Type:      native double
+        Data:  0
+    Attribute: KO_VER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "devel"
+    Attribute: NAXIS scalar
+        Type:      native long
+        Data:  2
+    Attribute: NAXIS1 scalar
+        Type:      native long
+        Data:  2048
+    Attribute: NAXIS2 scalar
+        Type:      native long
+        Data:  1489
+    Attribute: NMGY scalar
+        Type:      native double
+        Data:  0.00347575
+    Attribute: NMGYIVAR scalar
+        Type:      native double
+        Data:  0.0412971
+    Attribute: NODE scalar
+        Type:      native double
+        Data:  95
+    Attribute: OBJECT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "82 N"
+    Attribute: OBSERVER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "harvanek"
+    Attribute: ORIGIN scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "SDSS"
+    Attribute: PCALIB scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "/clusterfs/riemann/raid006/bosswork/groups/boss/calib/2009-06-14/cal"
+    Attribute: PSKY scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "/clusterfs/riemann/raid006/bosswork/groups/boss/photo/sky"
+    Attribute: PS_ID scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2009-05-16T10:39:04 15233 camCol 1"
+    Attribute: RA scalar
+        Type:      native double
+        Data:  309.347
+    Attribute: RADECSYS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "ICRS"
+    Attribute: RERUN scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "301"
+    Attribute: ROWBIN scalar
+        Type:      native long
+        Data:  1
+    Attribute: RUN scalar
+        Type:      native long
+        Data:  4797
+    Attribute: SCDDECMF scalar
+        Type:      native long
+        Data:  1
+    Attribute: SCDDYNTH scalar
+        Type:      native long
+        Data:  -20
+    Attribute: SCDMETHD scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "sqrtDynamic"
+    Attribute: SCDOFSET scalar
+        Type:      native long
+        Data:  410
+    Attribute: SCDREDSZ scalar
+        Type:      native long
+        Data:  515
+    Attribute: SCDSKYL scalar
+        Type:      native long
+        Data:  2073
+    Attribute: SCDSKYR scalar
+        Type:      native long
+        Data:  2078
+    Attribute: SCDSTTHL scalar
+        Type:      native long
+        Data:  30
+    Attribute: SCDSTTHR scalar
+        Type:      native long
+        Data:  30
+    Attribute: SCDWIDTH scalar
+        Type:      native long
+        Data:  1280
+    Attribute: SIMPLE scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: SOFTBIAS scalar
+        Type:      native long
+        Data:  1000
+    Attribute: SPA scalar
+        Type:      native double
+        Data:  90
+    Attribute: STRIP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "N"
+    Attribute: STRIPE scalar
+        Type:      native long
+        Data:  82
+    Attribute: SYSTEM scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "FK5"
+    Attribute: SYS_SCN scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "mean"
+    Attribute: TAI scalar
+        Type:      native double
+        Data:  4.60022e+09
+    Attribute: TAIHMS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "06:06:49.90"
+    Attribute: TELESCOP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2.5m"
+    Attribute: TIMESYS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "TAI"
+    Attribute: VERSIDL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "7.0"
+    Attribute: VERSION scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_6_3"
+    Attribute: VERSPOP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v1_11_1"
+    Attribute: VERSUTIL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_5_5"
+    Attribute: XBORE scalar
+        Type:      native double
+        Data:  -22.74
+    Attribute: YBORE scalar
+        Type:      native double
+        Data:  0
+    Location:  1:14264
+    Links:     1
+    Chunks:    {128, 128, 2} 131072 bytes
+    Storage:   24395776 logical bytes, 25165824 allocated bytes, 96.94% utilization
+    Type:      native float
+/orig_data_cube/7/29/117/469/1876/7507/30030/4600217209.9/g/(256,\ 186) Group
+    Location:  1:13560
+    Links:     1
+/orig_data_cube/7/29/117/469/1876/7507/30030/4600217209.9/g/(256,\ 186)/frame-g-004797-1-0019.fits.bz2 Dataset {186/186, 256/256, 2/2}
+    Attribute: ALT scalar
+        Type:      native double
+        Data:  55.6574
+    Attribute: ASTRO_ID scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2009-05-16T18:30:31 19532"
+    Attribute: ASTR_VER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NOCVS:v5_24"
+    Attribute: ATVSN scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NOCVS:v5_24"
+    Attribute: AZ scalar
+        Type:      native double
+        Data:  339.852
+    Attribute: BADLINES scalar
+        Type:      native long
+        Data:  0
+    Attribute: BIAS_ID scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "PS"
+    Attribute: BITPIX scalar
+        Type:      native long
+        Data:  -32
+    Attribute: BSCALE scalar
+        Type:      native double
+        Data:  1
+    Attribute: BUNIT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "nanomaggy"
+    Attribute: BZERO scalar
+        Type:      native double
+        Data:  0
+    Attribute: CAMCOL scalar
+        Type:      native long
+        Data:  1
+    Attribute: CAMROW scalar
+        Type:      native long
+        Data:  5
+    Attribute: CCDLOC scalar
+        Type:      native long
+        Data:  51
+    Attribute: CCDMODE scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "DRIFT"
+    Attribute: CD1_1 scalar
+        Type:      native double
+        Data:  1.25763e-09
+    Attribute: CD1_2 scalar
+        Type:      native double
+        Data:  0.000110002
+    Attribute: CD2_1 scalar
+        Type:      native double
+        Data:  0.000109955
+    Attribute: CD2_2 scalar
+        Type:      native double
+        Data:  -7.82053e-09
+    Attribute: COLBIN scalar
+        Type:      native long
+        Data:  1
+    Attribute: COMMENT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  " TAI,RA,DEC,SPA,IPA,IPARATE,AZ,ALT,FOCUS at reading of col 0, row 0"
+    Attribute: CRPIX1 scalar
+        Type:      native double
+        Data:  1025
+    Attribute: CRPIX2 scalar
+        Type:      native double
+        Data:  745
+    Attribute: CRVAL1 scalar
+        Type:      native double
+        Data:  308.716
+    Attribute: CRVAL2 scalar
+        Type:      native double
+        Data:  -0.944426
+    Attribute: CTYPE1 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "RA---TAN"
+    Attribute: CTYPE2 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "DEC--TAN"
+    Attribute: CUNIT1 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "deg"
+    Attribute: CUNIT2 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "deg"
+    Attribute: C_OBS scalar
+        Type:      native long
+        Data:  26322
+    Attribute: DATE-OBS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2004-08-26"
+    Attribute: DAVERS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v14_47"
+    Attribute: DEC scalar
+        Type:      native double
+        Data:  0
+    Attribute: DERV_VER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NOCVS:v8_23"
+    Attribute: EQNX_SCN scalar
+        Type:      native double
+        Data:  2000
+    Attribute: EQUINOX scalar
+        Type:      native double
+        Data:  2000
+    Attribute: EXPTIME scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "53.907456"
+    Attribute: EXTEND scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: FILTER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "g"
+    Attribute: FLAVOR scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "science"
+    Attribute: FOCUS scalar
+        Type:      native double
+        Data:  -263.3
+    Attribute: FRAME scalar
+        Type:      native long
+        Data:  27
+    Attribute: FRAME_ID scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2009-09-22T15:50:36 05283"
+    Attribute: HISTORY scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "GSSSPUTAST: Sep 22 15:50:43 2009"
+    Attribute: INCL scalar
+        Type:      native double
+        Data:  0
+    Attribute: IPA scalar
+        Type:      native double
+        Data:  73.182
+    Attribute: IPARATE scalar
+        Type:      native double
+        Data:  0
+    Attribute: KO_VER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "devel"
+    Attribute: NAXIS scalar
+        Type:      native long
+        Data:  2
+    Attribute: NAXIS1 scalar
+        Type:      native long
+        Data:  2048
+    Attribute: NAXIS2 scalar
+        Type:      native long
+        Data:  1489
+    Attribute: NMGY scalar
+        Type:      native double
+        Data:  0.00347575
+    Attribute: NMGYIVAR scalar
+        Type:      native double
+        Data:  0.0412971
+    Attribute: NODE scalar
+        Type:      native double
+        Data:  95
+    Attribute: OBJECT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "82 N"
+    Attribute: OBSERVER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "harvanek"
+    Attribute: ORIGIN scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "SDSS"
+    Attribute: PCALIB scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "/clusterfs/riemann/raid006/bosswork/groups/boss/calib/2009-06-14/cal"
+    Attribute: PSKY scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "/clusterfs/riemann/raid006/bosswork/groups/boss/photo/sky"
+    Attribute: PS_ID scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2009-05-16T10:39:04 15233 camCol 1"
+    Attribute: RA scalar
+        Type:      native double
+        Data:  309.347
+    Attribute: RADECSYS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "ICRS"
+    Attribute: RERUN scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "301"
+    Attribute: ROWBIN scalar
+        Type:      native long
+        Data:  1
+    Attribute: RUN scalar
+        Type:      native long
+        Data:  4797
+    Attribute: SCDDECMF scalar
+        Type:      native long
+        Data:  1
+    Attribute: SCDDYNTH scalar
+        Type:      native long
+        Data:  -20
+    Attribute: SCDMETHD scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "sqrtDynamic"
+    Attribute: SCDOFSET scalar
+        Type:      native long
+        Data:  410
+    Attribute: SCDREDSZ scalar
+        Type:      native long
+        Data:  515
+    Attribute: SCDSKYL scalar
+        Type:      native long
+        Data:  2073
+    Attribute: SCDSKYR scalar
+        Type:      native long
+        Data:  2078
+    Attribute: SCDSTTHL scalar
+        Type:      native long
+        Data:  30
+    Attribute: SCDSTTHR scalar
+        Type:      native long
+        Data:  30
+    Attribute: SCDWIDTH scalar
+        Type:      native long
+        Data:  1280
+    Attribute: SIMPLE scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: SOFTBIAS scalar
+        Type:      native long
+        Data:  1000
+    Attribute: SPA scalar
+        Type:      native double
+        Data:  90
+    Attribute: STRIP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "N"
+    Attribute: STRIPE scalar
+        Type:      native long
+        Data:  82
+    Attribute: SYSTEM scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "FK5"
+    Attribute: SYS_SCN scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "mean"
+    Attribute: TAI scalar
+        Type:      native double
+        Data:  4.60022e+09
+    Attribute: TAIHMS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "06:06:49.90"
+    Attribute: TELESCOP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2.5m"
+    Attribute: TIMESYS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "TAI"
+    Attribute: VERSIDL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "7.0"
+    Attribute: VERSION scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_6_3"
+    Attribute: VERSPOP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v1_11_1"
+    Attribute: VERSUTIL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_5_5"
+    Attribute: XBORE scalar
+        Type:      native double
+        Data:  -22.74
+    Attribute: YBORE scalar
+        Type:      native double
+        Data:  0
+    Location:  1:29922432
+    Links:     1
+    Chunks:    {128, 128, 2} 131072 bytes
+    Storage:   380928 logical bytes, 524288 allocated bytes, 72.66% utilization
+    Type:      native float
+/orig_data_cube/7/29/117/469/1876/7507/30030/4600217209.9/g/(512,\ 372) Group
+    Location:  1:12856
+    Links:     1
+/orig_data_cube/7/29/117/469/1876/7507/30030/4600217209.9/g/(512,\ 372)/frame-g-004797-1-0019.fits.bz2 Dataset {372/372, 512/512, 2/2}
+    Attribute: ALT scalar
+        Type:      native double
+        Data:  55.6574
+    Attribute: ASTRO_ID scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2009-05-16T18:30:31 19532"
+    Attribute: ASTR_VER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NOCVS:v5_24"
+    Attribute: ATVSN scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NOCVS:v5_24"
+    Attribute: AZ scalar
+        Type:      native double
+        Data:  339.852
+    Attribute: BADLINES scalar
+        Type:      native long
+        Data:  0
+    Attribute: BIAS_ID scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "PS"
+    Attribute: BITPIX scalar
+        Type:      native long
+        Data:  -32
+    Attribute: BSCALE scalar
+        Type:      native double
+        Data:  1
+    Attribute: BUNIT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "nanomaggy"
+    Attribute: BZERO scalar
+        Type:      native double
+        Data:  0
+    Attribute: CAMCOL scalar
+        Type:      native long
+        Data:  1
+    Attribute: CAMROW scalar
+        Type:      native long
+        Data:  5
+    Attribute: CCDLOC scalar
+        Type:      native long
+        Data:  51
+    Attribute: CCDMODE scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "DRIFT"
+    Attribute: CD1_1 scalar
+        Type:      native double
+        Data:  1.25763e-09
+    Attribute: CD1_2 scalar
+        Type:      native double
+        Data:  0.000110002
+    Attribute: CD2_1 scalar
+        Type:      native double
+        Data:  0.000109955
+    Attribute: CD2_2 scalar
+        Type:      native double
+        Data:  -7.82053e-09
+    Attribute: COLBIN scalar
+        Type:      native long
+        Data:  1
+    Attribute: COMMENT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  " TAI,RA,DEC,SPA,IPA,IPARATE,AZ,ALT,FOCUS at reading of col 0, row 0"
+    Attribute: CRPIX1 scalar
+        Type:      native double
+        Data:  1025
+    Attribute: CRPIX2 scalar
+        Type:      native double
+        Data:  745
+    Attribute: CRVAL1 scalar
+        Type:      native double
+        Data:  308.716
+    Attribute: CRVAL2 scalar
+        Type:      native double
+        Data:  -0.944426
+    Attribute: CTYPE1 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "RA---TAN"
+    Attribute: CTYPE2 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "DEC--TAN"
+    Attribute: CUNIT1 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "deg"
+    Attribute: CUNIT2 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "deg"
+    Attribute: C_OBS scalar
+        Type:      native long
+        Data:  26322
+    Attribute: DATE-OBS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2004-08-26"
+    Attribute: DAVERS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v14_47"
+    Attribute: DEC scalar
+        Type:      native double
+        Data:  0
+    Attribute: DERV_VER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NOCVS:v8_23"
+    Attribute: EQNX_SCN scalar
+        Type:      native double
+        Data:  2000
+    Attribute: EQUINOX scalar
+        Type:      native double
+        Data:  2000
+    Attribute: EXPTIME scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "53.907456"
+    Attribute: EXTEND scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: FILTER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "g"
+    Attribute: FLAVOR scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "science"
+    Attribute: FOCUS scalar
+        Type:      native double
+        Data:  -263.3
+    Attribute: FRAME scalar
+        Type:      native long
+        Data:  27
+    Attribute: FRAME_ID scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2009-09-22T15:50:36 05283"
+    Attribute: HISTORY scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "GSSSPUTAST: Sep 22 15:50:43 2009"
+    Attribute: INCL scalar
+        Type:      native double
+        Data:  0
+    Attribute: IPA scalar
+        Type:      native double
+        Data:  73.182
+    Attribute: IPARATE scalar
+        Type:      native double
+        Data:  0
+    Attribute: KO_VER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "devel"
+    Attribute: NAXIS scalar
+        Type:      native long
+        Data:  2
+    Attribute: NAXIS1 scalar
+        Type:      native long
+        Data:  2048
+    Attribute: NAXIS2 scalar
+        Type:      native long
+        Data:  1489
+    Attribute: NMGY scalar
+        Type:      native double
+        Data:  0.00347575
+    Attribute: NMGYIVAR scalar
+        Type:      native double
+        Data:  0.0412971
+    Attribute: NODE scalar
+        Type:      native double
+        Data:  95
+    Attribute: OBJECT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "82 N"
+    Attribute: OBSERVER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "harvanek"
+    Attribute: ORIGIN scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "SDSS"
+    Attribute: PCALIB scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "/clusterfs/riemann/raid006/bosswork/groups/boss/calib/2009-06-14/cal"
+    Attribute: PSKY scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "/clusterfs/riemann/raid006/bosswork/groups/boss/photo/sky"
+    Attribute: PS_ID scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2009-05-16T10:39:04 15233 camCol 1"
+    Attribute: RA scalar
+        Type:      native double
+        Data:  309.347
+    Attribute: RADECSYS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "ICRS"
+    Attribute: RERUN scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "301"
+    Attribute: ROWBIN scalar
+        Type:      native long
+        Data:  1
+    Attribute: RUN scalar
+        Type:      native long
+        Data:  4797
+    Attribute: SCDDECMF scalar
+        Type:      native long
+        Data:  1
+    Attribute: SCDDYNTH scalar
+        Type:      native long
+        Data:  -20
+    Attribute: SCDMETHD scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "sqrtDynamic"
+    Attribute: SCDOFSET scalar
+        Type:      native long
+        Data:  410
+    Attribute: SCDREDSZ scalar
+        Type:      native long
+        Data:  515
+    Attribute: SCDSKYL scalar
+        Type:      native long
+        Data:  2073
+    Attribute: SCDSKYR scalar
+        Type:      native long
+        Data:  2078
+    Attribute: SCDSTTHL scalar
+        Type:      native long
+        Data:  30
+    Attribute: SCDSTTHR scalar
+        Type:      native long
+        Data:  30
+    Attribute: SCDWIDTH scalar
+        Type:      native long
+        Data:  1280
+    Attribute: SIMPLE scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: SOFTBIAS scalar
+        Type:      native long
+        Data:  1000
+    Attribute: SPA scalar
+        Type:      native double
+        Data:  90
+    Attribute: STRIP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "N"
+    Attribute: STRIPE scalar
+        Type:      native long
+        Data:  82
+    Attribute: SYSTEM scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "FK5"
+    Attribute: SYS_SCN scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "mean"
+    Attribute: TAI scalar
+        Type:      native double
+        Data:  4.60022e+09
+    Attribute: TAIHMS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "06:06:49.90"
+    Attribute: TELESCOP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2.5m"
+    Attribute: TIMESYS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "TAI"
+    Attribute: VERSIDL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "7.0"
+    Attribute: VERSION scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_6_3"
+    Attribute: VERSPOP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v1_11_1"
+    Attribute: VERSUTIL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_5_5"
+    Attribute: XBORE scalar
+        Type:      native double
+        Data:  -22.74
+    Attribute: YBORE scalar
+        Type:      native double
+        Data:  0
+    Location:  1:29394408
+    Links:     1
+    Chunks:    {128, 128, 2} 131072 bytes
+    Storage:   1523712 logical bytes, 1572864 allocated bytes, 96.88% utilization
+    Type:      native float
+/orig_data_cube/[1]      Group
+    Location:  1:33629168
+    Links:     1
+/orig_data_cube/[1]/[4]  Group
+    Location:  1:33629872
+    Links:     1
+/orig_data_cube/[1]/[4]/[16] Group
+    Location:  1:33630904
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66] Group
+    Location:  1:33631936
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66]/[267] Group
+    Location:  1:33632968
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071] Group
+    Location:  1:33634000
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287] Group
+    Location:  1:33635032
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148] Group
+    Location:  1:33636064
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148]/[68593] Group
+    Location:  1:33637096
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148]/[68593]/[274374] Group
+    Location:  1:33638128
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148]/[68593]/[274374]/[1097496] Group
+    Location:  1:33639160
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148]/[68593]/[274374]/[1097496]/[4389984] Group
+    Location:  1:33640192
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148]/[68593]/[274374]/[1097496]/[4389984]/[17559939] Group
+    Location:  1:33641224
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148]/[68593]/[274374]/[1097496]/[4389984]/[17559939]/55543 Group
+    Location:  1:33642256
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148]/[68593]/[274374]/[1097496]/[4389984]/[17559939]/55543/1155 Group
+    Location:  1:33645024
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148]/[68593]/[274374]/[1097496]/[4389984]/[17559939]/55543/1155/spec-4500-55543-0331.fits Dataset {1/1, 1155/1155, 2/2}
+    Attribute: BADPIXEL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "badpixels-55415-b1.fits.gz"
+    Attribute: BESTEXP scalar
+        Type:      native long
+        Data:  123951
+    Attribute: BITPIX scalar
+        Type:      native long
+        Data:  8
+    Attribute: BOREOFFX scalar
+        Type:      native double
+        Data:  0
+    Attribute: BOREOFFY scalar
+        Type:      native double
+        Data:  0
+    Attribute: BOSSVER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2"
+    Attribute: BUNIT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "1E-17 erg/cm^2/s/Ang"
+    Attribute: CARTID scalar
+        Type:      native long
+        Data:  11
+    Attribute: COEFF0 scalar
+        Type:      native double
+        Data:  3.5512
+    Attribute: COEFF1 scalar
+        Type:      native double
+        Data:  0.0001
+    Attribute: DC-FLAG scalar
+        Type:      native long
+        Data:  1
+    Attribute: DEC scalar
+        Type:      native double
+        Data:  14.3657
+    Attribute: DECDEG scalar
+        Type:      native double
+        Data:  14.3625
+    Attribute: DPTEMP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NaN"
+    Attribute: DUSTA scalar
+        Type:      native double
+        Data:  1336
+    Attribute: DUSTB scalar
+        Type:      native double
+        Data:  35.8333
+    Attribute: DUSTC scalar
+        Type:      native double
+        Data:  1391.17
+    Attribute: DUSTD scalar
+        Type:      native double
+        Data:  29.1667
+    Attribute: EQUINOX scalar
+        Type:      native double
+        Data:  2000
+    Attribute: EXPID01 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123946-00123945-00123944"
+    Attribute: EXPID02 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123947-00123945-00123944"
+    Attribute: EXPID03 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123948-00123945-00123944"
+    Attribute: EXPID04 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123949-00123945-00123944"
+    Attribute: EXPID05 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123950-00123945-00123944"
+    Attribute: EXPID06 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123951-00123945-00123944"
+    Attribute: EXPID07 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123946-00123945-00123944"
+    Attribute: EXPID08 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123947-00123945-00123944"
+    Attribute: EXPID09 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123948-00123945-00123944"
+    Attribute: EXPID10 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123949-00123945-00123944"
+    Attribute: EXPID11 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123950-00123945-00123944"
+    Attribute: EXPID12 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123951-00123945-00123944"
+    Attribute: EXPTIME scalar
+        Type:      native double
+        Data:  5405.12
+    Attribute: EXPT_B1 scalar
+        Type:      native double
+        Data:  5405.12
+    Attribute: EXPT_R1 scalar
+        Type:      native double
+        Data:  5405.12
+    Attribute: EXTEND scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: FBADPIX scalar
+        Type:      native double
+        Data:  0.0276679
+    Attribute: FBADPIX1 scalar
+        Type:      native double
+        Data:  0.0163941
+    Attribute: FBADPIX2 scalar
+        Type:      native double
+        Data:  0.0389416
+    Attribute: FIBERID scalar
+        Type:      native long
+        Data:  331
+    Attribute: FLAVOR scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "science"
+    Attribute: GOFFSTD scalar
+        Type:      native double
+        Data:  -0.00119305
+    Attribute: GRMSSTD scalar
+        Type:      native double
+        Data:  0.0818027
+    Attribute: GROFFSTD scalar
+        Type:      native double
+        Data:  -0.00366783
+    Attribute: GRRMSSTD scalar
+        Type:      native double
+        Data:  0.0512876
+    Attribute: GUIDOFFY scalar
+        Type:      native double
+        Data:  3.9e-05
+    Attribute: GUSTD scalar
+        Type:      native double
+        Data:  19.3
+    Attribute: GUSTS scalar
+        Type:      native double
+        Data:  23.2
+    Attribute: HELIO_RV scalar
+        Type:      native double
+        Data:  -21.9822
+    Attribute: HIGHREJ scalar
+        Type:      native long
+        Data:  4
+    Attribute: HUMIDITY scalar
+        Type:      native double
+        Data:  30.0333
+    Attribute: IOFFSTD scalar
+        Type:      native double
+        Data:  0.00950384
+    Attribute: IRMSSTD scalar
+        Type:      native double
+        Data:  0.0741702
+    Attribute: LOWREJ scalar
+        Type:      native long
+        Data:  4
+    Attribute: MAPID scalar
+        Type:      native long
+        Data:  1
+    Attribute: MJD scalar
+        Type:      native long
+        Data:  55543
+    Attribute: MJDLIST scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "55543"
+    Attribute: NAME scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "4500-55543-01"
+    Attribute: NAXIS scalar
+        Type:      native long
+        Data:  0
+    Attribute: NEXP scalar
+        Type:      native long
+        Data:  12
+    Attribute: NEXP_B1 scalar
+        Type:      native long
+        Data:  6
+    Attribute: NEXP_R1 scalar
+        Type:      native long
+        Data:  6
+    Attribute: NFITPOLY scalar
+        Type:      native long
+        Data:  1
+    Attribute: NSTD scalar
+        Type:      native long
+        Data:  20
+    Attribute: NWORDER scalar
+        Type:      native long
+        Data:  2
+    Attribute: PLATEID scalar
+        Type:      native long
+        Data:  4500
+    Attribute: PLUGFILE scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "plPlugMapM-4500-55543-01.par"
+    Attribute: PLUG_DEC scalar
+        Type:      native double
+        Data:  13.5122
+    Attribute: PLUG_RA scalar
+        Type:      native double
+        Data:  129.467
+    Attribute: PREJECT scalar
+        Type:      native double
+        Data:  0.2
+    Attribute: PRESSURE scalar
+        Type:      native double
+        Data:  21.5445
+    Attribute: PROFTYPE scalar
+        Type:      native long
+        Data:  1
+    Attribute: PSFSKY scalar
+        Type:      native long
+        Data:  3
+    Attribute: RA scalar
+        Type:      native double
+        Data:  129.427
+    Attribute: RADECSYS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "FK5"
+    Attribute: RADEG scalar
+        Type:      native double
+        Data:  129.429
+    Attribute: RDNOISE0 scalar
+        Type:      native double
+        Data:  2.02617
+    Attribute: REDDEN01 scalar
+        Type:      native double
+        Data:  0.186
+    Attribute: REDDEN02 scalar
+        Type:      native double
+        Data:  0.1368
+    Attribute: REDDEN03 scalar
+        Type:      native double
+        Data:  0.0992
+    Attribute: REDDEN04 scalar
+        Type:      native double
+        Data:  0.0752
+    Attribute: REDDEN05 scalar
+        Type:      native double
+        Data:  0.0534
+    Attribute: RIOFFSTD scalar
+        Type:      native double
+        Data:  -0.00341034
+    Attribute: RIRMSSTD scalar
+        Type:      native double
+        Data:  0.0312401
+    Attribute: ROFFSTD scalar
+        Type:      native double
+        Data:  0.0294752
+    Attribute: RRMSSTD scalar
+        Type:      native double
+        Data:  0.0657911
+    Attribute: RUN2D scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: SCATPOLY scalar
+        Type:      native long
+        Data:  0
+    Attribute: SCHI2MAX scalar
+        Type:      native double
+        Data:  1.10549
+    Attribute: SCHI2MIN scalar
+        Type:      native double
+        Data:  0.976991
+    Attribute: SFLATTEN scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: SHCLOTIM scalar
+        Type:      native double
+        Data:  0.57
+    Attribute: SHOPETIM scalar
+        Type:      native double
+        Data:  0.73
+    Attribute: SIMPLE scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: SKYCHI2 scalar
+        Type:      native double
+        Data:  1.02932
+    Attribute: SLITID2 scalar
+        Type:      native long
+        Data:  11
+    Attribute: SN2EXT1G scalar
+        Type:      native double
+        Data:  14.8632
+    Attribute: SN2EXT1I scalar
+        Type:      native double
+        Data:  28.9879
+    Attribute: SN2EXT1R scalar
+        Type:      native double
+        Data:  37.4706
+    Attribute: SN2EXT2G scalar
+        Type:      native double
+        Data:  11.0832
+    Attribute: SN2EXT2I scalar
+        Type:      native double
+        Data:  24.3689
+    Attribute: SN2EXT2R scalar
+        Type:      native double
+        Data:  32.5942
+    Attribute: SPCOADD scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "Fri May 27 07:51:52 2016"
+    Attribute: SPEC1_G scalar
+        Type:      native double
+        Data:  14.8632
+    Attribute: SPEC1_I scalar
+        Type:      native double
+        Data:  28.9879
+    Attribute: SPEC1_R scalar
+        Type:      native double
+        Data:  37.4706
+    Attribute: SPEC2_G scalar
+        Type:      native double
+        Data:  11.0832
+    Attribute: SPEC2_I scalar
+        Type:      native double
+        Data:  24.3689
+    Attribute: SPEC2_R scalar
+        Type:      native double
+        Data:  32.5942
+    Attribute: TELESCOP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "SDSS 2.5-M"
+    Attribute: TEMP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NaN"
+    Attribute: THING_ID scalar
+        Type:      native long
+        Data:  231119380
+    Attribute: TILEID scalar
+        Type:      native long
+        Data:  11052
+    Attribute: VACUUM scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: VERS2D scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: VERSCOMB scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: VERSFLAT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v1_25"
+    Attribute: VERSIDL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "7.1.1"
+    Attribute: VERSLOG scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "trunk 23369"
+    Attribute: VERSREAD scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: VERSUTIL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_5_17"
+    Attribute: WAT0_001 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "system=linear"
+    Attribute: WAT1_001 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "wtype=linear label=Wavelength units=Angstroms"
+    Attribute: WFITTYPE scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "LOG-LINEAR"
+    Attribute: WINDD scalar
+        Type:      native double
+        Data:  19.9667
+    Attribute: WINDS scalar
+        Type:      native double
+        Data:  15
+    Attribute: XCHI2 scalar
+        Type:      native double
+        Data:  0
+    Location:  1:33685296
+    Links:     1
+    Storage:   9240 logical bytes, 9240 allocated bytes, 100.00% utilization
+    Type:      native float
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148]/[68593]/[274374]/[1097496]/[4389984]/[17559939]/55543/2310 Group
+    Location:  1:33644320
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148]/[68593]/[274374]/[1097496]/[4389984]/[17559939]/55543/2310/spec-4500-55543-0331.fits Dataset {1/1, 2310/2310, 2/2}
+    Attribute: BADPIXEL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "badpixels-55415-b1.fits.gz"
+    Attribute: BESTEXP scalar
+        Type:      native long
+        Data:  123951
+    Attribute: BITPIX scalar
+        Type:      native long
+        Data:  8
+    Attribute: BOREOFFX scalar
+        Type:      native double
+        Data:  0
+    Attribute: BOREOFFY scalar
+        Type:      native double
+        Data:  0
+    Attribute: BOSSVER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2"
+    Attribute: BUNIT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "1E-17 erg/cm^2/s/Ang"
+    Attribute: CARTID scalar
+        Type:      native long
+        Data:  11
+    Attribute: COEFF0 scalar
+        Type:      native double
+        Data:  3.5512
+    Attribute: COEFF1 scalar
+        Type:      native double
+        Data:  0.0001
+    Attribute: DC-FLAG scalar
+        Type:      native long
+        Data:  1
+    Attribute: DEC scalar
+        Type:      native double
+        Data:  14.3657
+    Attribute: DECDEG scalar
+        Type:      native double
+        Data:  14.3625
+    Attribute: DPTEMP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NaN"
+    Attribute: DUSTA scalar
+        Type:      native double
+        Data:  1336
+    Attribute: DUSTB scalar
+        Type:      native double
+        Data:  35.8333
+    Attribute: DUSTC scalar
+        Type:      native double
+        Data:  1391.17
+    Attribute: DUSTD scalar
+        Type:      native double
+        Data:  29.1667
+    Attribute: EQUINOX scalar
+        Type:      native double
+        Data:  2000
+    Attribute: EXPID01 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123946-00123945-00123944"
+    Attribute: EXPID02 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123947-00123945-00123944"
+    Attribute: EXPID03 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123948-00123945-00123944"
+    Attribute: EXPID04 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123949-00123945-00123944"
+    Attribute: EXPID05 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123950-00123945-00123944"
+    Attribute: EXPID06 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123951-00123945-00123944"
+    Attribute: EXPID07 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123946-00123945-00123944"
+    Attribute: EXPID08 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123947-00123945-00123944"
+    Attribute: EXPID09 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123948-00123945-00123944"
+    Attribute: EXPID10 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123949-00123945-00123944"
+    Attribute: EXPID11 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123950-00123945-00123944"
+    Attribute: EXPID12 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123951-00123945-00123944"
+    Attribute: EXPTIME scalar
+        Type:      native double
+        Data:  5405.12
+    Attribute: EXPT_B1 scalar
+        Type:      native double
+        Data:  5405.12
+    Attribute: EXPT_R1 scalar
+        Type:      native double
+        Data:  5405.12
+    Attribute: EXTEND scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: FBADPIX scalar
+        Type:      native double
+        Data:  0.0276679
+    Attribute: FBADPIX1 scalar
+        Type:      native double
+        Data:  0.0163941
+    Attribute: FBADPIX2 scalar
+        Type:      native double
+        Data:  0.0389416
+    Attribute: FIBERID scalar
+        Type:      native long
+        Data:  331
+    Attribute: FLAVOR scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "science"
+    Attribute: GOFFSTD scalar
+        Type:      native double
+        Data:  -0.00119305
+    Attribute: GRMSSTD scalar
+        Type:      native double
+        Data:  0.0818027
+    Attribute: GROFFSTD scalar
+        Type:      native double
+        Data:  -0.00366783
+    Attribute: GRRMSSTD scalar
+        Type:      native double
+        Data:  0.0512876
+    Attribute: GUIDOFFY scalar
+        Type:      native double
+        Data:  3.9e-05
+    Attribute: GUSTD scalar
+        Type:      native double
+        Data:  19.3
+    Attribute: GUSTS scalar
+        Type:      native double
+        Data:  23.2
+    Attribute: HELIO_RV scalar
+        Type:      native double
+        Data:  -21.9822
+    Attribute: HIGHREJ scalar
+        Type:      native long
+        Data:  4
+    Attribute: HUMIDITY scalar
+        Type:      native double
+        Data:  30.0333
+    Attribute: IOFFSTD scalar
+        Type:      native double
+        Data:  0.00950384
+    Attribute: IRMSSTD scalar
+        Type:      native double
+        Data:  0.0741702
+    Attribute: LOWREJ scalar
+        Type:      native long
+        Data:  4
+    Attribute: MAPID scalar
+        Type:      native long
+        Data:  1
+    Attribute: MJD scalar
+        Type:      native long
+        Data:  55543
+    Attribute: MJDLIST scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "55543"
+    Attribute: NAME scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "4500-55543-01"
+    Attribute: NAXIS scalar
+        Type:      native long
+        Data:  0
+    Attribute: NEXP scalar
+        Type:      native long
+        Data:  12
+    Attribute: NEXP_B1 scalar
+        Type:      native long
+        Data:  6
+    Attribute: NEXP_R1 scalar
+        Type:      native long
+        Data:  6
+    Attribute: NFITPOLY scalar
+        Type:      native long
+        Data:  1
+    Attribute: NSTD scalar
+        Type:      native long
+        Data:  20
+    Attribute: NWORDER scalar
+        Type:      native long
+        Data:  2
+    Attribute: PLATEID scalar
+        Type:      native long
+        Data:  4500
+    Attribute: PLUGFILE scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "plPlugMapM-4500-55543-01.par"
+    Attribute: PLUG_DEC scalar
+        Type:      native double
+        Data:  13.5122
+    Attribute: PLUG_RA scalar
+        Type:      native double
+        Data:  129.467
+    Attribute: PREJECT scalar
+        Type:      native double
+        Data:  0.2
+    Attribute: PRESSURE scalar
+        Type:      native double
+        Data:  21.5445
+    Attribute: PROFTYPE scalar
+        Type:      native long
+        Data:  1
+    Attribute: PSFSKY scalar
+        Type:      native long
+        Data:  3
+    Attribute: RA scalar
+        Type:      native double
+        Data:  129.427
+    Attribute: RADECSYS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "FK5"
+    Attribute: RADEG scalar
+        Type:      native double
+        Data:  129.429
+    Attribute: RDNOISE0 scalar
+        Type:      native double
+        Data:  2.02617
+    Attribute: REDDEN01 scalar
+        Type:      native double
+        Data:  0.186
+    Attribute: REDDEN02 scalar
+        Type:      native double
+        Data:  0.1368
+    Attribute: REDDEN03 scalar
+        Type:      native double
+        Data:  0.0992
+    Attribute: REDDEN04 scalar
+        Type:      native double
+        Data:  0.0752
+    Attribute: REDDEN05 scalar
+        Type:      native double
+        Data:  0.0534
+    Attribute: RIOFFSTD scalar
+        Type:      native double
+        Data:  -0.00341034
+    Attribute: RIRMSSTD scalar
+        Type:      native double
+        Data:  0.0312401
+    Attribute: ROFFSTD scalar
+        Type:      native double
+        Data:  0.0294752
+    Attribute: RRMSSTD scalar
+        Type:      native double
+        Data:  0.0657911
+    Attribute: RUN2D scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: SCATPOLY scalar
+        Type:      native long
+        Data:  0
+    Attribute: SCHI2MAX scalar
+        Type:      native double
+        Data:  1.10549
+    Attribute: SCHI2MIN scalar
+        Type:      native double
+        Data:  0.976991
+    Attribute: SFLATTEN scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: SHCLOTIM scalar
+        Type:      native double
+        Data:  0.57
+    Attribute: SHOPETIM scalar
+        Type:      native double
+        Data:  0.73
+    Attribute: SIMPLE scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: SKYCHI2 scalar
+        Type:      native double
+        Data:  1.02932
+    Attribute: SLITID2 scalar
+        Type:      native long
+        Data:  11
+    Attribute: SN2EXT1G scalar
+        Type:      native double
+        Data:  14.8632
+    Attribute: SN2EXT1I scalar
+        Type:      native double
+        Data:  28.9879
+    Attribute: SN2EXT1R scalar
+        Type:      native double
+        Data:  37.4706
+    Attribute: SN2EXT2G scalar
+        Type:      native double
+        Data:  11.0832
+    Attribute: SN2EXT2I scalar
+        Type:      native double
+        Data:  24.3689
+    Attribute: SN2EXT2R scalar
+        Type:      native double
+        Data:  32.5942
+    Attribute: SPCOADD scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "Fri May 27 07:51:52 2016"
+    Attribute: SPEC1_G scalar
+        Type:      native double
+        Data:  14.8632
+    Attribute: SPEC1_I scalar
+        Type:      native double
+        Data:  28.9879
+    Attribute: SPEC1_R scalar
+        Type:      native double
+        Data:  37.4706
+    Attribute: SPEC2_G scalar
+        Type:      native double
+        Data:  11.0832
+    Attribute: SPEC2_I scalar
+        Type:      native double
+        Data:  24.3689
+    Attribute: SPEC2_R scalar
+        Type:      native double
+        Data:  32.5942
+    Attribute: TELESCOP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "SDSS 2.5-M"
+    Attribute: TEMP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NaN"
+    Attribute: THING_ID scalar
+        Type:      native long
+        Data:  231119380
+    Attribute: TILEID scalar
+        Type:      native long
+        Data:  11052
+    Attribute: VACUUM scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: VERS2D scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: VERSCOMB scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: VERSFLAT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v1_25"
+    Attribute: VERSIDL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "7.1.1"
+    Attribute: VERSLOG scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "trunk 23369"
+    Attribute: VERSREAD scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: VERSUTIL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_5_17"
+    Attribute: WAT0_001 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "system=linear"
+    Attribute: WAT1_001 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "wtype=linear label=Wavelength units=Angstroms"
+    Attribute: WFITTYPE scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "LOG-LINEAR"
+    Attribute: WINDD scalar
+        Type:      native double
+        Data:  19.9667
+    Attribute: WINDS scalar
+        Type:      native double
+        Data:  15
+    Attribute: XCHI2 scalar
+        Type:      native double
+        Data:  0
+    Location:  1:33684696
+    Links:     1
+    Storage:   18480 logical bytes, 18480 allocated bytes, 100.00% utilization
+    Type:      native float
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148]/[68593]/[274374]/[1097496]/[4389984]/[17559939]/55543/288 Group
+    Location:  1:33646432
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148]/[68593]/[274374]/[1097496]/[4389984]/[17559939]/55543/288/spec-4500-55543-0331.fits Dataset {1/1, 288/288, 2/2}
+    Attribute: BADPIXEL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "badpixels-55415-b1.fits.gz"
+    Attribute: BESTEXP scalar
+        Type:      native long
+        Data:  123951
+    Attribute: BITPIX scalar
+        Type:      native long
+        Data:  8
+    Attribute: BOREOFFX scalar
+        Type:      native double
+        Data:  0
+    Attribute: BOREOFFY scalar
+        Type:      native double
+        Data:  0
+    Attribute: BOSSVER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2"
+    Attribute: BUNIT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "1E-17 erg/cm^2/s/Ang"
+    Attribute: CARTID scalar
+        Type:      native long
+        Data:  11
+    Attribute: COEFF0 scalar
+        Type:      native double
+        Data:  3.5512
+    Attribute: COEFF1 scalar
+        Type:      native double
+        Data:  0.0001
+    Attribute: DC-FLAG scalar
+        Type:      native long
+        Data:  1
+    Attribute: DEC scalar
+        Type:      native double
+        Data:  14.3657
+    Attribute: DECDEG scalar
+        Type:      native double
+        Data:  14.3625
+    Attribute: DPTEMP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NaN"
+    Attribute: DUSTA scalar
+        Type:      native double
+        Data:  1336
+    Attribute: DUSTB scalar
+        Type:      native double
+        Data:  35.8333
+    Attribute: DUSTC scalar
+        Type:      native double
+        Data:  1391.17
+    Attribute: DUSTD scalar
+        Type:      native double
+        Data:  29.1667
+    Attribute: EQUINOX scalar
+        Type:      native double
+        Data:  2000
+    Attribute: EXPID01 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123946-00123945-00123944"
+    Attribute: EXPID02 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123947-00123945-00123944"
+    Attribute: EXPID03 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123948-00123945-00123944"
+    Attribute: EXPID04 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123949-00123945-00123944"
+    Attribute: EXPID05 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123950-00123945-00123944"
+    Attribute: EXPID06 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123951-00123945-00123944"
+    Attribute: EXPID07 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123946-00123945-00123944"
+    Attribute: EXPID08 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123947-00123945-00123944"
+    Attribute: EXPID09 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123948-00123945-00123944"
+    Attribute: EXPID10 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123949-00123945-00123944"
+    Attribute: EXPID11 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123950-00123945-00123944"
+    Attribute: EXPID12 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123951-00123945-00123944"
+    Attribute: EXPTIME scalar
+        Type:      native double
+        Data:  5405.12
+    Attribute: EXPT_B1 scalar
+        Type:      native double
+        Data:  5405.12
+    Attribute: EXPT_R1 scalar
+        Type:      native double
+        Data:  5405.12
+    Attribute: EXTEND scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: FBADPIX scalar
+        Type:      native double
+        Data:  0.0276679
+    Attribute: FBADPIX1 scalar
+        Type:      native double
+        Data:  0.0163941
+    Attribute: FBADPIX2 scalar
+        Type:      native double
+        Data:  0.0389416
+    Attribute: FIBERID scalar
+        Type:      native long
+        Data:  331
+    Attribute: FLAVOR scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "science"
+    Attribute: GOFFSTD scalar
+        Type:      native double
+        Data:  -0.00119305
+    Attribute: GRMSSTD scalar
+        Type:      native double
+        Data:  0.0818027
+    Attribute: GROFFSTD scalar
+        Type:      native double
+        Data:  -0.00366783
+    Attribute: GRRMSSTD scalar
+        Type:      native double
+        Data:  0.0512876
+    Attribute: GUIDOFFY scalar
+        Type:      native double
+        Data:  3.9e-05
+    Attribute: GUSTD scalar
+        Type:      native double
+        Data:  19.3
+    Attribute: GUSTS scalar
+        Type:      native double
+        Data:  23.2
+    Attribute: HELIO_RV scalar
+        Type:      native double
+        Data:  -21.9822
+    Attribute: HIGHREJ scalar
+        Type:      native long
+        Data:  4
+    Attribute: HUMIDITY scalar
+        Type:      native double
+        Data:  30.0333
+    Attribute: IOFFSTD scalar
+        Type:      native double
+        Data:  0.00950384
+    Attribute: IRMSSTD scalar
+        Type:      native double
+        Data:  0.0741702
+    Attribute: LOWREJ scalar
+        Type:      native long
+        Data:  4
+    Attribute: MAPID scalar
+        Type:      native long
+        Data:  1
+    Attribute: MJD scalar
+        Type:      native long
+        Data:  55543
+    Attribute: MJDLIST scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "55543"
+    Attribute: NAME scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "4500-55543-01"
+    Attribute: NAXIS scalar
+        Type:      native long
+        Data:  0
+    Attribute: NEXP scalar
+        Type:      native long
+        Data:  12
+    Attribute: NEXP_B1 scalar
+        Type:      native long
+        Data:  6
+    Attribute: NEXP_R1 scalar
+        Type:      native long
+        Data:  6
+    Attribute: NFITPOLY scalar
+        Type:      native long
+        Data:  1
+    Attribute: NSTD scalar
+        Type:      native long
+        Data:  20
+    Attribute: NWORDER scalar
+        Type:      native long
+        Data:  2
+    Attribute: PLATEID scalar
+        Type:      native long
+        Data:  4500
+    Attribute: PLUGFILE scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "plPlugMapM-4500-55543-01.par"
+    Attribute: PLUG_DEC scalar
+        Type:      native double
+        Data:  13.5122
+    Attribute: PLUG_RA scalar
+        Type:      native double
+        Data:  129.467
+    Attribute: PREJECT scalar
+        Type:      native double
+        Data:  0.2
+    Attribute: PRESSURE scalar
+        Type:      native double
+        Data:  21.5445
+    Attribute: PROFTYPE scalar
+        Type:      native long
+        Data:  1
+    Attribute: PSFSKY scalar
+        Type:      native long
+        Data:  3
+    Attribute: RA scalar
+        Type:      native double
+        Data:  129.427
+    Attribute: RADECSYS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "FK5"
+    Attribute: RADEG scalar
+        Type:      native double
+        Data:  129.429
+    Attribute: RDNOISE0 scalar
+        Type:      native double
+        Data:  2.02617
+    Attribute: REDDEN01 scalar
+        Type:      native double
+        Data:  0.186
+    Attribute: REDDEN02 scalar
+        Type:      native double
+        Data:  0.1368
+    Attribute: REDDEN03 scalar
+        Type:      native double
+        Data:  0.0992
+    Attribute: REDDEN04 scalar
+        Type:      native double
+        Data:  0.0752
+    Attribute: REDDEN05 scalar
+        Type:      native double
+        Data:  0.0534
+    Attribute: RIOFFSTD scalar
+        Type:      native double
+        Data:  -0.00341034
+    Attribute: RIRMSSTD scalar
+        Type:      native double
+        Data:  0.0312401
+    Attribute: ROFFSTD scalar
+        Type:      native double
+        Data:  0.0294752
+    Attribute: RRMSSTD scalar
+        Type:      native double
+        Data:  0.0657911
+    Attribute: RUN2D scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: SCATPOLY scalar
+        Type:      native long
+        Data:  0
+    Attribute: SCHI2MAX scalar
+        Type:      native double
+        Data:  1.10549
+    Attribute: SCHI2MIN scalar
+        Type:      native double
+        Data:  0.976991
+    Attribute: SFLATTEN scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: SHCLOTIM scalar
+        Type:      native double
+        Data:  0.57
+    Attribute: SHOPETIM scalar
+        Type:      native double
+        Data:  0.73
+    Attribute: SIMPLE scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: SKYCHI2 scalar
+        Type:      native double
+        Data:  1.02932
+    Attribute: SLITID2 scalar
+        Type:      native long
+        Data:  11
+    Attribute: SN2EXT1G scalar
+        Type:      native double
+        Data:  14.8632
+    Attribute: SN2EXT1I scalar
+        Type:      native double
+        Data:  28.9879
+    Attribute: SN2EXT1R scalar
+        Type:      native double
+        Data:  37.4706
+    Attribute: SN2EXT2G scalar
+        Type:      native double
+        Data:  11.0832
+    Attribute: SN2EXT2I scalar
+        Type:      native double
+        Data:  24.3689
+    Attribute: SN2EXT2R scalar
+        Type:      native double
+        Data:  32.5942
+    Attribute: SPCOADD scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "Fri May 27 07:51:52 2016"
+    Attribute: SPEC1_G scalar
+        Type:      native double
+        Data:  14.8632
+    Attribute: SPEC1_I scalar
+        Type:      native double
+        Data:  28.9879
+    Attribute: SPEC1_R scalar
+        Type:      native double
+        Data:  37.4706
+    Attribute: SPEC2_G scalar
+        Type:      native double
+        Data:  11.0832
+    Attribute: SPEC2_I scalar
+        Type:      native double
+        Data:  24.3689
+    Attribute: SPEC2_R scalar
+        Type:      native double
+        Data:  32.5942
+    Attribute: TELESCOP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "SDSS 2.5-M"
+    Attribute: TEMP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NaN"
+    Attribute: THING_ID scalar
+        Type:      native long
+        Data:  231119380
+    Attribute: TILEID scalar
+        Type:      native long
+        Data:  11052
+    Attribute: VACUUM scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: VERS2D scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: VERSCOMB scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: VERSFLAT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v1_25"
+    Attribute: VERSIDL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "7.1.1"
+    Attribute: VERSLOG scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "trunk 23369"
+    Attribute: VERSREAD scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: VERSUTIL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_5_17"
+    Attribute: WAT0_001 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "system=linear"
+    Attribute: WAT1_001 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "wtype=linear label=Wavelength units=Angstroms"
+    Attribute: WFITTYPE scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "LOG-LINEAR"
+    Attribute: WINDD scalar
+        Type:      native double
+        Data:  19.9667
+    Attribute: WINDS scalar
+        Type:      native double
+        Data:  15
+    Attribute: XCHI2 scalar
+        Type:      native double
+        Data:  0
+    Location:  1:33719080
+    Links:     1
+    Storage:   2304 logical bytes, 2304 allocated bytes, 100.00% utilization
+    Type:      native float
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148]/[68593]/[274374]/[1097496]/[4389984]/[17559939]/55543/4620 Group
+    Location:  1:33643288
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148]/[68593]/[274374]/[1097496]/[4389984]/[17559939]/55543/4620/spec-4500-55543-0331.fits Dataset {1/1, 4620/4620, 2/2}
+    Attribute: BADPIXEL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "badpixels-55415-b1.fits.gz"
+    Attribute: BESTEXP scalar
+        Type:      native long
+        Data:  123951
+    Attribute: BITPIX scalar
+        Type:      native long
+        Data:  8
+    Attribute: BOREOFFX scalar
+        Type:      native double
+        Data:  0
+    Attribute: BOREOFFY scalar
+        Type:      native double
+        Data:  0
+    Attribute: BOSSVER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2"
+    Attribute: BUNIT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "1E-17 erg/cm^2/s/Ang"
+    Attribute: CARTID scalar
+        Type:      native long
+        Data:  11
+    Attribute: COEFF0 scalar
+        Type:      native double
+        Data:  3.5512
+    Attribute: COEFF1 scalar
+        Type:      native double
+        Data:  0.0001
+    Attribute: DC-FLAG scalar
+        Type:      native long
+        Data:  1
+    Attribute: DEC scalar
+        Type:      native double
+        Data:  14.3657
+    Attribute: DECDEG scalar
+        Type:      native double
+        Data:  14.3625
+    Attribute: DPTEMP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NaN"
+    Attribute: DUSTA scalar
+        Type:      native double
+        Data:  1336
+    Attribute: DUSTB scalar
+        Type:      native double
+        Data:  35.8333
+    Attribute: DUSTC scalar
+        Type:      native double
+        Data:  1391.17
+    Attribute: DUSTD scalar
+        Type:      native double
+        Data:  29.1667
+    Attribute: EQUINOX scalar
+        Type:      native double
+        Data:  2000
+    Attribute: EXPID01 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123946-00123945-00123944"
+    Attribute: EXPID02 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123947-00123945-00123944"
+    Attribute: EXPID03 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123948-00123945-00123944"
+    Attribute: EXPID04 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123949-00123945-00123944"
+    Attribute: EXPID05 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123950-00123945-00123944"
+    Attribute: EXPID06 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123951-00123945-00123944"
+    Attribute: EXPID07 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123946-00123945-00123944"
+    Attribute: EXPID08 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123947-00123945-00123944"
+    Attribute: EXPID09 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123948-00123945-00123944"
+    Attribute: EXPID10 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123949-00123945-00123944"
+    Attribute: EXPID11 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123950-00123945-00123944"
+    Attribute: EXPID12 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123951-00123945-00123944"
+    Attribute: EXPTIME scalar
+        Type:      native double
+        Data:  5405.12
+    Attribute: EXPT_B1 scalar
+        Type:      native double
+        Data:  5405.12
+    Attribute: EXPT_R1 scalar
+        Type:      native double
+        Data:  5405.12
+    Attribute: EXTEND scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: FBADPIX scalar
+        Type:      native double
+        Data:  0.0276679
+    Attribute: FBADPIX1 scalar
+        Type:      native double
+        Data:  0.0163941
+    Attribute: FBADPIX2 scalar
+        Type:      native double
+        Data:  0.0389416
+    Attribute: FIBERID scalar
+        Type:      native long
+        Data:  331
+    Attribute: FLAVOR scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "science"
+    Attribute: GOFFSTD scalar
+        Type:      native double
+        Data:  -0.00119305
+    Attribute: GRMSSTD scalar
+        Type:      native double
+        Data:  0.0818027
+    Attribute: GROFFSTD scalar
+        Type:      native double
+        Data:  -0.00366783
+    Attribute: GRRMSSTD scalar
+        Type:      native double
+        Data:  0.0512876
+    Attribute: GUIDOFFY scalar
+        Type:      native double
+        Data:  3.9e-05
+    Attribute: GUSTD scalar
+        Type:      native double
+        Data:  19.3
+    Attribute: GUSTS scalar
+        Type:      native double
+        Data:  23.2
+    Attribute: HELIO_RV scalar
+        Type:      native double
+        Data:  -21.9822
+    Attribute: HIGHREJ scalar
+        Type:      native long
+        Data:  4
+    Attribute: HUMIDITY scalar
+        Type:      native double
+        Data:  30.0333
+    Attribute: IOFFSTD scalar
+        Type:      native double
+        Data:  0.00950384
+    Attribute: IRMSSTD scalar
+        Type:      native double
+        Data:  0.0741702
+    Attribute: LOWREJ scalar
+        Type:      native long
+        Data:  4
+    Attribute: MAPID scalar
+        Type:      native long
+        Data:  1
+    Attribute: MJD scalar
+        Type:      native long
+        Data:  55543
+    Attribute: MJDLIST scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "55543"
+    Attribute: NAME scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "4500-55543-01"
+    Attribute: NAXIS scalar
+        Type:      native long
+        Data:  0
+    Attribute: NEXP scalar
+        Type:      native long
+        Data:  12
+    Attribute: NEXP_B1 scalar
+        Type:      native long
+        Data:  6
+    Attribute: NEXP_R1 scalar
+        Type:      native long
+        Data:  6
+    Attribute: NFITPOLY scalar
+        Type:      native long
+        Data:  1
+    Attribute: NSTD scalar
+        Type:      native long
+        Data:  20
+    Attribute: NWORDER scalar
+        Type:      native long
+        Data:  2
+    Attribute: PLATEID scalar
+        Type:      native long
+        Data:  4500
+    Attribute: PLUGFILE scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "plPlugMapM-4500-55543-01.par"
+    Attribute: PLUG_DEC scalar
+        Type:      native double
+        Data:  13.5122
+    Attribute: PLUG_RA scalar
+        Type:      native double
+        Data:  129.467
+    Attribute: PREJECT scalar
+        Type:      native double
+        Data:  0.2
+    Attribute: PRESSURE scalar
+        Type:      native double
+        Data:  21.5445
+    Attribute: PROFTYPE scalar
+        Type:      native long
+        Data:  1
+    Attribute: PSFSKY scalar
+        Type:      native long
+        Data:  3
+    Attribute: RA scalar
+        Type:      native double
+        Data:  129.427
+    Attribute: RADECSYS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "FK5"
+    Attribute: RADEG scalar
+        Type:      native double
+        Data:  129.429
+    Attribute: RDNOISE0 scalar
+        Type:      native double
+        Data:  2.02617
+    Attribute: REDDEN01 scalar
+        Type:      native double
+        Data:  0.186
+    Attribute: REDDEN02 scalar
+        Type:      native double
+        Data:  0.1368
+    Attribute: REDDEN03 scalar
+        Type:      native double
+        Data:  0.0992
+    Attribute: REDDEN04 scalar
+        Type:      native double
+        Data:  0.0752
+    Attribute: REDDEN05 scalar
+        Type:      native double
+        Data:  0.0534
+    Attribute: RIOFFSTD scalar
+        Type:      native double
+        Data:  -0.00341034
+    Attribute: RIRMSSTD scalar
+        Type:      native double
+        Data:  0.0312401
+    Attribute: ROFFSTD scalar
+        Type:      native double
+        Data:  0.0294752
+    Attribute: RRMSSTD scalar
+        Type:      native double
+        Data:  0.0657911
+    Attribute: RUN2D scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: SCATPOLY scalar
+        Type:      native long
+        Data:  0
+    Attribute: SCHI2MAX scalar
+        Type:      native double
+        Data:  1.10549
+    Attribute: SCHI2MIN scalar
+        Type:      native double
+        Data:  0.976991
+    Attribute: SFLATTEN scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: SHCLOTIM scalar
+        Type:      native double
+        Data:  0.57
+    Attribute: SHOPETIM scalar
+        Type:      native double
+        Data:  0.73
+    Attribute: SIMPLE scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: SKYCHI2 scalar
+        Type:      native double
+        Data:  1.02932
+    Attribute: SLITID2 scalar
+        Type:      native long
+        Data:  11
+    Attribute: SN2EXT1G scalar
+        Type:      native double
+        Data:  14.8632
+    Attribute: SN2EXT1I scalar
+        Type:      native double
+        Data:  28.9879
+    Attribute: SN2EXT1R scalar
+        Type:      native double
+        Data:  37.4706
+    Attribute: SN2EXT2G scalar
+        Type:      native double
+        Data:  11.0832
+    Attribute: SN2EXT2I scalar
+        Type:      native double
+        Data:  24.3689
+    Attribute: SN2EXT2R scalar
+        Type:      native double
+        Data:  32.5942
+    Attribute: SPCOADD scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "Fri May 27 07:51:52 2016"
+    Attribute: SPEC1_G scalar
+        Type:      native double
+        Data:  14.8632
+    Attribute: SPEC1_I scalar
+        Type:      native double
+        Data:  28.9879
+    Attribute: SPEC1_R scalar
+        Type:      native double
+        Data:  37.4706
+    Attribute: SPEC2_G scalar
+        Type:      native double
+        Data:  11.0832
+    Attribute: SPEC2_I scalar
+        Type:      native double
+        Data:  24.3689
+    Attribute: SPEC2_R scalar
+        Type:      native double
+        Data:  32.5942
+    Attribute: TELESCOP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "SDSS 2.5-M"
+    Attribute: TEMP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NaN"
+    Attribute: THING_ID scalar
+        Type:      native long
+        Data:  231119380
+    Attribute: TILEID scalar
+        Type:      native long
+        Data:  11052
+    Attribute: VACUUM scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: VERS2D scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: VERSCOMB scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: VERSFLAT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v1_25"
+    Attribute: VERSIDL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "7.1.1"
+    Attribute: VERSLOG scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "trunk 23369"
+    Attribute: VERSREAD scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: VERSUTIL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_5_17"
+    Attribute: WAT0_001 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "system=linear"
+    Attribute: WAT1_001 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "wtype=linear label=Wavelength units=Angstroms"
+    Attribute: WFITTYPE scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "LOG-LINEAR"
+    Attribute: WINDD scalar
+        Type:      native double
+        Data:  19.9667
+    Attribute: WINDS scalar
+        Type:      native double
+        Data:  15
+    Attribute: XCHI2 scalar
+        Type:      native double
+        Data:  0
+    Location:  1:33647136
+    Links:     1
+    Storage:   36960 logical bytes, 36960 allocated bytes, 100.00% utilization
+    Type:      native float
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148]/[68593]/[274374]/[1097496]/[4389984]/[17559939]/55543/577 Group
+    Location:  1:33645728
+    Links:     1
+/orig_data_cube/[1]/[4]/[16]/[66]/[267]/[1071]/[4287]/[17148]/[68593]/[274374]/[1097496]/[4389984]/[17559939]/55543/577/spec-4500-55543-0331.fits Dataset {1/1, 577/577, 2/2}
+    Attribute: BADPIXEL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "badpixels-55415-b1.fits.gz"
+    Attribute: BESTEXP scalar
+        Type:      native long
+        Data:  123951
+    Attribute: BITPIX scalar
+        Type:      native long
+        Data:  8
+    Attribute: BOREOFFX scalar
+        Type:      native double
+        Data:  0
+    Attribute: BOREOFFY scalar
+        Type:      native double
+        Data:  0
+    Attribute: BOSSVER scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "2"
+    Attribute: BUNIT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "1E-17 erg/cm^2/s/Ang"
+    Attribute: CARTID scalar
+        Type:      native long
+        Data:  11
+    Attribute: COEFF0 scalar
+        Type:      native double
+        Data:  3.5512
+    Attribute: COEFF1 scalar
+        Type:      native double
+        Data:  0.0001
+    Attribute: DC-FLAG scalar
+        Type:      native long
+        Data:  1
+    Attribute: DEC scalar
+        Type:      native double
+        Data:  14.3657
+    Attribute: DECDEG scalar
+        Type:      native double
+        Data:  14.3625
+    Attribute: DPTEMP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NaN"
+    Attribute: DUSTA scalar
+        Type:      native double
+        Data:  1336
+    Attribute: DUSTB scalar
+        Type:      native double
+        Data:  35.8333
+    Attribute: DUSTC scalar
+        Type:      native double
+        Data:  1391.17
+    Attribute: DUSTD scalar
+        Type:      native double
+        Data:  29.1667
+    Attribute: EQUINOX scalar
+        Type:      native double
+        Data:  2000
+    Attribute: EXPID01 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123946-00123945-00123944"
+    Attribute: EXPID02 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123947-00123945-00123944"
+    Attribute: EXPID03 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123948-00123945-00123944"
+    Attribute: EXPID04 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123949-00123945-00123944"
+    Attribute: EXPID05 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123950-00123945-00123944"
+    Attribute: EXPID06 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "b1-00123951-00123945-00123944"
+    Attribute: EXPID07 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123946-00123945-00123944"
+    Attribute: EXPID08 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123947-00123945-00123944"
+    Attribute: EXPID09 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123948-00123945-00123944"
+    Attribute: EXPID10 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123949-00123945-00123944"
+    Attribute: EXPID11 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123950-00123945-00123944"
+    Attribute: EXPID12 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "r1-00123951-00123945-00123944"
+    Attribute: EXPTIME scalar
+        Type:      native double
+        Data:  5405.12
+    Attribute: EXPT_B1 scalar
+        Type:      native double
+        Data:  5405.12
+    Attribute: EXPT_R1 scalar
+        Type:      native double
+        Data:  5405.12
+    Attribute: EXTEND scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: FBADPIX scalar
+        Type:      native double
+        Data:  0.0276679
+    Attribute: FBADPIX1 scalar
+        Type:      native double
+        Data:  0.0163941
+    Attribute: FBADPIX2 scalar
+        Type:      native double
+        Data:  0.0389416
+    Attribute: FIBERID scalar
+        Type:      native long
+        Data:  331
+    Attribute: FLAVOR scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "science"
+    Attribute: GOFFSTD scalar
+        Type:      native double
+        Data:  -0.00119305
+    Attribute: GRMSSTD scalar
+        Type:      native double
+        Data:  0.0818027
+    Attribute: GROFFSTD scalar
+        Type:      native double
+        Data:  -0.00366783
+    Attribute: GRRMSSTD scalar
+        Type:      native double
+        Data:  0.0512876
+    Attribute: GUIDOFFY scalar
+        Type:      native double
+        Data:  3.9e-05
+    Attribute: GUSTD scalar
+        Type:      native double
+        Data:  19.3
+    Attribute: GUSTS scalar
+        Type:      native double
+        Data:  23.2
+    Attribute: HELIO_RV scalar
+        Type:      native double
+        Data:  -21.9822
+    Attribute: HIGHREJ scalar
+        Type:      native long
+        Data:  4
+    Attribute: HUMIDITY scalar
+        Type:      native double
+        Data:  30.0333
+    Attribute: IOFFSTD scalar
+        Type:      native double
+        Data:  0.00950384
+    Attribute: IRMSSTD scalar
+        Type:      native double
+        Data:  0.0741702
+    Attribute: LOWREJ scalar
+        Type:      native long
+        Data:  4
+    Attribute: MAPID scalar
+        Type:      native long
+        Data:  1
+    Attribute: MJD scalar
+        Type:      native long
+        Data:  55543
+    Attribute: MJDLIST scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "55543"
+    Attribute: NAME scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "4500-55543-01"
+    Attribute: NAXIS scalar
+        Type:      native long
+        Data:  0
+    Attribute: NEXP scalar
+        Type:      native long
+        Data:  12
+    Attribute: NEXP_B1 scalar
+        Type:      native long
+        Data:  6
+    Attribute: NEXP_R1 scalar
+        Type:      native long
+        Data:  6
+    Attribute: NFITPOLY scalar
+        Type:      native long
+        Data:  1
+    Attribute: NSTD scalar
+        Type:      native long
+        Data:  20
+    Attribute: NWORDER scalar
+        Type:      native long
+        Data:  2
+    Attribute: PLATEID scalar
+        Type:      native long
+        Data:  4500
+    Attribute: PLUGFILE scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "plPlugMapM-4500-55543-01.par"
+    Attribute: PLUG_DEC scalar
+        Type:      native double
+        Data:  13.5122
+    Attribute: PLUG_RA scalar
+        Type:      native double
+        Data:  129.467
+    Attribute: PREJECT scalar
+        Type:      native double
+        Data:  0.2
+    Attribute: PRESSURE scalar
+        Type:      native double
+        Data:  21.5445
+    Attribute: PROFTYPE scalar
+        Type:      native long
+        Data:  1
+    Attribute: PSFSKY scalar
+        Type:      native long
+        Data:  3
+    Attribute: RA scalar
+        Type:      native double
+        Data:  129.427
+    Attribute: RADECSYS scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "FK5"
+    Attribute: RADEG scalar
+        Type:      native double
+        Data:  129.429
+    Attribute: RDNOISE0 scalar
+        Type:      native double
+        Data:  2.02617
+    Attribute: REDDEN01 scalar
+        Type:      native double
+        Data:  0.186
+    Attribute: REDDEN02 scalar
+        Type:      native double
+        Data:  0.1368
+    Attribute: REDDEN03 scalar
+        Type:      native double
+        Data:  0.0992
+    Attribute: REDDEN04 scalar
+        Type:      native double
+        Data:  0.0752
+    Attribute: REDDEN05 scalar
+        Type:      native double
+        Data:  0.0534
+    Attribute: RIOFFSTD scalar
+        Type:      native double
+        Data:  -0.00341034
+    Attribute: RIRMSSTD scalar
+        Type:      native double
+        Data:  0.0312401
+    Attribute: ROFFSTD scalar
+        Type:      native double
+        Data:  0.0294752
+    Attribute: RRMSSTD scalar
+        Type:      native double
+        Data:  0.0657911
+    Attribute: RUN2D scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: SCATPOLY scalar
+        Type:      native long
+        Data:  0
+    Attribute: SCHI2MAX scalar
+        Type:      native double
+        Data:  1.10549
+    Attribute: SCHI2MIN scalar
+        Type:      native double
+        Data:  0.976991
+    Attribute: SFLATTEN scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: SHCLOTIM scalar
+        Type:      native double
+        Data:  0.57
+    Attribute: SHOPETIM scalar
+        Type:      native double
+        Data:  0.73
+    Attribute: SIMPLE scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: SKYCHI2 scalar
+        Type:      native double
+        Data:  1.02932
+    Attribute: SLITID2 scalar
+        Type:      native long
+        Data:  11
+    Attribute: SN2EXT1G scalar
+        Type:      native double
+        Data:  14.8632
+    Attribute: SN2EXT1I scalar
+        Type:      native double
+        Data:  28.9879
+    Attribute: SN2EXT1R scalar
+        Type:      native double
+        Data:  37.4706
+    Attribute: SN2EXT2G scalar
+        Type:      native double
+        Data:  11.0832
+    Attribute: SN2EXT2I scalar
+        Type:      native double
+        Data:  24.3689
+    Attribute: SN2EXT2R scalar
+        Type:      native double
+        Data:  32.5942
+    Attribute: SPCOADD scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "Fri May 27 07:51:52 2016"
+    Attribute: SPEC1_G scalar
+        Type:      native double
+        Data:  14.8632
+    Attribute: SPEC1_I scalar
+        Type:      native double
+        Data:  28.9879
+    Attribute: SPEC1_R scalar
+        Type:      native double
+        Data:  37.4706
+    Attribute: SPEC2_G scalar
+        Type:      native double
+        Data:  11.0832
+    Attribute: SPEC2_I scalar
+        Type:      native double
+        Data:  24.3689
+    Attribute: SPEC2_R scalar
+        Type:      native double
+        Data:  32.5942
+    Attribute: TELESCOP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "SDSS 2.5-M"
+    Attribute: TEMP scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "NaN"
+    Attribute: THING_ID scalar
+        Type:      native long
+        Data:  231119380
+    Attribute: TILEID scalar
+        Type:      native long
+        Data:  11052
+    Attribute: VACUUM scalar
+        Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+        Data:  TRUE
+    Attribute: VERS2D scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: VERSCOMB scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: VERSFLAT scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v1_25"
+    Attribute: VERSIDL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "7.1.1"
+    Attribute: VERSLOG scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "trunk 23369"
+    Attribute: VERSREAD scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_10_0"
+    Attribute: VERSUTIL scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "v5_5_17"
+    Attribute: WAT0_001 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "system=linear"
+    Attribute: WAT1_001 scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "wtype=linear label=Wavelength units=Angstroms"
+    Attribute: WFITTYPE scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "LOG-LINEAR"
+    Attribute: WINDD scalar
+        Type:      native double
+        Data:  19.9667
+    Attribute: WINDS scalar
+        Type:      native double
+        Data:  15
+    Attribute: XCHI2 scalar
+        Type:      native double
+        Data:  0
+    Location:  1:33685896
+    Links:     1
+    Storage:   4616 logical bytes, 4616 allocated bytes, 100.00% utilization
+    Type:      native float

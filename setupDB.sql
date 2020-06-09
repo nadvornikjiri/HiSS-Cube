@@ -1,8 +1,15 @@
-create type GreyImage
-as char mdarray [ x, y ];
+create type GaussianMeasurement
+	as ( mean float, 
+		variance float, 
+		healpix_coord_variance ulong, 
+		time_coord_variance float,
+		spectral_coord_variance float)
 
-create type RGBCube
-as RGBPixel mdarray [ x, y, z ]
+create type CubeVoxel 
+	as GaussianMeasurement mdarray [healPixID, healPixRes, time, spectral]
 
-create type XGAImage
-as RGBPixel mdarray [ x ( 0 : 1023 ), y ( 0 : 767 ) ]
+create type CubeSet
+	as set (CubeVoxel null values [-1, 0])
+
+create type CubeSet
+	as set (CubeImage null values [-1, -1])
