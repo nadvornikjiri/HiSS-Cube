@@ -9,8 +9,8 @@ import os
 
 class SDSSCubeWriter:
 
-    def __init__(self, h5path, fits_path):
-        self.cube_utils = cubeUtils.CubeUtils()
+    def __init__(self, h5path, fits_path, filter_curve_path, ccd_gain_path, ccd_dark_var_path):
+        self.cube_utils = cubeUtils.CubeUtils(filter_curve_path, ccd_gain_path, ccd_dark_var_path)
         self.IMG_MIN_RES = 128
         self.SPEC_MIN_RES = 256
         self.IMG_SPAT_INDEX_ORDER = 7
