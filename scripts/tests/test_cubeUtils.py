@@ -16,7 +16,7 @@ class TestCubeUtils:
 
         fits_header, multiple_res_cube = self.cube_utils.get_multiple_resolution_spectrum(test_spectrum,
                                                                                           MIN_RES,
-                                                                                          apply_transmission=False)
+                                                                                          apply_transmission=True)
         assert (len(multiple_res_cube) == len(expected_spectra_resolutions))
         for i, res in enumerate(expected_spectra_resolutions):
             assert (multiple_res_cube[i]["res"] == expected_spectra_resolutions[i])
@@ -38,5 +38,10 @@ class TestCubeUtils:
             assert (multiple_res_cube[i]["res"] == expected_image_resolutions[i])
             assert (multiple_res_cube[i]["flux_mean"].shape[0] == expected_image_resolutions[i][1])
             assert (multiple_res_cube[i]["flux_mean"].shape[1] == expected_image_resolutions[i][0])
-            assert (multiple_res_cube[i]["flux_var"].shape[0] == expected_image_resolutions[i][1])
-            assert (multiple_res_cube[i]["flux_var"].shape[1] == expected_image_resolutions[i][0])
+            assert (multiple_res_cube[i]["flux_sigma"].shape[0] == expected_image_resolutions[i][1])
+            assert (multiple_res_cube[i]["flux_sigma"].shape[1] == expected_image_resolutions[i][0])
+
+    def test_merge_transmission_curves_max(self):
+        merged_curves = self.cube_utils.merge_transmission_curves_max(self.cube_utils.transmission_curves)
+
+        assert(len(merged_curves) == 331)

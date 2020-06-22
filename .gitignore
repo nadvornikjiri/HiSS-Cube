@@ -6,7 +6,10 @@ venv*
 #Test data
 *.nc
 *.h5
+*.xml
 
+#profiling
+profile
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -32,5 +35,6 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
 
 .idea
