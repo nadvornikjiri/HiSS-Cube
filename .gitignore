@@ -1,4 +1,7 @@
-data/
+specObj-dr14.fits
+*.asc
+
+
 photoop/
 .ipynb_checkpoints/
 venv*
