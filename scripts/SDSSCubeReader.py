@@ -1,3 +1,6 @@
+import logging
+from datetime import datetime
+
 import h5py
 import healpy as hp
 import numpy as np
@@ -7,7 +10,7 @@ from astropy.wcs import wcs
 from astropy.io.votable import from_table, writeto
 from astropy.table import QTable
 
-from scripts import photUtils
+from scripts import astrometry
 from astropy.time import Time
 import os
 from scripts import SDSSCubeHandler as h5
@@ -21,6 +24,7 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
         self.spectral_cube = np.array([], dtype=self.array_type).reshape(0, 1)
         self.OUTPUT_HEAL_ORDER = 19
         self.output_res = None
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def get_spectral_cube_for_res(self, resolution):
         self.output_res = resolution
@@ -48,9 +52,12 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
         if len(cutout_refs) > 0:
             for region_ref in cutout_refs:
                 print("reading region %s dataset: %s" % (region_ref, h5_object.name))
-                image_5d = self.get_pixels_from_image_cutout(h5_object, self.output_res, region_ref)
-                larger_cube = np.append(self.spectral_cube, np.array(image_5d, dtype=self.array_type), axis=0)
-                self.spectral_cube = larger_cube
+                try:
+                    image_5d = self.get_pixels_from_image_cutout(h5_object, self.output_res, region_ref)
+                    larger_cube = np.append(self.spectral_cube, np.array(image_5d, dtype=self.array_type), axis=0)
+                    self.spectral_cube = larger_cube
+                except ValueError as e:
+                    self.logger.error("Could not process region for %s, message: %s" % (h5_object.name, str(e)))
 
     def get_pixels_from_spectrum(self, name, spectrum_ds):
         res = int(name.split('/')[-2])
@@ -72,12 +79,15 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
                                   spectrum_part[:, 0].reshape(res, 1),
                                   spectrum_part[:, 1].reshape(res, 1),
                                   spectrum_part[:, 2].reshape(res, 1)],
-                                 names='ra, dec, heal, time, wl, mean, sigma')
+                                 names='heal, ra, dec, time, wl, mean, sigma')
 
     def get_pixels_from_image_cutout(self, spectrum_ds, res_idx, region_ref):
         image_ds = self.f[region_ref]
         image_region = image_ds[region_ref]
-        time = Time(image_ds.attrs["DATE-OBS"], format='isot', scale='tai').mjd
+        try:
+            time = Time(image_ds.attrs["DATE-OBS"], format='isot', scale='tai').mjd
+        except ValueError:
+            time = Time(datetime.strptime(image_ds.attrs["DATE-OBS"], "%d/%m/%y")).mjd
         wl = image_ds.name.split('/')[-3]
 
         w = wcs.WCS(image_ds.attrs)
@@ -104,4 +114,4 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
         table = QTable(self.spectral_cube, names=("HealPix ID", "RA", "DEC", "Time", "Wavelength", "Mean", "Sigma"),
                        meta={'name': 'SDSS Cube'})
         votable = from_table(table)
-        writeto(votable, output_path)
+        writeto(votable, output_path, tabledata_format="binary2")

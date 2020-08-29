@@ -111,7 +111,8 @@ class CubeUtils:
 
         wl_orig_res = np.power(10, data["loglam"])
         flux_mean_orig_res = data["flux"] * 1e-17
-        flux_sigma_orig_res = np.sqrt(np.divide(1, data["ivar"])) * 1e-17
+        with np.errstate(divide='ignore'):
+            flux_sigma_orig_res = np.sqrt(np.divide(1, data["ivar"])) * 1e-17
 
         band, transmission_ratio, wl_trans = self.get_transmission_ratio(wl_orig_res)
 

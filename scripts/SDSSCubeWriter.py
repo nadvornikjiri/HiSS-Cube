@@ -1,17 +1,24 @@
 import h5py
 import healpy as hp
 import numpy as np
+from tqdm.notebook import tnrange
 
-from scripts import photUtils
+from scripts import astrometry
 from astropy.time import Time
 import os
 from scripts import SDSSCubeHandler as h5
+from datetime import datetime
+import logging
+
+
+from scripts.astrometry import NoCoverageFoundError
 
 
 class SDSSCubeWriter(h5.SDSSCubeHandler):
 
     def __init__(self, h5_file, cube_utils):
         super(SDSSCubeWriter, self).__init__(h5_file, cube_utils)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.compression = None
 
     def require_raw_cube_grp(self):
@@ -54,7 +61,7 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
 
     def require_image_spatial_grp_structure(self, parent_grp):
         orig_parent = parent_grp
-        boundaries = photUtils.get_boundary_coords(self.metadata)
+        boundaries = astrometry.get_boundary_coords(self.metadata)
         leaf_grp_set = []
         for coord in boundaries:
             parent_grp = orig_parent
@@ -63,7 +70,7 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
                 if order == self.IMG_SPAT_INDEX_ORDER - 1:
                     # only return each leaf group once.
                     if len(leaf_grp_set) == 0 or \
-                            not (next(grp for grp in leaf_grp_set if grp.name == parent_grp.name)):
+                            not (any(grp.name == parent_grp.name for grp in leaf_grp_set)):
                         leaf_grp_set.append(parent_grp)
         return leaf_grp_set
 
@@ -81,7 +88,10 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         return grp
 
     def require_image_time_grp(self, parent_grp):
-        t = Time(self.metadata["DATE-OBS"], format='isot', scale='tai')
+        try:
+            t = Time(self.metadata["DATE-OBS"], format='isot', scale='tai')
+        except ValueError:
+            t = Time(datetime.strptime(self.metadata["DATE-OBS"], '%d/%m/%y'))
         grp = self.require_group(parent_grp, str(int(t.mjd)))
         grp.attrs["type"] = "time"
         return grp
@@ -146,9 +156,13 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         for image_res_idx, image_ds in self.find_images_overlapping_spectrum():
             if not image_res_idx in image_refs:
                 image_refs[image_res_idx] = []
-            image_refs[image_res_idx].append(self.get_region_ref(image_res_idx, image_ds))
-            if image_res_idx > image_max_res_idx:
-                image_max_res_idx = image_res_idx
+            try:
+                image_refs[image_res_idx].append(self.get_region_ref(image_res_idx, image_ds))
+                if image_res_idx > image_max_res_idx:
+                    image_max_res_idx = image_res_idx
+            except NoCoverageFoundError:
+                self.logger.debug("No coverage found for spectrum %s and image %s" % (self.file_name, image_ds))
+                pass
 
         for res in image_refs:
             image_refs[res] = np.array(image_refs[res],

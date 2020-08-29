@@ -1,5 +1,6 @@
 from astropy import wcs
 
+
 def get_boundary_coords(fits_header):
     w = wcs.WCS(fits_header)
     coord_top_left = w.wcs_pix2world(0, 0, 0)
@@ -9,4 +10,5 @@ def get_boundary_coords(fits_header):
     return [coord_top_left, coord_bot_left, coord_top_right, coord_bot_right]
 
 
-
+class NoCoverageFoundError(Exception):
+    pass

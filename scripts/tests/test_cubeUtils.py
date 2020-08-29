@@ -1,4 +1,4 @@
-from scripts import cubeUtils as utils
+from scripts import photometry as utils
 import numpy as np
 
 

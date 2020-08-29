@@ -1,4 +1,6 @@
 specObj-dr14.fits
+data/
+disk_benchmark/
 *.asc
 
 
