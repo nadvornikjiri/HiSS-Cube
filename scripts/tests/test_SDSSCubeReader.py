@@ -4,7 +4,7 @@ from scripts import photometry as cu
 from scripts import SDSSCubeReader as h5r
 import numpy as np
 
-H5PATH = "../../data/SDSS_cube.h5"
+H5PATH = "../../SDSS_cube.h5"
 
 class TestH5Reader:
 

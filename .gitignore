@@ -1,7 +1,10 @@
 specObj-dr14.fits
 data/
 disk_benchmark/
+HDFits/
+prof/
 *.asc
+*.log
 
 
 photoop/

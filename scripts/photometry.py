@@ -1,6 +1,6 @@
 import csv
-import fitsio
-from astropy.convolution import Gaussian1DKernel, Gaussian2DKernel, convolve
+from astropy.convolution import Gaussian1DKernel, convolve
+from astropy.io import fits
 from pathlib import Path
 from astropy.io import ascii
 from scipy import interpolate
@@ -14,6 +14,7 @@ import numpy as np
 class CubeUtils:
 
     def __init__(self, filter_curve_path, ccd_gain_path, ccd_dark_var_path):
+        self.fitsMemMap = True
         self.ccd_gain_config = self.read_config(ccd_gain_path)
         self.ccd_dark_variance_config = self.read_config(ccd_dark_var_path)
 
@@ -84,15 +85,15 @@ class CubeUtils:
             self.read_fits_file(path)
 
     def read_fits_file(self, filename):
-        with fitsio.FITS(filename) as f:
-            header = f[0].read_header()
-            data = f[0].read()
+        with fits.open(filename, memmap=self.fitsMemMap) as f:
+            header = f[0].header
+            data = f[0].data
             return [header, data, f]
 
     def read_spectrum(self, filename):
-        with fitsio.FITS(filename) as hdul:
-            data = hdul[1].read()
-            fits_header = hdul[0].read_header()
+        with fits.open(filename, memmap=self.fitsMemMap) as hdul:
+            fits_header = hdul[0].header
+            data = hdul[1].data
             return data, fits_header
 
     # concats the transmission curves and where they overlap, takes maximum
@@ -147,26 +148,22 @@ class CubeUtils:
         return fits_header, multiple_resolution_cube
 
     def _get_image_with_errors(self, fitsPath):
-        with fitsio.FITS(fitsPath) as f:
-            fits_header = f[0].read_header()
-            img = f[0].read()
-            x_size = fits_header["NAXIS1"]
+        with fits.open(fitsPath, memmap=self.fitsMemMap) as f:
+            fits_header = f[0].header
+            img = f[0].data
             y_size = fits_header["NAXIS2"]
             camcol = fits_header['CAMCOL']
             run = fits_header['RUN']
             band = fits_header['FILTER']
-            allsky = f[2]['allsky'].read()[0]
-            xinterp = f[2]['xinterp'].read()[0]
-            yinterp = f[2]['yinterp'].read()[0]
+            allsky = f[2].data.field('allsky')[0]
+            xinterp = f[2].data.field('xinterp')[0]
+            yinterp = f[2].data.field('yinterp')[0]
             gain = float(self.get_ccd_gain(camcol, run, band))
             dark_variance = float(self.get_dark_variance(camcol, run, band))
 
-            grid_x, grid_y = np.meshgrid(xinterp, yinterp)
-            orig_x, orig_y = np.meshgrid(np.arange(256), np.arange(192))
-            orig_coords = np.dstack((orig_y.ravel(), orig_x.ravel()))[0]
-
-            simg = interpolate.griddata(orig_coords, allsky.ravel(), (grid_y, grid_x), method='nearest')
-            calib = f[1].read()
+            grid_x, grid_y = np.meshgrid(xinterp, yinterp, copy=False)
+            simg = ndimage.map_coordinates(allsky, (grid_y, grid_x), order=1, mode="nearest")
+            calib = f[1].data
             cimg = np.tile(calib, (y_size, 1))  # calibration image
             dn = img / cimg + simg  # data numbers
             dn_err = np.sqrt(dn / gain + dark_variance)  # data number errors

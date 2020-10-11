@@ -7,7 +7,7 @@ import glob
 import numpy as np
 from pathlib import Path
 
-H5PATH = "SDSS_cube.h5"
+H5PATH = "../../SDSS_cube.h5"
 
 @pytest.fixture(scope="session", autouse=False)
 def truncate_test_file(request):
@@ -35,6 +35,14 @@ class TestH5Writer:
         h5_datasets = writer.ingest_image(test_path)
         assert len(h5_datasets) == 4
 
+    @pytest.mark.usefixtures("truncate_test_file")
+    def test_add_image2(self):
+        test_path = "../../data/images_medium_ds/frame-u-004948-3-0199.fits.bz2"
+
+        writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
+        h5_datasets = writer.ingest_image(test_path)
+        assert len(h5_datasets) == 4
+
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_spectrum(self):
@@ -46,18 +54,14 @@ class TestH5Writer:
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image_multiple(self):
-        test_images_small = "../../data/images/301/2820/3/frame-*-002820-3-0122.fits.bz2"
+        #test_images = "../../data/images/301/2820/3/frame-*-002820-3-0122.fits.bz2"
+        #test_images = "../../data/images_medium_ds"
+        test_images = "../../data/galaxy_small/images"
+        image_pattern ="*.fits*"
         writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
-        for image in glob.glob(test_images_small):
+        for image in Path(test_images).rglob(image_pattern):
             print("writing: %s" % image)
             writer.ingest_image(image)
-
-    def test_add_image2(self):
-        test_path = "../../data/images_medium_ds/frame-u-004948-3-0199.fits.bz2"
-
-        writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
-        h5_datasets = writer.ingest_image(test_path)
-        assert len(h5_datasets) == 4
 
     def test_add_spec_refs(self):
         test_spectrum = "../../data/spectra/3126/spec-7330-56684-0434.fits"
@@ -125,7 +129,7 @@ class TestH5Writer:
         assert (top_right == e_top_right)
 
     def test_add_spectra_multiple(self):
-        spectra_folder = "../../data/spectra/3126"
+        spectra_folder = "../../data/galaxy_small/spectra"
         test_spectra_small = "*.fits"
         writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
         for spectrum in Path(spectra_folder).rglob(test_spectra_small):

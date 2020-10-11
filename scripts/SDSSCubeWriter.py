@@ -1,6 +1,7 @@
 import h5py
 import healpy as hp
 import numpy as np
+import six
 from tqdm.notebook import tnrange
 
 from scripts import astrometry
@@ -101,10 +102,12 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         grp.attrs["type"] = "time"
         return grp
 
-    def add_hard_links(self, parent_groups, child_groups):
+    @staticmethod
+    def add_hard_links(parent_groups, child_groups):
         for parent in parent_groups:
-            for child in child_groups:
-                parent[child.name] = child
+            for child_name in child_groups:
+                if not child_name in parent:
+                    parent[child_name] = child_groups[child_name]
 
     def require_image_spectral_grp(self, parent_grp):
         grp = self.require_group(parent_grp, str(self.cube_utils.filter_midpoints[self.metadata["filter"]]))
@@ -146,9 +149,29 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         return spec_datasets
 
     def add_metadata(self, datasets):
-        for ds in datasets:
-            for key, value in dict(self.metadata).items():
-                ds.attrs.create(key, value)
+        unicode_dt = h5py.special_dtype(vlen=str)
+        orig_ds_link = datasets[0].ref
+        for i, ds in enumerate(datasets):
+            if i > 0:
+                naxis = len(ds.shape)
+                ds.attrs["NAXIS"] = naxis
+                for axis in range(naxis):
+                    ds.attrs["NAXIS%d" %(axis)] = ds.shape[axis]
+                ds.attrs["orig_res_link"] = orig_ds_link
+            else:
+                for key, value in dict(self.metadata).items():
+                    if key == "COMMENT":
+                        to_print = 'COMMENT\n--------\n'
+                        for item in value:
+                            to_print += item + '\n'
+                        ds.parent.create_dataset("COMMENT", data=np.string_(to_print), dtype=unicode_dt)
+                    elif key == "HISTORY":
+                        to_print = 'HISTORY\n--------\n'
+                        for item in value:
+                            to_print += item + '\n'
+                        ds.parent.create_dataset("HISTORY", data=np.string_(to_print), dtype=unicode_dt)
+                    else:
+                        ds.attrs[key] = value
 
     def add_spec_refs(self, spec_datasets):
         image_refs = {}
@@ -189,7 +212,12 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
                         res_grp = band_grp[res]
                         for image in res_grp:
                             image_ds = res_grp[image]
-                            yield res_idx, image_ds
+                            try:
+                                if image_ds.attrs["mime-type"] == "image":
+                                    yield res_idx, image_ds
+                            except KeyError:
+                                pass
+
 
     def get_image_heal_path(self):
         pixel_IDs = hp.ang2pix(hp.order2nside(np.arange(self.IMG_SPAT_INDEX_ORDER)),
