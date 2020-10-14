@@ -2,6 +2,7 @@ import numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.wcs import wcs
 from astropy.wcs.utils import skycoord_to_pixel
+from astropy.wcs.utils import pixel_to_skycoord
 
 from scripts.astrometry import NoCoverageFoundError
 
@@ -28,8 +29,8 @@ class SDSSCubeHandler(object):
 
     def get_region_ref(self, res_idx, image_ds):
         cutout_bounds = self.get_cutout_bounds(image_ds, res_idx, self.metadata)
-        region_ref = image_ds.regionref[cutout_bounds[1][0][0]:cutout_bounds[1][1][0],
-                     cutout_bounds[0][1][1]:cutout_bounds[1][1][1]]
+        region_ref = image_ds.regionref[cutout_bounds[0][1][1]:cutout_bounds[1][1][1],
+                     cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
         cutout_shape = self.f[region_ref][region_ref].shape
         try:
             if not (0 <= cutout_shape[0] <= 64 and 0 <= cutout_shape[1] <= 64 and cutout_shape[2] == 2):

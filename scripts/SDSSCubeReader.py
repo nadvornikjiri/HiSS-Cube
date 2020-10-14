@@ -95,7 +95,7 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
         x = np.arange(cutout_bounds[0][1][1], cutout_bounds[1][1][1])
         y = np.arange(cutout_bounds[0][0][0], cutout_bounds[1][1][0])
         X, Y = np.meshgrid(x, y)
-        ra, dec = w.wcs_pix2world(X, Y, 0)
+        ra, dec = w.wcs_pix2world(Y, X, 0)
         pixel_IDs = hp.ang2pix(hp.order2nside(self.OUTPUT_HEAL_ORDER), ra, dec, nest=True, lonlat=True)
         no_pixels = pixel_IDs.size
         pixel_IDs_column = pixel_IDs.reshape((no_pixels, 1))

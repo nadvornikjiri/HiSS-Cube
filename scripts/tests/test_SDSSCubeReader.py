@@ -1,8 +1,13 @@
+import os
+from urllib.parse import urljoin
+
 import h5py
 import pytest
+from astropy.samp import SAMPIntegratedClient
+
 from scripts import photometry as cu
 from scripts import SDSSCubeReader as h5r
-import numpy as np
+
 
 H5PATH = "../../SDSS_cube.h5"
 
@@ -19,6 +24,23 @@ class TestH5Reader:
         data = self.reader.get_spectral_cube_for_res(0)
         assert data.shape[1] == 5
 
+
     def test_write_VOTable(self):
         self.reader.get_spectral_cube_for_res(0)
         self.reader.write_VOTable("output.xml")
+
+        client = SAMPIntegratedClient()
+        client.connect()
+
+        params = {}
+        params["url"] = urljoin('file:', os.path.abspath("output.xml"))
+        params["name"] = "SDSS Cube"
+        print(params["url"])
+
+        message = {}
+        message["samp.mtype"] = "table.load.votable"
+        message["samp.params"] = params
+
+        client.notify_all(message)
+
+        assert True

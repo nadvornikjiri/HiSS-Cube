@@ -41,7 +41,7 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         spec_datasets = self.create_spec_datasets(res_grps)
         self.add_metadata(spec_datasets)
         self.f.flush()
-        self.add_spec_refs(spec_datasets)
+        self.add_image_refs_to_spectra(spec_datasets)
         return spec_datasets
 
     def create_image_index_tree(self):
@@ -89,16 +89,14 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         return grp
 
     def require_image_time_grp(self, parent_grp):
-        try:
-            t = Time(self.metadata["DATE-OBS"], format='isot', scale='tai')
-        except ValueError:
-            t = Time(datetime.strptime(self.metadata["DATE-OBS"], '%d/%m/%y'))
-        grp = self.require_group(parent_grp, str(int(t.mjd)))
+        tai_time = self.metadata["TAI"]
+        grp = self.require_group(parent_grp, str(tai_time))
         grp.attrs["type"] = "time"
         return grp
 
     def require_spectrum_time_grp(self, parent_grp):
-        grp = self.require_group(parent_grp, str(self.metadata["MJD"]))
+        tai_time = self.metadata["TAI"]
+        grp = self.require_group(parent_grp, str(tai_time))
         grp.attrs["type"] = "time"
         return grp
 
@@ -173,7 +171,7 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
                     else:
                         ds.attrs[key] = value
 
-    def add_spec_refs(self, spec_datasets):
+    def add_image_refs_to_spectra(self, spec_datasets):
         image_refs = {}
         image_max_res_idx = 0
         for image_res_idx, image_ds in self.find_images_overlapping_spectrum():

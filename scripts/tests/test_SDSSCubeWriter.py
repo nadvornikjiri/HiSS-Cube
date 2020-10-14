@@ -67,7 +67,7 @@ class TestH5Writer:
         test_spectrum = "../../data/spectra/3126/spec-7330-56684-0434.fits"
         writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
         spec_datasets = writer.ingest_spectrum(test_spectrum)
-        spec_datasets = writer.add_spec_refs(spec_datasets)
+        spec_datasets = writer.add_image_refs_to_spectra(spec_datasets)
         for spec_dataset in spec_datasets:
             for cutout in spec_dataset.attrs["image_cutouts"]:
                 cutout_shape = self.h5_file[cutout][cutout].shape
@@ -79,7 +79,7 @@ class TestH5Writer:
         test_spectrum = "../../data/spectra_medium_ds/spec-4238-55455-0037.fits"
         writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
         spec_datasets = writer.ingest_spectrum(test_spectrum)
-        spec_datasets = writer.add_spec_refs(spec_datasets)
+        spec_datasets = writer.add_image_refs_to_spectra(spec_datasets)
         for spec_dataset in spec_datasets:
             for cutout in spec_dataset.attrs["image_cutouts"]:
                 cutout_shape = self.h5_file[cutout][cutout].shape
