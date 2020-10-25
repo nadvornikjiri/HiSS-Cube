@@ -1,13 +1,16 @@
+import os
+
 import fitsio
 from scripts import SDSSCubeWriter as h5u
 from scripts import photometry as cu
 import h5py
 import pytest
-import glob
 import numpy as np
 from pathlib import Path
+import time
 
 H5PATH = "../../SDSS_cube.h5"
+
 
 @pytest.fixture(scope="session", autouse=False)
 def truncate_test_file(request):
@@ -43,7 +46,6 @@ class TestH5Writer:
         h5_datasets = writer.ingest_image(test_path)
         assert len(h5_datasets) == 4
 
-
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_spectrum(self):
         test_path = "../../data/spectra/spec-4500-55543-0331.fits"
@@ -54,13 +56,14 @@ class TestH5Writer:
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image_multiple(self):
-        #test_images = "../../data/images/301/2820/3/frame-*-002820-3-0122.fits.bz2"
-        #test_images = "../../data/images_medium_ds"
+        # test_images = "../../data/images/301/2820/3/frame-*-002820-3-0122.fits.bz2"
+        # test_images = "../../data/images_medium_ds"
         test_images = "../../data/galaxy_small/images"
-        image_pattern ="*.fits*"
+        image_pattern = "*.fits*"
         writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
+        t0 = time.clock()
         for image in Path(test_images).rglob(image_pattern):
-            print("writing: %s" % image)
+            print("Time: %5f writing: %s" % (time.clock() - t0, image))
             writer.ingest_image(image)
 
     def test_add_spec_refs(self):
@@ -71,7 +74,7 @@ class TestH5Writer:
         for spec_dataset in spec_datasets:
             for cutout in spec_dataset.attrs["image_cutouts"]:
                 cutout_shape = self.h5_file[cutout][cutout].shape
-                assert(0 <= cutout_shape[0] <= 64)
+                assert (0 <= cutout_shape[0] <= 64)
                 assert (0 <= cutout_shape[1] <= 64)
                 assert (cutout_shape[2] == 2)
 
@@ -95,7 +98,6 @@ class TestH5Writer:
         writer.find_images_overlapping_spectrum()
 
     def test_crop_cutout_to_image(self):
-        writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
         top_left, top_right, bot_left, bot_right = [-32, -32], [32, -32], [-32, 32], [32, 32]
         e_top_left, e_top_right, e_bot_left, e_bot_right = [0, 0], [32, 0], [0, 32], [32, 32]
         h5u.SDSSCubeWriter.crop_cutout_to_image(top_left, top_right, bot_left, bot_right, np.array([2048, 1489]))
@@ -137,3 +139,23 @@ class TestH5Writer:
             datasets = writer.ingest_spectrum(spectrum)
             assert (len(datasets) > 1)
 
+    def test_float_compress(self):
+        test_path = "../../data/images/301/4797/1/frame-g-004797-1-0019.fits.bz2"
+
+        writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
+        writer.metadata, writer.data = writer.cube_utils.get_multiple_resolution_image(test_path, writer.IMG_MIN_RES)
+        writer.file_name = os.path.basename(test_path)
+        for img in writer.data:  # parsing 2D resolution
+            img_data = np.dstack((img["flux_mean"], img["flux_sigma"]))
+            float_compressed_data = writer.float_compress(img_data)
+            # check that we truncated the mantissa correctly - 13 last digits of mantissa should be 0
+            for compressed_number, orig_number in np.nditer((float_compressed_data, img_data)):
+                if orig_number != 0:
+                    if bin(compressed_number.view("i"))[-13:] != "0000000000000":
+                        print("Failed at elem %f, %d: " % (compressed_number, orig_number))
+                        assert False
+                    if abs((compressed_number / orig_number) - 1) >= 0.01:
+                        print("Failed at elements %f, %d, error %f" % (
+                            compressed_number, orig_number, np.abs((compressed_number / orig_number) - 1)))
+                        assert False
+        assert True

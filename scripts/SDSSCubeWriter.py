@@ -1,3 +1,5 @@
+from math import ceil, log
+
 import h5py
 import healpy as hp
 import numpy as np
@@ -11,7 +13,6 @@ from scripts import SDSSCubeHandler as h5
 from datetime import datetime
 import logging
 
-
 from scripts.astrometry import NoCoverageFoundError
 
 
@@ -20,7 +21,10 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
     def __init__(self, h5_file, cube_utils):
         super(SDSSCubeWriter, self).__init__(h5_file, cube_utils)
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.compression = None
+        self.COMPRESSION = "gzip"
+        self.COMPRESSION_OPTS = None
+        self.SHUFFLE = True
+        self.SCALE_OFFSET = 10
 
     def require_raw_cube_grp(self):
         return self.require_group(self.f, self.ORIG_CUBE_NAME)
@@ -95,8 +99,11 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         return grp
 
     def require_spectrum_time_grp(self, parent_grp):
-        tai_time = self.metadata["TAI"]
-        grp = self.require_group(parent_grp, str(tai_time))
+        try:
+            time = self.metadata["TAI"]
+        except KeyError:
+            time = self.metadata["MJD"]
+        grp = self.require_group(parent_grp, str(time))
         grp.attrs["type"] = "time"
         return grp
 
@@ -127,8 +134,14 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
             res_tuple = group.name.split('/')[-1]
             wanted_res = next(img for img in self.data if str(img["res"]) == res_tuple)  # parsing 2D resolution
             img_data = np.dstack((wanted_res["flux_mean"], wanted_res["flux_sigma"]))
-            ds = group.require_dataset(self.file_name, img_data.shape, img_data.dtype, chunks=self.CHUNK_SIZE,
-                                       compression=self.compression)
+            if self.COMPRESSION:
+                img_data = self.float_compress(img_data)
+            ds = group.require_dataset(self.file_name, img_data.shape, img_data.dtype,
+                                       chunks=self.CHUNK_SIZE,
+                                       compression=self.COMPRESSION,
+                                       compression_opts=self.COMPRESSION_OPTS,
+                                       shuffle=self.SHUFFLE)
+
             ds.write_direct(img_data)
             ds.attrs["mime-type"] = "image"
             img_datasets.append(ds)
@@ -140,7 +153,12 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
             res = group.name.split('/')[-1]
             wanted_res = next(spec for spec in self.data if str(spec["res"]) == res)
             spec_data = np.dstack((wanted_res["wl"], wanted_res["flux_mean"], wanted_res["flux_sigma"]))
-            ds = group.require_dataset(self.file_name, spec_data.shape, spec_data.dtype, compression=self.compression)
+            if self.COMPRESSION:
+                spec_data = self.float_compress(spec_data)
+            ds = group.require_dataset(self.file_name, spec_data.shape, spec_data.dtype,
+                                       compression=self.COMPRESSION,
+                                       compression_opts=self.COMPRESSION_OPTS,
+                                       shuffle=self.SHUFFLE)
             ds.write_direct(spec_data)
             ds.attrs["mime-type"] = "spectrum"
             spec_datasets.append(ds)
@@ -154,7 +172,7 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
                 naxis = len(ds.shape)
                 ds.attrs["NAXIS"] = naxis
                 for axis in range(naxis):
-                    ds.attrs["NAXIS%d" %(axis)] = ds.shape[axis]
+                    ds.attrs["NAXIS%d" % (axis)] = ds.shape[axis]
                 ds.attrs["orig_res_link"] = orig_ds_link
             else:
                 for key, value in dict(self.metadata).items():
@@ -216,7 +234,6 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
                             except KeyError:
                                 pass
 
-
     def get_image_heal_path(self):
         pixel_IDs = hp.ang2pix(hp.order2nside(np.arange(self.IMG_SPAT_INDEX_ORDER)),
                                self.metadata["PLUG_RA"],
@@ -232,3 +249,24 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
             return parent_grp.create_group(name, track_order=track_order)
         grp = parent_grp[name]
         return grp
+
+    @staticmethod
+    def float_compress(data, ndig=10):
+        data = data.astype(np.float32)
+        wzer = np.where((data == 0) | (data == np.Inf))
+
+        # replace zeros and infinite values with ones temporarily
+        if len(wzer) > 0:
+            temp = data[wzer]
+            data[wzer] = 1.
+
+        # compute log base 2
+        log2 = np.ceil(np.log(np.abs(data)) / log(2.))  # exponent part
+
+        mant = np.round(data / 2.0 ** (log2 - ndig)) / (2.0 ** ndig)  # mantissa, truncated
+        out = mant * 2.0 ** log2  # multiple 2^exponent back in
+
+        if len(wzer) > 0:
+            out[wzer] = temp
+
+        return out

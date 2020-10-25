@@ -1,4 +1,4 @@
-specObj-dr14.fits
+*.fits
 data/
 disk_benchmark/
 HDFits/

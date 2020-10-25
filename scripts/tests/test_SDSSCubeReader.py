@@ -8,8 +8,8 @@ from astropy.samp import SAMPIntegratedClient
 from scripts import photometry as cu
 from scripts import SDSSCubeReader as h5r
 
-
 H5PATH = "../../SDSS_cube.h5"
+
 
 class TestH5Reader:
 
@@ -22,25 +22,26 @@ class TestH5Reader:
 
     def test_get_spectral_cube(self):
         data = self.reader.get_spectral_cube_for_res(0)
-        assert data.shape[1] == 5
+        assert data.shape[1] == 1
 
-
-    def test_write_VOTable(self):
+    def test_write_VO_table(self):
+        self.output_path = "output.xml"
         self.reader.get_spectral_cube_for_res(0)
-        self.reader.write_VOTable("output.xml")
+        self.reader.write_VOTable(self.output_path)
+        self.send_samp("table.load.votable")
+        assert True
 
+    def test_write_FITS(self):
+        self.output_path = "output.fits"
+        self.reader.get_spectral_cube_for_res(0)
+        self.reader.write_FITS(self.output_path)
+        self.send_samp("table.load.fits")
+        assert True
+
+    def send_samp(self, message_type):
         client = SAMPIntegratedClient()
         client.connect()
-
-        params = {}
-        params["url"] = urljoin('file:', os.path.abspath("output.xml"))
-        params["name"] = "SDSS Cube"
+        params = {"url": urljoin('file:', os.path.abspath(self.output_path)), "name": "SDSS Cube"}
         print(params["url"])
-
-        message = {}
-        message["samp.mtype"] = "table.load.votable"
-        message["samp.params"] = params
-
+        message = {"samp.mtype": message_type, "samp.params": params}
         client.notify_all(message)
-
-        assert True

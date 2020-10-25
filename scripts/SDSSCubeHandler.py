@@ -3,8 +3,7 @@ from astropy.coordinates import SkyCoord
 from astropy.wcs import wcs
 from astropy.wcs.utils import skycoord_to_pixel
 from astropy.wcs.utils import pixel_to_skycoord
-
-from scripts.astrometry import NoCoverageFoundError
+from scripts.astrometry import NoCoverageFoundError, get_optimized_wcs
 
 
 class SDSSCubeHandler(object):
@@ -23,6 +22,8 @@ class SDSSCubeHandler(object):
         self.fits_path = None
         self.data = None
         self.metadata = None
+        self.INCLUDE_FITS_PATH = True
+        self.INIT_ARRAY_SIZE = 100000
 
     def close_hdf5(self):
         self.f.close()
@@ -30,7 +31,7 @@ class SDSSCubeHandler(object):
     def get_region_ref(self, res_idx, image_ds):
         cutout_bounds = self.get_cutout_bounds(image_ds, res_idx, self.metadata)
         region_ref = image_ds.regionref[cutout_bounds[0][1][1]:cutout_bounds[1][1][1],
-                     cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
+                                        cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
         cutout_shape = self.f[region_ref][region_ref].shape
         try:
             if not (0 <= cutout_shape[0] <= 64 and 0 <= cutout_shape[1] <= 64 and cutout_shape[2] == 2):
@@ -45,7 +46,7 @@ class SDSSCubeHandler(object):
             image_fits_header = self.f[full_res_link].attrs
         else:
             image_fits_header = image_ds.attrs
-        w = self._get_optimized_wcs(image_fits_header)
+        w = get_optimized_wcs(image_fits_header)
         image_size = np.array((image_ds.attrs["NAXIS2"], image_ds.attrs["NAXIS1"]))
         pixel_coords = skycoord_to_pixel(
             SkyCoord(ra=spectrum_fits_header["PLUG_RA"], dec=spectrum_fits_header["PLUG_DEC"], unit='deg'), w)
@@ -64,15 +65,6 @@ class SDSSCubeHandler(object):
             return cutout_bounds
         else:
             raise NoCoverageFoundError
-
-    def _get_optimized_wcs(self, image_fits_header):
-        w = wcs.WCS(naxis=2)
-        w.wcs.crpix = [image_fits_header["CRPIX1"], image_fits_header["CRPIX2"]]
-        w.wcs.cd = np.array([[image_fits_header["CD1_1"], image_fits_header["CD1_2"]],
-                                [image_fits_header["CD2_1"], image_fits_header["CD2_2"]]])
-        w.wcs.crval = [image_fits_header["CRVAL1"], image_fits_header["CRVAL2"]]
-        w.wcs.ctype = [image_fits_header["CTYPE1"], image_fits_header["CTYPE2"]]
-        return w
 
     @staticmethod
     def crop_cutout_to_image(top_left, top_right, bot_left, bot_right, image_size):

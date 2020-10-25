@@ -168,7 +168,7 @@ class CubeUtils:
             dn = img / cimg + simg  # data numbers
             dn_err = np.sqrt(dn / gain + dark_variance)  # data number errors
             img_err = dn_err * cimg  # image errors in nanomaggies
-            return fits_header, img, img_err  # return calibrated image with errors in nanomaggies
+            return fits_header, np.ascontiguousarray(img), np.ascontiguousarray(img_err)  # return calibrated image with errors in nanomaggies
 
     def _get_filtered_spectrum(self, flux, flux_sigma, transmission_ratio):
         # calibrating via filter curves
