@@ -9,6 +9,8 @@ import numpy as np
 from pathlib import Path
 import time
 
+from scripts.SDSSCubeHandler import is_cutout_whole
+
 H5PATH = "../../SDSS_cube.h5"
 
 
@@ -56,7 +58,7 @@ class TestH5Writer:
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image_multiple(self):
-        # test_images = "../../data/images/301/2820/3/frame-*-002820-3-0122.fits.bz2"
+        #test_images = "../../data/images/301/2820/3/frame-*-002820-3-0122.fits.bz2"
         # test_images = "../../data/images_medium_ds"
         test_images = "../../data/galaxy_small/images"
         image_pattern = "*.fits*"
@@ -97,38 +99,29 @@ class TestH5Writer:
             writer.metadata = hdul[0].read_header()
         writer.find_images_overlapping_spectrum()
 
-    def test_crop_cutout_to_image(self):
-        top_left, top_right, bot_left, bot_right = [-32, -32], [32, -32], [-32, 32], [32, 32]
-        e_top_left, e_top_right, e_bot_left, e_bot_right = [0, 0], [32, 0], [0, 32], [32, 32]
-        h5u.SDSSCubeWriter.crop_cutout_to_image(top_left, top_right, bot_left, bot_right, np.array([2048, 1489]))
-        assert (top_left == e_top_left)
-        assert (top_right == e_top_right)
-        assert (bot_left == e_bot_left)
-        assert (top_right == e_top_right)
-
-        top_left, top_right, bot_left, bot_right = [2047, 1488], [2111, 1488], [2047, 1552], [2111, 1552]
-        e_top_left, e_top_right, e_bot_left, e_bot_right = [2047, 1488], [2047, 1488], [2047, 1488], [2047, 1488]
-        h5u.SDSSCubeWriter.crop_cutout_to_image(top_left, top_right, bot_left, bot_right, np.array([2048, 1489]))
-        assert (top_left == e_top_left)
-        assert (top_right == e_top_right)
-        assert (bot_left == e_bot_left)
-        assert (top_right == e_top_right)
-
-        top_left, top_right, bot_left, bot_right = [500, 500], [500, 500], [500, 500], [500, 500],
-        e_top_left, e_top_right, e_bot_left, e_bot_right = [500, 500], [500, 500], [500, 500], [500, 500],
-        h5u.SDSSCubeWriter.crop_cutout_to_image(top_left, top_right, bot_left, bot_right, np.array([2048, 1489]))
-        assert (top_left == e_top_left)
-        assert (top_right == e_top_right)
-        assert (bot_left == e_bot_left)
-        assert (top_right == e_top_right)
-
-        top_left, top_right, bot_left, bot_right = [126, -24], [190, -24], [126, 40], [190, 40],
-        e_top_left, e_top_right, e_bot_left, e_bot_right = [126, 0], [190, 0], [126, 40], [190, 40],
-        h5u.SDSSCubeWriter.crop_cutout_to_image(top_left, top_right, bot_left, bot_right, np.array([2048, 1489]))
-        assert (top_left == e_top_left)
-        assert (top_right == e_top_right)
-        assert (bot_left == e_bot_left)
-        assert (top_right == e_top_right)
+    def test_is_cutout_whole(self):
+        test1 = [[[735, 1849],
+                  [799, 1849]],
+                 [[735, 1913],
+                  [799, 1913]]]
+        test2 = [[[735, 1849],
+                  [799, 1849]],
+                 [[735, 1913],
+                  [799, 1913]]]
+        test3 = [[[-1, 1849],
+                  [63, 1849]],
+                 [[-1, 1913],
+                  [-1, 1913]]]
+        test4 = [[[735, 64],
+                  [799, 64]],
+                 [[735, 128],
+                  [799, 128]]]
+        tests = [test1, test2, test3, test4]
+        expected = [False, False, False, True]
+        results = []
+        for test in tests:
+            results.append(is_cutout_whole(test, np.zeros((1849, 2048, 2))))
+        assert (results == expected)
 
     def test_add_spectra_multiple(self):
         spectra_folder = "../../data/galaxy_small/spectra"

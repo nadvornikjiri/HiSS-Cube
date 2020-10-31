@@ -13,7 +13,7 @@ from scripts import SDSSCubeHandler as h5
 from datetime import datetime
 import logging
 
-from scripts.astrometry import NoCoverageFoundError
+from scripts.astrometry import NoCoverageFoundError, get_optimized_wcs
 
 
 class SDSSCubeWriter(h5.SDSSCubeHandler):
@@ -21,10 +21,10 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
     def __init__(self, h5_file, cube_utils):
         super(SDSSCubeWriter, self).__init__(h5_file, cube_utils)
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.COMPRESSION = "gzip"
+        self.COMPRESSION = None
         self.COMPRESSION_OPTS = None
+        self.FLOAT_COMPRESS = True
         self.SHUFFLE = True
-        self.SCALE_OFFSET = 10
 
     def require_raw_cube_grp(self):
         return self.require_group(self.f, self.ORIG_CUBE_NAME)
@@ -134,7 +134,7 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
             res_tuple = group.name.split('/')[-1]
             wanted_res = next(img for img in self.data if str(img["res"]) == res_tuple)  # parsing 2D resolution
             img_data = np.dstack((wanted_res["flux_mean"], wanted_res["flux_sigma"]))
-            if self.COMPRESSION:
+            if self.FLOAT_COMPRESS:
                 img_data = self.float_compress(img_data)
             ds = group.require_dataset(self.file_name, img_data.shape, img_data.dtype,
                                        chunks=self.CHUNK_SIZE,
@@ -167,13 +167,11 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
     def add_metadata(self, datasets):
         unicode_dt = h5py.special_dtype(vlen=str)
         orig_ds_link = datasets[0].ref
-        for i, ds in enumerate(datasets):
-            if i > 0:
-                naxis = len(ds.shape)
-                ds.attrs["NAXIS"] = naxis
-                for axis in range(naxis):
-                    ds.attrs["NAXIS%d" % (axis)] = ds.shape[axis]
+        for res_idx, ds in enumerate(datasets):
+            if res_idx > 0:
                 ds.attrs["orig_res_link"] = orig_ds_link
+                if ds.attrs["mime-type"] == "image":
+                    self.write_lower_res_wcs(ds, res_idx)
             else:
                 for key, value in dict(self.metadata).items():
                     if key == "COMMENT":
@@ -188,17 +186,32 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
                         ds.parent.create_dataset("HISTORY", data=np.string_(to_print), dtype=unicode_dt)
                     else:
                         ds.attrs[key] = value
+            naxis = len(ds.shape)
+            ds.attrs["NAXIS"] = naxis
+            for axis in range(naxis):
+                ds.attrs["NAXIS%d" % (axis)] = ds.shape[axis]
+
+    def write_lower_res_wcs(self, ds, res_idx=0):
+        w = get_optimized_wcs(self.metadata)
+        w.wcs.crpix /= 2 ** res_idx  # shift center of the image
+        w.wcs.cd *= 2 ** res_idx  # change the pixel scale
+        image_fits_header = ds.attrs
+        image_fits_header["CRPIX1"], image_fits_header["CRPIX2"] = w.wcs.crpix
+        [[image_fits_header["CD1_1"], image_fits_header["CD1_2"]],
+         [image_fits_header["CD2_1"], image_fits_header["CD2_2"]]] = w.wcs.cd
+        image_fits_header["CRVAL1"], image_fits_header["CRVAL2"] = w.wcs.crval
+        image_fits_header["CTYPE1"], image_fits_header["CTYPE2"] = w.wcs.ctype
 
     def add_image_refs_to_spectra(self, spec_datasets):
         image_refs = {}
-        image_max_res_idx = 0
+        image_min_res_idx = 0
         for image_res_idx, image_ds in self.find_images_overlapping_spectrum():
             if not image_res_idx in image_refs:
                 image_refs[image_res_idx] = []
             try:
                 image_refs[image_res_idx].append(self.get_region_ref(image_res_idx, image_ds))
-                if image_res_idx > image_max_res_idx:
-                    image_max_res_idx = image_res_idx
+                if image_res_idx > image_min_res_idx:
+                    image_min_res_idx = image_res_idx
             except NoCoverageFoundError:
                 self.logger.debug("No coverage found for spectrum %s and image %s" % (self.file_name, image_ds))
                 pass
@@ -208,8 +221,8 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
                                        dtype=h5py.regionref_dtype)
         for spec_res_idx, spec_ds in enumerate(spec_datasets):
             if len(image_refs) > 0:
-                if spec_res_idx > image_max_res_idx:
-                    spec_ds.attrs["image_cutouts"] = image_refs[image_max_res_idx]
+                if spec_res_idx > image_min_res_idx:
+                    spec_ds.attrs["image_cutouts"] = image_refs[image_min_res_idx]
                 else:
                     spec_ds.attrs["image_cutouts"] = image_refs[spec_res_idx]
             else:

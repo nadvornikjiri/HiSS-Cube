@@ -19,6 +19,7 @@ class TestH5Reader:
                                        "../../config/ccd_gain.tsv",
                                        "../../config/ccd_dark_variance.tsv")
         self.reader = h5r.SDSSCubeReader(self.h5_file, self.cube_utils)
+        self.resolution = 0
 
     def test_get_spectral_cube(self):
         data = self.reader.get_spectral_cube_for_res(0)
@@ -33,10 +34,14 @@ class TestH5Reader:
 
     def test_write_FITS(self):
         self.output_path = "output.fits"
-        self.reader.get_spectral_cube_for_res(0)
+        self.reader.get_spectral_cube_for_res(self.resolution)
         self.reader.write_FITS(self.output_path)
         self.send_samp("table.load.fits")
         assert True
+
+    def test_write_FITS_zoomed(self):
+        self.resolution = 3
+        self.test_write_FITS()
 
     def send_samp(self, message_type):
         client = SAMPIntegratedClient()

@@ -1,4 +1,5 @@
 *.fits
+h5dump
 data/
 disk_benchmark/
 HDFits/

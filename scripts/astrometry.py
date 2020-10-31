@@ -10,6 +10,7 @@ def get_boundary_coords(fits_header):
     coord_bot_right = w.wcs_pix2world(fits_header["NAXIS1"], fits_header["NAXIS2"], 0)
     return [coord_top_left, coord_bot_left, coord_top_right, coord_bot_right]
 
+
 def get_optimized_wcs(image_fits_header):
     w = wcs.WCS(naxis=2)
     w.wcs.crpix = [image_fits_header["CRPIX1"], image_fits_header["CRPIX2"]]

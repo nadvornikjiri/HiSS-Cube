@@ -6,6 +6,13 @@ from astropy.wcs.utils import pixel_to_skycoord
 from scripts.astrometry import NoCoverageFoundError, get_optimized_wcs
 
 
+def is_cutout_whole(cutout_bounds, image_ds):
+    return 0 <= cutout_bounds[0][0][0] <= cutout_bounds[0][1][0] <= image_ds.shape[1] and \
+           0 <= cutout_bounds[1][0][0] <= cutout_bounds[1][1][0] <= image_ds.shape[1] and \
+           0 <= cutout_bounds[0][0][1] <= cutout_bounds[0][1][1] <= image_ds.shape[0] and \
+           0 <= cutout_bounds[1][0][1] <= cutout_bounds[1][1][1] <= image_ds.shape[0]
+
+
 class SDSSCubeHandler(object):
     def __init__(self, h5_file, cube_utils):
         self.cube_utils = cube_utils
@@ -30,28 +37,31 @@ class SDSSCubeHandler(object):
 
     def get_region_ref(self, res_idx, image_ds):
         cutout_bounds = self.get_cutout_bounds(image_ds, res_idx, self.metadata)
+        if not is_cutout_whole(cutout_bounds, image_ds):
+            raise NoCoverageFoundError
         region_ref = image_ds.regionref[cutout_bounds[0][1][1]:cutout_bounds[1][1][1],
                                         cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
         cutout_shape = self.f[region_ref][region_ref].shape
         try:
-            if not (0 <= cutout_shape[0] <= 64 and 0 <= cutout_shape[1] <= 64 and cutout_shape[2] == 2):
+            if not (0 <= cutout_shape[0] <= (64 / 2 ** res_idx) and
+                    0 <= cutout_shape[1] <= (64 / 2 ** res_idx) and
+                    cutout_shape[2] == 2):
                 raise NoCoverageFoundError
         except IndexError:
             raise NoCoverageFoundError
         return region_ref
 
     def get_cutout_bounds(self, image_ds, res_idx, spectrum_fits_header):
-        full_res_link = image_ds.attrs.get("orig_res_link")
-        if full_res_link:
-            image_fits_header = self.f[full_res_link].attrs
-        else:
-            image_fits_header = image_ds.attrs
-        w = get_optimized_wcs(image_fits_header)
-        image_size = np.array((image_ds.attrs["NAXIS2"], image_ds.attrs["NAXIS1"]))
-        pixel_coords = skycoord_to_pixel(
-            SkyCoord(ra=spectrum_fits_header["PLUG_RA"], dec=spectrum_fits_header["PLUG_DEC"], unit='deg'), w)
-        if 0 < pixel_coords[0] < image_size[0] and 0 < pixel_coords[1] < image_size[1]:
-            pixel_coords = (pixel_coords[0] / (2 ** res_idx), pixel_coords[1] / (2 ** res_idx))
+        w = get_optimized_wcs(image_ds.attrs)
+        image_size = np.array((image_ds.attrs["NAXIS0"], image_ds.attrs["NAXIS1"]))
+        return self.process_cutout_bounds(w, image_size, spectrum_fits_header, res_idx)
+
+    def process_cutout_bounds(self, w, image_size, spectrum_fits_header, res_idx=0):
+        pixel_coords = np.array(skycoord_to_pixel(
+            SkyCoord(ra=spectrum_fits_header["PLUG_RA"], dec=spectrum_fits_header["PLUG_DEC"], unit='deg'),
+            w))
+        if 0 <= pixel_coords[0] <= image_size[0] and 0 <= pixel_coords[1] <= image_size[1]:
+            pixel_coords = (pixel_coords[0], pixel_coords[1])
             region_size = int(self.SPECTRAL_CUTOUT_SIZE / (2 ** res_idx))
             top_left = np.array((int(pixel_coords[0]) - (region_size / 2),
                                  int(pixel_coords[1]) - (region_size / 2)), dtype=int)
@@ -59,29 +69,10 @@ class SDSSCubeHandler(object):
             bot_left = top_left + (0, region_size)
             bot_right = top_left + (region_size, region_size)
 
-            self.crop_cutout_to_image(top_left, top_right, bot_left, bot_right, image_size)
             cutout_bounds = np.array([[top_left, top_right],
                                       [bot_left, bot_right]], dtype=int)
             return cutout_bounds
         else:
             raise NoCoverageFoundError
 
-    @staticmethod
-    def crop_cutout_to_image(top_left, top_right, bot_left, bot_right, image_size):
-        image_indices = image_size - (1, 1)
-        if top_left[0] < 0:
-            top_left[0] = 0
-        if top_left[1] < 0:
-            top_left[1] = 0
-        if top_right[0] > image_indices[0]:
-            top_right[0] = image_indices[0]
-        if top_right[1] < 0:
-            top_right[1] = 0
-        if bot_left[0] < 0:
-            bot_left[0] = 0
-        if bot_left[1] > image_indices[1]:
-            bot_left[1] = image_indices[1]
-        if bot_right[0] > image_indices[0]:
-            bot_right[0] = image_indices[0]
-        if bot_right[1] > image_indices[1]:
-            bot_right[1] = image_indices[1]
+
