@@ -2,11 +2,10 @@ import os
 from urllib.parse import urljoin
 
 import h5py
-import pytest
 from astropy.samp import SAMPIntegratedClient
 
-from scripts import photometry as cu
 from scripts import SDSSCubeReader as h5r
+from scripts import photometry as cu
 
 H5PATH = "../../SDSS_cube.h5"
 

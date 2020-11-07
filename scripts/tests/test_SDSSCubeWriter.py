@@ -8,6 +8,10 @@ import pytest
 import numpy as np
 from pathlib import Path
 import time
+import warnings
+from astropy.utils.exceptions import AstropyWarning
+from tqdm.auto import tqdm
+import timeit
 
 from scripts.SDSSCubeHandler import is_cutout_whole
 
@@ -34,11 +38,22 @@ class TestH5Writer:
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image(self):
-        test_path = "../../data/images/301/4797/1/frame-g-004797-1-0019.fits.bz2"
+        image_path = "../../data/images/301/4797/1/frame-g-004797-1-0019.fits.bz2"
 
         writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
-        h5_datasets = writer.ingest_image(test_path)
-        assert len(h5_datasets) == 4
+        start_time = timeit.default_timer()
+        writer.metadata, writer.data = writer.cube_utils.get_multiple_resolution_image(image_path, writer.IMG_MIN_RES)
+        print(timeit.default_timer() - start_time)
+        start_time = timeit.default_timer()
+        writer.file_name = os.path.basename(image_path)
+        res_grps = writer.create_image_index_tree()
+        img_datasets = writer.create_img_datasets(res_grps)
+        print(timeit.default_timer() - start_time)
+        start_time = timeit.default_timer()
+        writer.add_metadata(img_datasets)
+        print(timeit.default_timer() - start_time)
+        writer.f.flush()
+        assert len(img_datasets) == 4
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image2(self):
@@ -48,24 +63,38 @@ class TestH5Writer:
         h5_datasets = writer.ingest_image(test_path)
         assert len(h5_datasets) == 4
 
-    @pytest.mark.usefixtures("truncate_test_file")
     def test_add_spectrum(self):
-        test_path = "../../data/spectra/spec-4500-55543-0331.fits"
+        test_path = "../../data/galaxy_small/spectra/spec-0411-51817-0119.fits"
 
         writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
-        h5_datasets = writer.ingest_spectrum(test_path)
-        assert len(h5_datasets) == 5
+
+        start_time = timeit.default_timer()
+        writer.metadata, writer.data = writer.cube_utils.get_multiple_resolution_spectrum(test_path,
+                                                                                          writer.SPEC_MIN_RES)
+        print(timeit.default_timer() - start_time)
+        start_time = timeit.default_timer()
+        writer.file_name = os.path.basename(test_path)
+        res_grps = writer.create_spectrum_index_tree()
+        spec_datasets = writer.create_spec_datasets(res_grps)
+        print(timeit.default_timer() - start_time)
+        start_time = timeit.default_timer()
+        writer.add_metadata(spec_datasets)
+        print(timeit.default_timer() - start_time)
+        start_time = timeit.default_timer()
+        writer.f.flush()
+        writer.add_image_refs_to_spectra(spec_datasets)
+        print(timeit.default_timer() - start_time)
+        assert len(spec_datasets) == 4
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image_multiple(self):
-        #test_images = "../../data/images/301/2820/3/frame-*-002820-3-0122.fits.bz2"
+        # test_images = "../../data/images/301/2820/3/frame-*-002820-3-0122.fits.bz2"
         # test_images = "../../data/images_medium_ds"
         test_images = "../../data/galaxy_small/images"
-        image_pattern = "*.fits*"
+        image_pattern = "*.fits.bz2"
         writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
-        t0 = time.clock()
-        for image in Path(test_images).rglob(image_pattern):
-            print("Time: %5f writing: %s" % (time.clock() - t0, image))
+        image_paths = list(Path(test_images).rglob(image_pattern))
+        for image in tqdm(image_paths, desc="Images completed: "):
             writer.ingest_image(image)
 
     def test_add_spec_refs(self):
@@ -125,12 +154,12 @@ class TestH5Writer:
 
     def test_add_spectra_multiple(self):
         spectra_folder = "../../data/galaxy_small/spectra"
-        test_spectra_small = "*.fits"
+        spectra_pattern = "*.fits"
         writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
-        for spectrum in Path(spectra_folder).rglob(test_spectra_small):
-            print("writing: %s" % spectrum)
+        spectra_paths = list(Path(spectra_folder).rglob(spectra_pattern))
+        for spectrum in tqdm(spectra_paths, desc="Spectra completed: "):
             datasets = writer.ingest_spectrum(spectrum)
-            assert (len(datasets) > 1)
+            assert (len(datasets) >= 1)
 
     def test_float_compress(self):
         test_path = "../../data/images/301/4797/1/frame-g-004797-1-0019.fits.bz2"

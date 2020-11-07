@@ -53,7 +53,7 @@ class FITSCubeReader(h5r.SDSSCubeReader):
             try:
                 cutout_region, image_header = self.get_region_from_fits(spectrum_hdul[0].header, image_path)
             except NoCoverageFoundError:
-                pass
+                continue
             print("reading region %s dataset: %s" % (cutout_region.shape, image_path))
             try:
                 image_5d = self.get_pixels_from_image_cutout(self.metadata, image_header, self.output_res,
@@ -76,6 +76,7 @@ class FITSCubeReader(h5r.SDSSCubeReader):
 
     def get_pixels_from_image_cutout(self, orig_spectrum_header, orig_image_header, res_idx, image_region,
                                      spectrum_path, image_path):
+        image_region = np.dstack((image_region, np.zeros(image_region.shape)))
         time_attr = orig_image_header["DATE-OBS"]
         try:
             time = Time(time_attr, format='isot', scale='tai').mjd

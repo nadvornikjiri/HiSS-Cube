@@ -17,8 +17,8 @@ class SDSSCubeHandler(object):
     def __init__(self, h5_file, cube_utils):
         self.cube_utils = cube_utils
         self.SPECTRAL_CUTOUT_SIZE = 64
-        self.IMG_MIN_RES = 128
-        self.SPEC_MIN_RES = 256
+        self.IMG_MIN_RES = 128     # 128
+        self.SPEC_MIN_RES = 256    # 256
         self.IMG_SPAT_INDEX_ORDER = 8
         self.SPEC_SPAT_INDEX_ORDER = 14
         self.CHUNK_SIZE = (128, 128, 2)  # 128x128 pixels x (mean, var) tuples
@@ -29,8 +29,8 @@ class SDSSCubeHandler(object):
         self.fits_path = None
         self.data = None
         self.metadata = None
-        self.INCLUDE_FITS_PATH = True
-        self.INIT_ARRAY_SIZE = 100000
+        self.INCLUDE_ADDITIONAL_METADATA = False
+        self.INIT_ARRAY_SIZE = 4200000
 
     def close_hdf5(self):
         self.f.close()

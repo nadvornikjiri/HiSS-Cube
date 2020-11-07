@@ -16,7 +16,7 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
 
     def __init__(self, h5_file, cube_utils):
         super(SDSSCubeReader, self).__init__(h5_file, cube_utils)
-        if self.INCLUDE_FITS_PATH:
+        if self.INCLUDE_ADDITIONAL_METADATA:
             self.array_type = np.dtype('i8, f8, f8, f8, f8, f8, f8, f8, f8, S32, S32')
         else:
             self.array_type = np.dtype('i8, f8, f8, f8, f8, f8, f8')
@@ -89,7 +89,7 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
         ra_column = np.repeat([[ra]], res, axis=0)
         dec_column = np.repeat([[dec]], res, axis=0)
         time_column = np.repeat([[time]], res, axis=0)
-        if self.INCLUDE_FITS_PATH is False:
+        if self.INCLUDE_ADDITIONAL_METADATA is False:
             spectrum_column_names = 'heal, ra, dec, time, wl, mean, sigma'
             spectrum_columns = [heal_id_column,
                                 ra_column,
@@ -160,7 +160,7 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
         data_columns = np.reshape(image_region, (no_pixels, 2))
         wl_column = np.repeat([[wl]], no_pixels, axis=0)
         time_column = np.repeat([[time]], no_pixels, axis=0)
-        if self.INCLUDE_FITS_PATH is False:
+        if self.INCLUDE_ADDITIONAL_METADATA is False:
             image_column_names = 'heal, ra, dec, time, wl, mean, sigma'
             image_columns = [pixel_IDs_column, ra_column, dec_column, time_column, wl_column,
                              data_columns[:, 0].reshape(no_pixels, 1),
@@ -168,10 +168,10 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
         else:
             image_column_names = 'heal, ra, dec, time, wl, mean, sigma, spectrum_ra, spectrum_dec, fits_name, ' \
                                  'spectrum_fits_name '
-            image_fits_name = image_path.split('/')[-1]
+            image_fits_name = str(image_path).split('/')[-1]
             image_fits_name_casted = np.array([[image_fits_name]]).astype(np.dtype('S32'))
             image_fits_name_column = np.repeat(image_fits_name_casted, no_pixels, axis=0)
-            spectrum_fits_name = spectrum_path.split('/')[-1]
+            spectrum_fits_name = str(spectrum_path).split('/')[-1]
             spectrum_ra_column, spectrum_dec_column, spectrum_name_column = self.get_spectrum_columns(no_pixels,
                                                                                                       spectrum_fits_name)
 
@@ -206,7 +206,7 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
         table.write(output_path, overwrite=True, format='fits')
 
     def get_q_table(self):
-        if not self.INCLUDE_FITS_PATH:
+        if not self.INCLUDE_ADDITIONAL_METADATA:
             table = QTable(self.spectral_cube, names=("HealPix ID", "RA", "DEC", "Time", "Wavelength", "Mean", "Sigma"),
                            meta={'name': 'SDSS Cube'})
         else:

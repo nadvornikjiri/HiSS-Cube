@@ -1,6 +1,10 @@
-import h5py
+import os
+from urllib.parse import urljoin
+
+from astropy.samp import SAMPIntegratedClient
+
+from scripts import FITSCubeReader as FITS
 from scripts import photometry as cu
-from scripts import FITSCubeReader as fits_reader
 
 
 class TestFITSCubeReader:
@@ -10,8 +14,8 @@ class TestFITSCubeReader:
                                        "../../config/ccd_gain.tsv",
                                        "../../config/ccd_dark_variance.tsv")
         spectra_path = "../../data/galaxy_small/spectra"
-        image_path = "../../data/galaxy_small/images"
-        self.reader = fits_reader.FITSCubeReader(spectra_path, image_path, self.cube_utils)
+        image_path = "../../data/galaxy_small/images/decompressed"
+        self.reader = FITS.FITSCubeReader(spectra_path, image_path, self.cube_utils,  image_regex="*.fits")
         self.resolution = 0
 
     def test_get_spectral_cube(self):
@@ -24,3 +28,11 @@ class TestFITSCubeReader:
         self.reader.write_FITS(self.output_path)
         self.send_samp("table.load.fits")
         assert True
+
+    def send_samp(self, message_type):
+        client = SAMPIntegratedClient()
+        client.connect()
+        params = {"url": urljoin('file:', os.path.abspath(self.output_path)), "name": "SDSS Cube"}
+        print(params["url"])
+        message = {"samp.mtype": message_type, "samp.params": params}
+        client.notify_all(message)

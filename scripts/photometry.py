@@ -126,9 +126,10 @@ class CubeUtils:
                                          "wl": wl_orig_res,
                                          "flux_mean": flux_mean_orig_res,
                                          "flux_sigma": flux_sigma_orig_res})
-        self._append_lower_resolution_1D(multiple_resolution_cube, flux_mean_orig_res, flux_sigma_orig_res,
-                                         wl_orig_res,
-                                         min_res)
+        if min_res < 4620:
+            self._append_lower_resolution_1D(multiple_resolution_cube, flux_mean_orig_res, flux_sigma_orig_res,
+                                             wl_orig_res,
+                                             min_res)
         return fits_header, multiple_resolution_cube
 
     def get_multiple_resolution_image(self, path, min_res):
@@ -139,12 +140,15 @@ class CubeUtils:
         y_orig_res = img_orig_res_flux.shape[0]
 
         img_orig_res_flux = img_orig_res_flux * 3e-5 * 3.631e-6 / (self.filter_midpoints[fits_header["FILTER"]] ** 2)
+        img_orig_res_flux_sigma = img_orig_res_flux_sigma * 3e-5 * 3.631e-6 / (
+                    self.filter_midpoints[fits_header["FILTER"]] ** 2)
 
         multiple_resolution_cube.append({"res": (x_orig_res, y_orig_res),
                                          "flux_mean": img_orig_res_flux,
                                          "flux_sigma": img_orig_res_flux_sigma})
-        self._append_lower_resolution_2D(multiple_resolution_cube, img_orig_res_flux, img_orig_res_flux_sigma,
-                                         min_res)
+        if min_res < 2048:
+            self._append_lower_resolution_2D(multiple_resolution_cube, img_orig_res_flux, img_orig_res_flux_sigma,
+                                             min_res)
         return fits_header, multiple_resolution_cube
 
     def _get_image_with_errors(self, fitsPath):
@@ -168,7 +172,8 @@ class CubeUtils:
             dn = img / cimg + simg  # data numbers
             dn_err = np.sqrt(dn / gain + dark_variance)  # data number errors
             img_err = dn_err * cimg  # image errors in nanomaggies
-            return fits_header, np.ascontiguousarray(img), np.ascontiguousarray(img_err)  # return calibrated image with errors in nanomaggies
+            return fits_header, np.ascontiguousarray(img), np.ascontiguousarray(
+                img_err)  # return calibrated image with errors in nanomaggies
 
     def _get_filtered_spectrum(self, flux, flux_sigma, transmission_ratio):
         # calibrating via filter curves

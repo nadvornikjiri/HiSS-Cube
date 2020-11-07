@@ -1,18 +1,13 @@
-from math import ceil, log
+import logging
+import os
+from math import log
 
 import h5py
 import healpy as hp
 import numpy as np
-import six
-from tqdm.notebook import tnrange
 
-from scripts import astrometry
-from astropy.time import Time
-import os
 from scripts import SDSSCubeHandler as h5
-from datetime import datetime
-import logging
-
+from scripts import astrometry
 from scripts.astrometry import NoCoverageFoundError, get_optimized_wcs
 
 
@@ -24,7 +19,7 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         self.COMPRESSION = None
         self.COMPRESSION_OPTS = None
         self.FLOAT_COMPRESS = True
-        self.SHUFFLE = True
+        self.SHUFFLE = False
 
     def require_raw_cube_grp(self):
         return self.require_group(self.f, self.ORIG_CUBE_NAME)
