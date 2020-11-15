@@ -29,8 +29,8 @@ class SDSSCubeHandler(object):
         self.fits_path = None
         self.data = None
         self.metadata = None
-        self.INCLUDE_ADDITIONAL_METADATA = False
-        self.INIT_ARRAY_SIZE = 4200000
+        self.INCLUDE_ADDITIONAL_METADATA = True
+        self.INIT_ARRAY_SIZE = 1000000
 
     def close_hdf5(self):
         self.f.close()

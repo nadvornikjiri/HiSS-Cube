@@ -14,8 +14,8 @@ class TestFITSCubeReader:
                                        "../../config/ccd_gain.tsv",
                                        "../../config/ccd_dark_variance.tsv")
         spectra_path = "../../data/galaxy_small/spectra"
-        image_path = "../../data/galaxy_small/images/decompressed"
-        self.reader = FITS.FITSCubeReader(spectra_path, image_path, self.cube_utils,  image_regex="*.fits")
+        image_path = "../../data/galaxy_small/images"
+        self.reader = FITS.FITSCubeReader(spectra_path, image_path, self.cube_utils,  image_regex="*.fits*")
         self.resolution = 0
 
     def test_get_spectral_cube(self):

@@ -6,6 +6,7 @@ HDFits/
 prof/
 *.asc
 *.log
+zenodo/
 
 
 photoop/
