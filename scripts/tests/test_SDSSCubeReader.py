@@ -7,7 +7,7 @@ from astropy.samp import SAMPIntegratedClient
 from scripts import SDSSCubeReader as h5r
 from scripts import photometry as cu
 
-H5PATH = "../../SDSS_cube.h5"
+H5PATH = "../../SDSS_cube_gzip9.h5"
 
 
 class TestH5Reader:

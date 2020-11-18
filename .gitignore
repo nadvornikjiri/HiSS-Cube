@@ -17,6 +17,7 @@ venv*
 *.nc
 *.h5
 *.xml
+*.txt
 
 #profiling
 profile
