@@ -8,6 +8,7 @@ import numpy as np
 
 from scripts import SDSSCubeHandler as h5
 from scripts import astrometry
+from scripts.SDSSCubeReader import SDSSCubeReader
 from scripts.astrometry import NoCoverageFoundError, get_optimized_wcs
 
 
@@ -42,6 +43,15 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         self.f.flush()
         self.add_image_refs_to_spectra(spec_datasets)
         return spec_datasets
+
+    def create_dense_cube(self):
+        reader = SDSSCubeReader(self.f, self.cube_utils)
+        spectral_cube = reader.get_spectral_cube_from_orig_for_res(0)  # TODO add dynamically all res_zooms that are available
+        ds = self.f.require_dataset(self.DENSE_CUBE_NAME, spectral_cube.shape, spectral_cube.dtype,
+                                    compression=self.COMPRESSION,
+                                    compression_opts=self.COMPRESSION_OPTS,
+                                    shuffle=self.SHUFFLE)
+        ds.write_direct(spectral_cube)
 
     def create_image_index_tree(self):
         cube_grp = self.require_raw_cube_grp()

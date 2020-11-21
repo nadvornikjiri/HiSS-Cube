@@ -19,12 +19,12 @@ class TestFITSCubeReader:
         self.resolution = 0
 
     def test_get_spectral_cube(self):
-        data = self.reader.get_spectral_cube_for_res(self.resolution)
+        data = self.reader.get_spectral_cube_from_orig_for_res(self.resolution)
         assert data.shape[1] == 1
 
     def test_write_FITS(self):
         self.output_path = "output.fits"
-        self.reader.get_spectral_cube_for_res(self.resolution)
+        self.reader.get_spectral_cube_from_orig_for_res(self.resolution)
         self.reader.write_FITS(self.output_path)
         self.send_samp("table.load.fits")
         assert True

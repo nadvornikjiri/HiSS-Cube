@@ -22,14 +22,15 @@ class SDSSCubeHandler(object):
         self.IMG_SPAT_INDEX_ORDER = 8
         self.SPEC_SPAT_INDEX_ORDER = 14
         self.CHUNK_SIZE = (128, 128, 2)  # 128x128 pixels x (mean, var) tuples
-        self.ORIG_CUBE_NAME = "orig_data_cube"
+        self.ORIG_CUBE_NAME = "semi_sparse_cube"
+        self.DENSE_CUBE_NAME = "dense_cube"
         self.NO_IMG_RESOLUTIONS = 5
         self.f = h5_file
         self.file_name = None
         self.fits_path = None
         self.data = None
         self.metadata = None
-        self.INCLUDE_ADDITIONAL_METADATA = True
+        self.INCLUDE_ADDITIONAL_METADATA = False
         self.INIT_ARRAY_SIZE = 1000000
 
     def close_hdf5(self):

@@ -20,27 +20,32 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
             self.array_type = np.dtype('i8, f8, f8, f8, f8, f8, f8, f8, f8, S32, S32')
         else:
             self.array_type = np.dtype('i8, f8, f8, f8, f8, f8, f8')
-        self.spectral_cube = np.empty((self.INIT_ARRAY_SIZE, 1), dtype=self.array_type)
         self.OUTPUT_HEAL_ORDER = 19
-        self.output_res = None
         self.logger = logging.getLogger(self.__class__.__name__)
         self.output_counter = 0
+        self.spectral_cube = None
+        self.output_res = None
 
     def get_spectral_cube_for_res(self, resolution):
+        self.spectral_cube = self.f[self.DENSE_CUBE_NAME][()]     #TODO add res_zoom support
+        return self.spectral_cube
+
+    def get_spectral_cube_from_orig_for_res(self, resolution):
+        self.spectral_cube = np.empty((self.INIT_ARRAY_SIZE, 1), dtype=self.array_type)
         self.output_res = resolution
-        self.get_spectral_cube(self.f)
+        self.get_spectral_cube_from_orig(self.f)
         truncated_cube = self.spectral_cube[:self.output_counter]
         self.spectral_cube = truncated_cube
         return self.spectral_cube
 
-    def get_spectral_cube(self, h5_parent):
+    def get_spectral_cube_from_orig(self, h5_parent):
         if "mime-type" in h5_parent.attrs and h5_parent.attrs["mime-type"] == "spectrum":
             if h5_parent.parent.attrs["res_zoom"] == self.output_res:
                 self.read_spectral_dataset(h5_parent)
 
         if isinstance(h5_parent, h5py.Group):
             for h5_child in h5_parent.keys():
-                self.get_spectral_cube(h5_parent[h5_child])
+                self.get_spectral_cube_from_orig(h5_parent[h5_child])
         return
 
     def read_spectral_dataset(self, spectrum_ds):

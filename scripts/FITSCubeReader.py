@@ -27,14 +27,14 @@ class FITSCubeReader(h5r.SDSSCubeReader):
         self.image_path = image_path
         self.image_metadata = None
 
-    def get_spectral_cube_for_res(self, resolution=0):
+    def get_spectral_cube_from_orig_for_res(self, resolution=0):
         self.output_res = resolution
-        self.get_spectral_cube()
+        self.get_spectral_cube_from_orig()
         truncated_cube = self.spectral_cube[:self.output_counter]
         self.spectral_cube = truncated_cube
         return self.spectral_cube
 
-    def get_spectral_cube(self):
+    def get_spectral_cube_from_orig(self):
         for spectrum_path in Path(self.spectra_path).rglob(self.spectra_regex):
             print("writing: %s" % spectrum_path)
             with fits.open(spectrum_path, memmap=True) as hdul:

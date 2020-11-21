@@ -181,3 +181,10 @@ class TestH5Writer:
                             compressed_number, orig_number, np.abs((compressed_number / orig_number) - 1)))
                         assert False
         assert True
+
+    def test_write_dense_cube(self):
+        writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
+        writer.create_dense_cube()
+        assert True
+
+
