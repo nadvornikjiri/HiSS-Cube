@@ -7,6 +7,9 @@ Software package for handling multi-dimensional multi-resolution data within HDF
 ```bash
 sudo apt-get update
 sudo apt-get install python3-pip
+sudo apt-get install libbz2-dev
+sudo apt-get install -y libsm6
+sudo apt-get install libfontconfig1 libxrender1
 ```
 
 2. Download code
