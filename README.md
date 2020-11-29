@@ -26,7 +26,7 @@ pip3 install -r requirements.txt
 ```
 
 ## Download data from Zenodo
-Download the data from zenodo and extract the contents of "input" archive ìnside the git repository. The "data" folder should afterwards contain "galaxy_small", "images", "spectra", etc. All of the tests in the scripts/tests folder will pass afterwards and the Ipython notebook pre-set paths will work as well.
+Download the "data.tar.gz" from [Zenodo HiSS Cube](https://zenodo.org/record/4273993#.X8ESdWhKiUk) and extract the contentse ìnside the git repository. The "data" folder should afterwards contain "galaxy_small", "images", "spectra", etc. All of the tests in the scripts/tests folder will pass afterwards and the Ipython notebook pre-set paths will work as well.
 
 
 ## Running the IPython notebook
