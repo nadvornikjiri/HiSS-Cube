@@ -5,12 +5,13 @@ from urllib.parse import urljoin
 import h5py
 from astropy.samp import SAMPIntegratedClient
 
+import pytest
 from scripts import SDSSCubeReader as h5r
 from scripts import photometry as cu
 
 H5PATH = "../../SDSS_cube.h5"
 
-
+@pytest.mark.incremental
 class TestH5Reader:
 
     def setup_method(self, test_method):

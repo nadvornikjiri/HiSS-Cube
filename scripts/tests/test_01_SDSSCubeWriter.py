@@ -25,6 +25,7 @@ def truncate_test_file(request):
     f.close()
 
 
+@pytest.mark.incremental
 class TestH5Writer:
 
     def setup_method(self, test_method):
@@ -186,5 +187,3 @@ class TestH5Writer:
         writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
         writer.create_dense_cube()
         assert True
-
-
