@@ -15,10 +15,17 @@ def is_cutout_whole(cutout_bounds, image_ds):
 
 class SDSSCubeHandler(object):
     def __init__(self, h5_file, cube_utils):
+        """
+        Initialize contains configuration relevant to both HDF5 Reader and Writer.
+        Parameters
+        ----------
+        h5_file     Opened HDF5 file object
+        cube_utils  Loaded cube_utils, containing mainly photometry-related constants needed for preprocessing.
+        """
         self.cube_utils = cube_utils
         self.SPECTRAL_CUTOUT_SIZE = 64
-        self.IMG_MIN_RES = 128     # 128
-        self.SPEC_MIN_RES = 256    # 256
+        self.IMG_MIN_RES = 128  # 128
+        self.SPEC_MIN_RES = 256  # 256
         self.IMG_SPAT_INDEX_ORDER = 8
         self.SPEC_SPAT_INDEX_ORDER = 14
         self.CHUNK_SIZE = (128, 128, 2)  # 128x128 pixels x (mean, var) tuples
@@ -37,11 +44,23 @@ class SDSSCubeHandler(object):
         self.f.close()
 
     def get_region_ref(self, res_idx, image_ds):
+        """
+        Gets the region reference for a given resolution from an image_ds.
+
+        Parameters
+        ----------
+        res_idx     Resolution index = zoom factor, e.g., 0, 1, 2, ...
+        image_ds    HDF5 dataset
+
+        Returns     HDF5 region reference
+        -------
+
+        """
         cutout_bounds = self.get_cutout_bounds(image_ds, res_idx, self.metadata)
         if not is_cutout_whole(cutout_bounds, image_ds):
             raise NoCoverageFoundError
         region_ref = image_ds.regionref[cutout_bounds[0][1][1]:cutout_bounds[1][1][1],
-                                        cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
+                     cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
         cutout_shape = self.f[region_ref][region_ref].shape
         try:
             if not (0 <= cutout_shape[0] <= (64 / 2 ** res_idx) and
@@ -53,11 +72,37 @@ class SDSSCubeHandler(object):
         return region_ref
 
     def get_cutout_bounds(self, image_ds, res_idx, spectrum_fits_header):
+        """
+        Gets cutout bounds for an image dataset for a given resolution index (zoom) and a spectrum_fits_header where we get the location of that cutout.
+
+        Parameters
+        ----------
+        image_ds                HDF5 dataset
+        res_idx                 Resolution index = zoom factor
+        spectrum_fits_header    Dictionary-like header of the spectrum, mostly copied from the FITS.
+
+        Returns                 Numpy array shape (2,2)
+        -------
+
+        """
         w = get_optimized_wcs(image_ds.attrs)
         image_size = np.array((image_ds.attrs["NAXIS0"], image_ds.attrs["NAXIS1"]))
         return self.process_cutout_bounds(w, image_size, spectrum_fits_header, res_idx)
 
     def process_cutout_bounds(self, w, image_size, spectrum_fits_header, res_idx=0):
+        """
+        Returns the process cutout_bounds for an image with a give w (WCS header), image_size, spectrum header and resolution index (zoom).
+        Parameters
+        ----------
+        w                       FITS WCS initialized object.
+        image_size              Numpy array, shape (2,)
+        spectrum_fits_header    Dictionary-like header of the spectrum, mostly copied from the FITS.
+        res_idx
+
+        Returns                 Numpy array shape (2,2)
+        -------
+
+        """
         pixel_coords = np.array(skycoord_to_pixel(
             SkyCoord(ra=spectrum_fits_header["PLUG_RA"], dec=spectrum_fits_header["PLUG_DEC"], unit='deg'),
             w))
@@ -75,5 +120,3 @@ class SDSSCubeHandler(object):
             return cutout_bounds
         else:
             raise NoCoverageFoundError
-
-

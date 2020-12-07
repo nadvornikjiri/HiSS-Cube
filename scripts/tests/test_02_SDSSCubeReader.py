@@ -31,7 +31,7 @@ class TestH5Reader:
         self.output_path = "output.xml"
         self.reader.get_spectral_cube_from_orig_for_res(0)
         self.reader.write_VOTable(self.output_path)
-        self.send_samp("table.load.votable")
+        #self.send_samp("table.load.votable")
         assert True
 
     def test_write_FITS(self):
@@ -39,7 +39,7 @@ class TestH5Reader:
         self.output_path = "output.fits"
         self.reader.get_spectral_cube_from_orig_for_res(self.resolution)
         self.reader.write_FITS(self.output_path)
-        self.send_samp("table.load.fits")
+        #self.send_samp("table.load.fits")
         assert True
 
     def test_write_FITS_zoomed(self):
@@ -54,7 +54,7 @@ class TestH5Reader:
         self.reader.get_spectral_cube_for_res(0)
         print(timeit.default_timer() - start_time)
         self.reader.write_FITS(self.output_path)
-        self.send_samp("table.load.fits")
+        #self.send_samp("table.load.fits")
         assert True
 
     def send_samp(self, message_type):

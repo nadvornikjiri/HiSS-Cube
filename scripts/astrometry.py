@@ -3,6 +3,17 @@ import numpy as np
 
 
 def get_boundary_coords(fits_header):
+    """
+    Gets boundary coords in ra, dec for an image.
+
+    Parameters
+    ----------
+    fits_header Dictionary
+
+    Returns     [(float, float)]
+    -------
+
+    """
     w = get_optimized_wcs(fits_header)
     coord_top_left = w.wcs_pix2world(0, 0, 0)
     coord_bot_left = w.wcs_pix2world(0, fits_header["NAXIS2"], 0)
@@ -12,6 +23,18 @@ def get_boundary_coords(fits_header):
 
 
 def get_optimized_wcs(image_fits_header):
+    """
+    Reads the WCS header and constructs the WCS object in an optimized way, see
+    https://docs.astropy.org/en/stable/wcs/example_create_imaging.html for an idea how we do so.
+
+    Parameters
+    ----------
+    image_fits_header  Dictionary
+
+    Returns WCS object
+    -------
+
+    """
     w = wcs.WCS(naxis=2)
     w.wcs.crpix = [image_fits_header["CRPIX1"], image_fits_header["CRPIX2"]]
     w.wcs.cd = np.array([[image_fits_header["CD1_1"], image_fits_header["CD1_2"]],

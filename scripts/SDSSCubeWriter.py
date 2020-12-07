@@ -15,6 +15,13 @@ from scripts.astrometry import NoCoverageFoundError, get_optimized_wcs
 class SDSSCubeWriter(h5.SDSSCubeHandler):
 
     def __init__(self, h5_file, cube_utils):
+        """
+        Contains additional constants that are relevant only to writing the HDF5.
+        Parameters
+        ----------
+        h5_file     Opened HDF5 File object
+        cube_utils  Object - Initialized cube_utils, containing mainly photometry-related constants needed for preprocessing.
+        """
         super(SDSSCubeWriter, self).__init__(h5_file, cube_utils)
         self.logger = logging.getLogger(self.__class__.__name__)
         self.COMPRESSION = None
@@ -26,6 +33,16 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         return self.require_group(self.f, self.ORIG_CUBE_NAME)
 
     def ingest_image(self, image_path):
+        """
+        Method that writes an image to the opened HDF5 file (self.f).
+        Parameters
+        ----------
+        image_path  String
+
+        Returns     HDF5 Dataset (already written to the file)
+        -------
+
+        """
         self.metadata, self.data = self.cube_utils.get_multiple_resolution_image(image_path, self.IMG_MIN_RES)
         self.file_name = os.path.basename(image_path)
         res_grps = self.create_image_index_tree()
@@ -35,6 +52,17 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         return img_datasets
 
     def ingest_spectrum(self, spec_path):
+        """
+        Method that writes a spectrum to the opened HDF5 file (self.f). Needs to be called after all images are already
+        ingested, as it also links the spectra to the images via the Region References.
+        Parameters
+        ----------
+        spec_path   String
+
+        Returns     HDF5 dataset (already written to the file)
+        -------
+
+        """
         self.metadata, self.data = self.cube_utils.get_multiple_resolution_spectrum(spec_path, self.SPEC_MIN_RES)
         self.file_name = os.path.basename(spec_path)
         res_grps = self.create_spectrum_index_tree()
@@ -45,8 +73,16 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         return spec_datasets
 
     def create_dense_cube(self):
+        """
+        Creates the dense cube Group and datasets, needs to be called after the the images and spectra were already
+        ingested.
+        Returns
+        -------
+
+        """
         reader = SDSSCubeReader(self.f, self.cube_utils)
-        spectral_cube = reader.get_spectral_cube_from_orig_for_res(0)  # TODO add dynamically all res_zooms that are available
+        spectral_cube = reader.get_spectral_cube_from_orig_for_res(
+            0)  # TODO add dynamically all res_zooms that are available
         ds = self.f.require_dataset(self.DENSE_CUBE_NAME, spectral_cube.shape, spectral_cube.dtype,
                                     compression=self.COMPRESSION,
                                     compression_opts=self.COMPRESSION_OPTS,
@@ -54,6 +90,12 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         ds.write_direct(spectral_cube)
 
     def create_image_index_tree(self):
+        """
+        Creates the index tree for an image.
+        Returns HDF5 group - the one where the image dataset should be placed.
+        -------
+
+        """
         cube_grp = self.require_raw_cube_grp()
         spatial_grps = self.require_image_spatial_grp_structure(cube_grp)
         time_grp = self.require_image_time_grp(spatial_grps[0])
@@ -63,6 +105,12 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         return res_grps
 
     def create_spectrum_index_tree(self):
+        """
+        Creates the index tree for a spectrum.
+        Returns HDF5 group - the one where the spectrum dataset should be placed.
+        -------
+
+        """
         spec_grp = self.require_raw_cube_grp()
         spatial_grp = self.require_spectrum_spatial_grp_structure(spec_grp)
         time_grp = self.require_spectrum_time_grp(spatial_grp)
@@ -70,6 +118,18 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         return res_grps
 
     def require_image_spatial_grp_structure(self, parent_grp):
+        """
+        creates the spatial part of index for the image. Returns all of the leaf nodes (resolutions) that we want to
+        construct.
+
+        Parameters
+        ----------
+        parent_grp  HDF5 Group
+
+        Returns     [HDF5 Group]
+        -------
+
+        """
         orig_parent = parent_grp
         boundaries = astrometry.get_boundary_coords(self.metadata)
         leaf_grp_set = []
@@ -85,15 +145,37 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         return leaf_grp_set
 
     def require_spectrum_spatial_grp_structure(self, child_grp):
+        """
+        Creates the spatial index part for a spectrum. Takes the root group as parameter.
+        Parameters
+        ----------
+        child_grp   HDF5 group
+
+        Returns     HDF5 group
+        -------
+
+        """
         spectrum_coord = (self.metadata['PLUG_RA'], self.metadata['PLUG_DEC'])
         for order in range(self.SPEC_SPAT_INDEX_ORDER):
             child_grp = self._require_spatial_grp(order, child_grp, spectrum_coord)
         return child_grp
 
     def _require_spatial_grp(self, order, prev, coord):
+        """
+        Returns the HEALPix group structure.
+        Parameters
+        ----------
+        order   int
+        prev    HDF5 group
+        coord   (float, float)
+
+        Returns
+        -------
+
+        """
         nside = 2 ** order
         healID = hp.ang2pix(nside, coord[0], coord[1], lonlat=True, nest=True)
-        grp = self.require_group(prev, str(healID))  # TBD optimize to 8-byte string?
+        grp = self.require_group(prev, str(healID))  # TODO optimize to 8-byte string?
         grp.attrs["type"] = "spatial"
         return grp
 
@@ -134,6 +216,17 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         return res_grps
 
     def create_img_datasets(self, parent_grp_list):
+        """
+        Creates the image datasets inside the root group for every resolution group in the list. Adds mime-type to the
+        image and uses chunked storage (if defined in the properties from Handler class).
+        Parameters
+        ----------
+        parent_grp_list [HDF5 group]
+
+        Returns         [HDF5 group]
+        -------
+
+        """
         img_datasets = []
         for group in parent_grp_list:
             res_tuple = group.name.split('/')[-1]
@@ -153,6 +246,17 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         return img_datasets
 
     def create_spec_datasets(self, parent_grp_list):
+        """
+        Creates spectral datasets in a given list of groups (individual resolutions). Optionally uses compression,
+        but not chunking.
+        Parameters
+        ----------
+        parent_grp_list [HDF5 Group]
+
+        Returns
+        -------
+
+        """
         spec_datasets = []
         for group in parent_grp_list:
             res = group.name.split('/')[-1]
@@ -170,6 +274,18 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         return spec_datasets
 
     def add_metadata(self, datasets):
+        """
+        Adds metadata to the HDF5 data sets of the same image or spectrum in multiple resolutions. It also modifies the
+        metadata for image where needed and adds the COMMENT and HISTORY attributes as datasets for optimization
+        purposes.
+        Parameters
+        ----------
+        datasets    [HDF5 Datasets]
+
+        Returns
+        -------
+
+        """
         unicode_dt = h5py.special_dtype(vlen=str)
         orig_ds_link = datasets[0].ref
         for res_idx, ds in enumerate(datasets):
@@ -197,6 +313,17 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
                 ds.attrs["NAXIS%d" % (axis)] = ds.shape[axis]
 
     def write_lower_res_wcs(self, ds, res_idx=0):
+        """
+        Modifies the FITS WCS parameters for lower resolutions of the image so it is still correct.
+        Parameters
+        ----------
+        ds      HDF5 dataset
+        res_idx int
+
+        Returns
+        -------
+
+        """
         w = get_optimized_wcs(self.metadata)
         w.wcs.crpix /= 2 ** res_idx  # shift center of the image
         w.wcs.cd *= 2 ** res_idx  # change the pixel scale
@@ -208,6 +335,17 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         image_fits_header["CTYPE1"], image_fits_header["CTYPE2"] = w.wcs.ctype
 
     def add_image_refs_to_spectra(self, spec_datasets):
+        """
+        Adds HDF5 Region references of image cut-outs to spectra attribute "image_cutouts". Throws NoCoverageFoundError
+        if the cut-out does not span the whole cutout size for any reason.
+        Parameters
+        ----------
+        spec_datasets   [HDF5 Datasets]
+
+        Returns         [HDF5 Datasets]
+        -------
+
+        """
         image_refs = {}
         image_min_res_idx = 0
         for image_res_idx, image_ds in self.find_images_overlapping_spectrum():
@@ -235,6 +373,13 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         return spec_datasets
 
     def find_images_overlapping_spectrum(self):
+        """Finds images in the HDF5 index structure that overlap the spectrum coordinate. Does so by constructing the
+        whole heal_path string to the image and it to get the correct Group containing those images. Yields resolution
+        index and the image dataset.
+
+        Yields         (int, HDF5 dataset)
+        -------
+        """
         heal_path = self.get_image_heal_path()
         heal_path_group = self.f[heal_path]
         for time in heal_path_group:
@@ -270,6 +415,30 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
 
     @staticmethod
     def float_compress(data, ndig=10):
+        """
+        Makes the data more compressible by zeroing bits of the mantissa.  The method is rewritten from the SDSS IDL
+        variant http://www.sdss3.org/dr8/software/idlutils_doc.php#FLOATCOMPRESS.
+
+        This function does not compress the data in an array, but fills
+        unnecessary digits of the IEEE floating point representation with
+        zeros.  This makes the data more compressible by standard
+        compression routines such as compress or gzip.
+
+        The default is to retain 10 binary digits instead of the usual 23
+        bits (or 52 bits for double precision), introducing a fractional
+        error strictly less than 1/1024).  This is adequate for most
+        astronomical images, and results in images that compress a factor
+        of 2-4 with gzip.
+
+        Parameters
+        ----------
+        data    numpy array, type float32 or float64
+        ndig    number of binary significant digits to keep
+
+        Returns
+        -------
+
+        """
         data = data.astype(np.float32)
         wzer = np.where((data == 0) | (data == np.Inf))
 

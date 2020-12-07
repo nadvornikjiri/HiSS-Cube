@@ -14,6 +14,15 @@ import numpy as np
 class CubeUtils:
 
     def __init__(self, filter_curve_path, ccd_gain_path, ccd_dark_var_path):
+        """
+        Initializes the parameters of SDSS photometry from the ccd_gain and ccd_dark_var files. The transmission curves
+        are initialized directly here.
+        Parameters
+        ----------
+        filter_curve_path
+        ccd_gain_path
+        ccd_dark_var_path
+        """
         self.fitsMemMap = True
         self.ccd_gain_config = self.read_config(ccd_gain_path)
         self.ccd_dark_variance_config = self.read_config(ccd_dark_var_path)
@@ -96,8 +105,17 @@ class CubeUtils:
             data = hdul[1].data
             return data, fits_header
 
-    # concats the transmission curves and where they overlap, takes maximum
     def merge_transmission_curves_max(self, *dicts):
+        """
+        Concats the transmission curves and where they overlap, takes maximum of both curves.
+        Parameters
+        ----------
+        dicts   *[Dictionary]
+
+        Returns Dictionary
+        -------
+
+        """
         merged = {}
         for transmission in dicts:  # `dicts` is a tuple storing the input dictionaries
             for band, d in transmission.items():
@@ -107,6 +125,20 @@ class CubeUtils:
         return merged
 
     def get_multiple_resolution_spectrum(self, path, min_res, apply_transmission=True):
+        """
+        Constructs lower resolutions for a spectrum, optionally with applied transmission curve to simulate
+        observation through photometry filter. Can be called recursively.
+
+        Parameters
+        ----------
+        path                String
+        min_res             int
+        apply_transmission  Bool
+
+        Returns             (Dictionary, numpy array)
+        -------
+
+        """
         multiple_resolution_cube = []
         data, fits_header = self.read_spectrum(path)
 
@@ -133,6 +165,18 @@ class CubeUtils:
         return fits_header, multiple_resolution_cube
 
     def get_multiple_resolution_image(self, path, min_res):
+        """
+        Constructs multiple resolutions for the input image. Can be called recursively.
+
+        Parameters
+        ----------
+        path    String
+        min_res int
+
+        Returns (int, numpy array)
+        -------
+
+        """
         multiple_resolution_cube = []
         fits_header, img_orig_res_flux, img_orig_res_flux_sigma = self._get_image_with_errors(path)
 
@@ -151,8 +195,21 @@ class CubeUtils:
                                              min_res)
         return fits_header, multiple_resolution_cube
 
-    def _get_image_with_errors(self, fitsPath):
-        with fits.open(fitsPath, memmap=self.fitsMemMap) as f:
+    def _get_image_with_errors(self, fits_path):
+        """
+        Calculates image uncertainties, see the
+        https://data.sdss.org/datamodel/files/BOSS_PHOTOOBJ/frames/RERUN/RUN/CAMCOL/frame.html for the algorith
+        description and returns them along with image header and original data.
+
+        Parameters
+        ----------
+        fitsPath    String
+
+        Returns     (Dictionary, numpy array, numpy array)
+        -------
+
+        """
+        with fits.open(fits_path, memmap=self.fitsMemMap) as f:
             fits_header = f[0].header
             img = f[0].data
             y_size = fits_header["NAXIS2"]

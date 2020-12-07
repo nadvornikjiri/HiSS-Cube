@@ -1,18 +1,15 @@
 import os
+import timeit
+from pathlib import Path
 
 import fitsio
+import h5py
+import numpy as np
+import pytest
+from tqdm.auto import tqdm
+
 from scripts import SDSSCubeWriter as h5u
 from scripts import photometry as cu
-import h5py
-import pytest
-import numpy as np
-from pathlib import Path
-import time
-import warnings
-from astropy.utils.exceptions import AstropyWarning
-from tqdm.auto import tqdm
-import timeit
-
 from scripts.SDSSCubeHandler import is_cutout_whole
 
 H5PATH = "../../SDSS_cube.h5"

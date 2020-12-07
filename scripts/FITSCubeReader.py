@@ -27,8 +27,9 @@ class FITSCubeReader(h5r.SDSSCubeReader):
         self.image_path = image_path
         self.image_metadata = None
 
-    def get_spectral_cube_from_orig_for_res(self, resolution=0):
-        self.output_res = resolution
+    def get_spectral_cube_from_orig_for_res(self, res_idx=0):
+        self.spectral_cube = np.empty((self.INIT_ARRAY_SIZE, 1), dtype=self.array_type)
+        self.output_res = res_idx
         self.get_spectral_cube_from_orig()
         truncated_cube = self.spectral_cube[:self.output_counter]
         self.spectral_cube = truncated_cube

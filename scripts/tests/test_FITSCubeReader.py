@@ -18,16 +18,12 @@ class TestFITSCubeReader:
         self.reader = FITS.FITSCubeReader(spectra_path, image_path, self.cube_utils,  image_regex="*.fits*")
         self.resolution = 0
 
-    def test_get_spectral_cube(self):
-        data = self.reader.get_spectral_cube_from_orig_for_res(self.resolution)
-        assert data.shape[1] == 1
-
     def test_write_FITS(self):
         self.output_path = "output.fits"
-        self.reader.get_spectral_cube_from_orig_for_res(self.resolution)
+        data = self.reader.get_spectral_cube_from_orig_for_res(self.resolution)
         self.reader.write_FITS(self.output_path)
-        self.send_samp("table.load.fits")
-        assert True
+        assert data.shape[1] == 1
+        #self.send_samp("table.load.fits")
 
     def send_samp(self, message_type):
         client = SAMPIntegratedClient()

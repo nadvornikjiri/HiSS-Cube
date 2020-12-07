@@ -15,6 +15,13 @@ from scripts.astrometry import get_optimized_wcs
 class SDSSCubeReader(h5.SDSSCubeHandler):
 
     def __init__(self, h5_file, cube_utils):
+        """
+        Initializes the reader related properties, such as the array type for the exported dense cube.
+        Parameters
+        ----------
+        h5_file
+        cube_utils
+        """
         super(SDSSCubeReader, self).__init__(h5_file, cube_utils)
         if self.INCLUDE_ADDITIONAL_METADATA:
             self.array_type = np.dtype('i8, f8, f8, f8, f8, f8, f8, f8, f8, S32, S32')
@@ -27,12 +34,36 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
         self.output_res = None
 
     def get_spectral_cube_for_res(self, resolution):
-        self.spectral_cube = self.f[self.DENSE_CUBE_NAME][()]     #TODO add res_zoom support
+        """
+        This method just reads the dense cube dataset and returns it as numpy array.
+        Parameters
+        ----------
+        resolution  int
+
+        Returns     numpy array
+        -------
+
+        """
+        self.spectral_cube = self.f[self.DENSE_CUBE_NAME][()]  # TODO add res_zoom support
         return self.spectral_cube
 
-    def get_spectral_cube_from_orig_for_res(self, resolution):
+    def get_spectral_cube_from_orig_for_res(self, res_idx):
+        """
+        This method constructs the dense cube from the semi-sparse cube tree in the HDF5 file for a given resolution.
+        It iterates over the individual spectra, reads the "image_cutouts" attribute and de-references all of the
+        region references there. Returns coordinates for every voxel of the constructed 4D spectral cube (ra, dec,
+        time, wavelength) + optional metadata if enabled by the self.INCLUDE_ADDITIONAL_METADATA.
+
+        Parameters
+        ----------
+        resolution  int
+
+        Returns
+        -------
+
+        """
         self.spectral_cube = np.empty((self.INIT_ARRAY_SIZE, 1), dtype=self.array_type)
-        self.output_res = resolution
+        self.output_res = res_idx
         self.get_spectral_cube_from_orig(self.f)
         truncated_cube = self.spectral_cube[:self.output_counter]
         self.spectral_cube = truncated_cube
@@ -49,6 +80,16 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
         return
 
     def read_spectral_dataset(self, spectrum_ds):
+        """
+        Reads the spectral dataset and writes it ot self.spectral_cube.
+        Parameters
+        ----------
+        spectrum_ds HDF5 dataset
+
+        Returns
+        -------
+
+        """
         try:
             if spectrum_ds.attrs["orig_res_link"]:
                 self.metadata = self.f[spectrum_ds.attrs["orig_res_link"]].attrs
@@ -78,6 +119,17 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
             self.spectral_cube.resize((self.spectral_cube.shape[0] * 2, 1), refcheck=False)
 
     def get_pixels_from_spectrum(self, spectrum_h5_path, spectrum_ds):
+        """
+        Gets array of pixels from the spectrum, also containing their coordinates.
+        Parameters
+        ----------
+        spectrum_h5_path    String
+        spectrum_ds         HDF5 dataset
+
+        Returns             numpy record
+        -------
+
+        """
         res = int(spectrum_h5_path.split('/')[-2])
         spectrum_fits_name = spectrum_ds.name.split('/')[-1]
         ra, dec = self.metadata["PLUG_RA"], self.metadata["PLUG_DEC"]
@@ -122,6 +174,18 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
         return np.rec.fromarrays(spectrum_columns, names=spectrum_column_names)
 
     def get_pixels_from_image_cutout(self, spectrum_ds, res_idx, region_ref):
+        """
+        Gets all of the image pixels for the given cutout, along with its coordinates.
+        Parameters
+        ----------
+        spectrum_ds HDF5 dataset
+        res_idx     int
+        region_ref  HDF5 region reference
+
+        Returns     numpy record
+        -------
+
+        """
         spectrum_path = spectrum_ds.name
         image_ds = self.f[region_ref]
         image_path = image_ds.name
