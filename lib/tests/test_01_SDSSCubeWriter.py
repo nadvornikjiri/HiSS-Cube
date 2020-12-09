@@ -8,9 +8,9 @@ import numpy as np
 import pytest
 from tqdm.auto import tqdm
 
-from scripts import SDSSCubeWriter as h5u
-from scripts import photometry as cu
-from scripts.SDSSCubeHandler import is_cutout_whole
+from lib import SDSSCubeWriter as h5u
+from lib import photometry as cu
+from lib.SDSSCubeHandler import is_cutout_whole
 
 H5PATH = "../../SDSS_cube.h5"
 

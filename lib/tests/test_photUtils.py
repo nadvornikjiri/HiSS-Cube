@@ -1,5 +1,5 @@
 import fitsio
-from scripts import astrometry
+from lib import astrometry
 
 
 def test_get_boundary_coords():

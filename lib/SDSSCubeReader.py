@@ -8,8 +8,8 @@ from astropy.io.votable import from_table, writeto
 from astropy.table import QTable
 from astropy.time import Time
 
-from scripts import SDSSCubeHandler as h5
-from scripts.astrometry import get_optimized_wcs
+from lib import SDSSCubeHandler as h5
+from lib.astrometry import get_optimized_wcs
 
 
 class SDSSCubeReader(h5.SDSSCubeHandler):

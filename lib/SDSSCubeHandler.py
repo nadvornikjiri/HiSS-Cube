@@ -3,7 +3,7 @@ from astropy.coordinates import SkyCoord
 from astropy.wcs import wcs
 from astropy.wcs.utils import skycoord_to_pixel
 from astropy.wcs.utils import pixel_to_skycoord
-from scripts.astrometry import NoCoverageFoundError, get_optimized_wcs
+from lib.astrometry import NoCoverageFoundError, get_optimized_wcs
 
 
 def is_cutout_whole(cutout_bounds, image_ds):

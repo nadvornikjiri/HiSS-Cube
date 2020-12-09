@@ -1,4 +1,4 @@
-from scripts import photometry as utils
+from lib import photometry as utils
 import numpy as np
 
 

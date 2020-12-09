@@ -6,10 +6,10 @@ import h5py
 import healpy as hp
 import numpy as np
 
-from scripts import SDSSCubeHandler as h5
-from scripts import astrometry
-from scripts.SDSSCubeReader import SDSSCubeReader
-from scripts.astrometry import NoCoverageFoundError, get_optimized_wcs
+from lib import SDSSCubeHandler as h5
+from lib import astrometry
+from lib.SDSSCubeReader import SDSSCubeReader
+from lib.astrometry import NoCoverageFoundError, get_optimized_wcs
 
 
 class SDSSCubeWriter(h5.SDSSCubeHandler):

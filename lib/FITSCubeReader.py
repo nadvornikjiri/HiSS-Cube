@@ -11,10 +11,10 @@ from astropy.io.votable import from_table, writeto
 from astropy.table import QTable
 from astropy.time import Time
 
-from scripts.SDSSCubeHandler import is_cutout_whole
-from scripts.astrometry import get_optimized_wcs, NoCoverageFoundError
+from lib.SDSSCubeHandler import is_cutout_whole
+from lib.astrometry import get_optimized_wcs, NoCoverageFoundError
 
-from scripts import SDSSCubeReader as h5r
+from lib import SDSSCubeReader as h5r
 
 
 class FITSCubeReader(h5r.SDSSCubeReader):
