@@ -24,10 +24,10 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         """
         super(SDSSCubeWriter, self).__init__(h5_file, cube_utils)
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.COMPRESSION = None
-        self.COMPRESSION_OPTS = None
-        self.FLOAT_COMPRESS = True
-        self.SHUFFLE = False
+        self.COMPRESSION = self.config["Writer"]["COMPRESSION"]
+        self.COMPRESSION_OPTS = self.config["Writer"]["COMPRESSION_OPTS"]
+        self.FLOAT_COMPRESS = bool(self.config["Writer"]["FLOAT_COMPRESS"])
+        self.SHUFFLE = bool(self.config["Writer"]["SHUFFLE"])
 
     def require_raw_cube_grp(self):
         return self.require_group(self.f, self.ORIG_CUBE_NAME)

@@ -1,9 +1,11 @@
 import numpy as np
 from astropy.coordinates import SkyCoord
-from astropy.wcs import wcs
 from astropy.wcs.utils import skycoord_to_pixel
-from astropy.wcs.utils import pixel_to_skycoord
+
 from lib.astrometry import NoCoverageFoundError, get_optimized_wcs
+import configparser
+import pathlib
+from ast import literal_eval as make_tuple
 
 
 def is_cutout_whole(cutout_bounds, image_ds):
@@ -22,23 +24,27 @@ class SDSSCubeHandler(object):
         h5_file     Opened HDF5 file object
         cube_utils  Loaded cube_utils, containing mainly photometry-related constants needed for preprocessing.
         """
+        lib_path = pathlib.Path(__file__).parent.absolute()
+        self.config = configparser.ConfigParser(allow_no_value=True)
+        self.config.read("%s/config.ini" % lib_path)
+        self.SPECTRAL_CUTOUT_SIZE = int(self.config["Handler"]["SPECTRAL_CUTOUT_SIZE"])
+        self.IMG_MIN_RES = int(self.config["Handler"]["IMG_MIN_RES"])
+        self.SPEC_MIN_RES = int(self.config["Handler"]["SPEC_MIN_RES"])
+        self.IMG_SPAT_INDEX_ORDER = int(self.config["Handler"]["IMG_SPAT_INDEX_ORDER"])
+        self.SPEC_SPAT_INDEX_ORDER = int(self.config["Handler"]["SPEC_SPAT_INDEX_ORDER"])
+        self.CHUNK_SIZE = make_tuple(self.config["Handler"]["CHUNK_SIZE"])
+        self.ORIG_CUBE_NAME = self.config["Handler"]["ORIG_CUBE_NAME"]
+        self.DENSE_CUBE_NAME = self.config["Handler"]["DENSE_CUBE_NAME"]
+        self.NO_IMG_RESOLUTIONS = int(self.config["Handler"]["NO_IMG_RESOLUTIONS"])
+        self.INCLUDE_ADDITIONAL_METADATA = bool(self.config["Handler"]["INCLUDE_ADDITIONAL_METADATA"])
+        self.INIT_ARRAY_SIZE = int(self.config["Handler"]["INIT_ARRAY_SIZE"])
+
         self.cube_utils = cube_utils
-        self.SPECTRAL_CUTOUT_SIZE = 64
-        self.IMG_MIN_RES = 128  # 128
-        self.SPEC_MIN_RES = 256  # 256
-        self.IMG_SPAT_INDEX_ORDER = 8
-        self.SPEC_SPAT_INDEX_ORDER = 14
-        self.CHUNK_SIZE = (128, 128, 2)  # 128x128 pixels x (mean, var) tuples
-        self.ORIG_CUBE_NAME = "semi_sparse_cube"
-        self.DENSE_CUBE_NAME = "dense_cube"
-        self.NO_IMG_RESOLUTIONS = 5
         self.f = h5_file
         self.file_name = None
         self.fits_path = None
         self.data = None
         self.metadata = None
-        self.INCLUDE_ADDITIONAL_METADATA = False
-        self.INIT_ARRAY_SIZE = 1000000
 
     def close_hdf5(self):
         self.f.close()

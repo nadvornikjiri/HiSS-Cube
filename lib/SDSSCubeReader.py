@@ -27,7 +27,7 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
             self.array_type = np.dtype('i8, f8, f8, f8, f8, f8, f8, f8, f8, S32, S32')
         else:
             self.array_type = np.dtype('i8, f8, f8, f8, f8, f8, f8')
-        self.OUTPUT_HEAL_ORDER = 19
+        self.OUTPUT_HEAL_ORDER = int(self.config["Reader"]["OUTPUT_HEAL_ORDER"])
         self.logger = logging.getLogger(self.__class__.__name__)
         self.output_counter = 0
         self.spectral_cube = None
