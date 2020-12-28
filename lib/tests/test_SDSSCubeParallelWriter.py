@@ -1,15 +1,17 @@
+import h5py
+
 from lib.SDSSCubeParallelWriter import SDSSCubeParallelWriter
 
-H5PATH = "../../SDSS_cube.h5"
+H5PATH = "../../SDSS_cube_parallel.h5"
 
 
-class TESTSDSSCubeParallelWriter:
+class TestSDSSCubeParallelWriter:
     def test_write_image_metadata(self):
         assert False
 
-    def test_ingest_data(self):
-        image_path = "../../data/galaxy_small/images"
+    def test_ingest_metadata(self):
+        image_path = "../../galaxy_small_decompressed/images"
         spectra_path = "../../data/galaxy_small/spectra"
-        writer = SDSSCubeParallelWriter(H5PATH)
-        writer.ingest_data(image_path, spectra_path)
+        writer = SDSSCubeParallelWriter(h5_path=H5PATH)
+        writer.ingest_metadata(image_path, spectra_path)
         assert True

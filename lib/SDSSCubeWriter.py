@@ -1,7 +1,9 @@
 import logging
 import os
+import pathlib
 from math import log
 
+import fitsio
 import h5py
 import healpy as hp
 import numpy as np
@@ -10,11 +12,12 @@ from lib import SDSSCubeHandler as h5
 from lib import astrometry
 from lib.SDSSCubeReader import SDSSCubeReader
 from lib.astrometry import NoCoverageFoundError, get_optimized_wcs
+from ast import literal_eval as make_tuple
 
 
 class SDSSCubeWriter(h5.SDSSCubeHandler):
 
-    def __init__(self, h5_file, cube_utils):
+    def __init__(self, h5_file=None, cube_utils=None):
         """
         Contains additional constants that are relevant only to writing the HDF5.
         Parameters
@@ -23,11 +26,15 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         cube_utils  Object - Initialized cube_utils, containing mainly photometry-related constants needed for preprocessing.
         """
         super(SDSSCubeWriter, self).__init__(h5_file, cube_utils)
+        self.ingest_type = None
+        self.spectrum_length = None
+        self.image_path_list = []
+        self.spectra_path_list = []
         self.logger = logging.getLogger(self.__class__.__name__)
         self.COMPRESSION = self.config["Writer"]["COMPRESSION"]
         self.COMPRESSION_OPTS = self.config["Writer"]["COMPRESSION_OPTS"]
-        self.FLOAT_COMPRESS = bool(self.config["Writer"]["FLOAT_COMPRESS"])
-        self.SHUFFLE = bool(self.config["Writer"]["SHUFFLE"])
+        self.FLOAT_COMPRESS = self.config.getboolean("Writer", "FLOAT_COMPRESS")
+        self.SHUFFLE = self.config.getboolean("Writer", "SHUFFLE")
 
     def require_raw_cube_grp(self):
         return self.require_group(self.f, self.ORIG_CUBE_NAME)
@@ -43,12 +50,9 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         -------
 
         """
+        self.write_image_metadata(image_path)
         self.metadata, self.data = self.cube_utils.get_multiple_resolution_image(image_path, self.IMG_MIN_RES)
-        self.file_name = os.path.basename(image_path)
-        res_grps = self.create_image_index_tree()
-        img_datasets = self.create_img_datasets(res_grps)
-        self.add_metadata(img_datasets)
-        self.f.flush()
+        img_datasets = self.write_img_datasets()
         return img_datasets
 
     def ingest_spectrum(self, spec_path):
@@ -208,44 +212,67 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
 
     def require_res_grps(self, parent_grp):
         res_grps = []
-        for i, resolution in enumerate(self.data):
-            grp = self.require_group(parent_grp, str(self.data[i]["res"]))
-            grp.attrs["type"] = "resolution"
-            grp.attrs["res_zoom"] = i
-            res_grps.append(grp)
+        if self.ingest_type == "image":  ##if I'm an image
+            min_res = self.IMG_MIN_RES
+            x_lower_res = int(self.metadata["NAXIS1"])
+            y_lower_res = int(self.metadata["NAXIS2"])
+            res_zoom = 0
+            while not (x_lower_res < min_res or y_lower_res < min_res):
+                res_grp_name = str((y_lower_res, x_lower_res))
+                grp = self.require_group(parent_grp, res_grp_name)
+                grp.attrs["type"] = "resolution"
+                grp.attrs["res_zoom"] = res_zoom
+                res_grps.append(grp)
+                res_zoom += 1
+                x_lower_res = int(x_lower_res / 2)
+                y_lower_res = int(y_lower_res / 2)
+        else:
+            min_res = self.SPEC_MIN_RES
+            x_lower_res = int(self.spectrum_length)
+            res_zoom = 0
+            while not (x_lower_res < min_res):
+                res_grp_name = str(x_lower_res)
+                grp = self.require_group(parent_grp, res_grp_name)
+                grp.attrs["type"] = "resolution"
+                grp.attrs["res_zoom"] = res_zoom
+                res_grps.append(grp)
+                res_zoom += 1
+                x_lower_res = int(x_lower_res / 2)
         return res_grps
 
     def create_img_datasets(self, parent_grp_list):
-        """
-        Creates the image datasets inside the root group for every resolution group in the list. Adds mime-type to the
-        image and uses chunked storage (if defined in the properties from Handler class).
-        Parameters
-        ----------
-        parent_grp_list [HDF5 group]
-
-        Returns         [HDF5 group]
-        -------
-
-        """
         img_datasets = []
         for group in parent_grp_list:
             res_tuple = group.name.split('/')[-1]
-            wanted_res = next(img for img in self.data if str(img["res"]) == res_tuple)  # parsing 2D resolution
-            img_data = np.dstack((wanted_res["flux_mean"], wanted_res["flux_sigma"]))
-            if self.FLOAT_COMPRESS:
-                img_data = self.float_compress(img_data)
-            ds = group.require_dataset(self.file_name, img_data.shape, img_data.dtype,
+            img_data_shape = make_tuple(res_tuple) + (2,)
+            img_data_dtype = np.dtype('f4')
+
+            ds = group.require_dataset(self.file_name, img_data_shape, img_data_dtype,
                                        chunks=self.CHUNK_SIZE,
                                        compression=self.COMPRESSION,
                                        compression_opts=self.COMPRESSION_OPTS,
                                        shuffle=self.SHUFFLE)
-
-            ds.write_direct(img_data)
             ds.attrs["mime-type"] = "image"
             img_datasets.append(ds)
         return img_datasets
 
     def create_spec_datasets(self, parent_grp_list):
+        spec_datasets = []
+        for group in parent_grp_list:
+            res = int(group.name.split('/')[-1])
+            spec_data_shape = (res,) + (2,)
+            spec_data_dtype = np.dtype('f4')
+
+            ds = group.require_dataset(self.file_name, spec_data_shape, spec_data_dtype,
+                                       compression=self.COMPRESSION,
+                                       compression_opts=self.COMPRESSION_OPTS,
+                                       shuffle=self.SHUFFLE)
+            ds.attrs["mime-type"] = "spectrum"
+            spec_datasets.append(ds)
+            group.require_dataset("image_cutouts", (self.MAX_CUTOUT_REFS,), dtype=h5py.regionref_dtype)
+        return spec_datasets
+
+    def create_spec_datasets_old(self, parent_grp_list):
         """
         Creates spectral datasets in a given list of groups (individual resolutions). Optionally uses compression,
         but not chunking.
@@ -397,10 +424,13 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
                             except KeyError:
                                 pass
 
-    def get_image_heal_path(self):
+    def get_image_heal_path(self, ra=None, dec=None):
+        if ra is None and dec is None:
+            ra = self.metadata["PLUG_RA"]
+            dec = self.metadata["PLUG_DEC"]
         pixel_IDs = hp.ang2pix(hp.order2nside(np.arange(self.IMG_SPAT_INDEX_ORDER)),
-                               self.metadata["PLUG_RA"],
-                               self.metadata["PLUG_DEC"],
+                               ra,
+                               dec,
                                nest=True,
                                lonlat=True)
         heal_path = "/".join(str(pixel_ID) for pixel_ID in pixel_IDs)
@@ -457,3 +487,61 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
             out[wzer] = temp
 
         return out
+
+    def close_h5_file(self):
+        self.f.close()
+
+    def write_images_metadata(self, image_folder):
+        for fits_path in pathlib.Path(image_folder).rglob(self.IMAGE_PATTERN):
+            self.write_image_metadata(fits_path)
+
+    def write_image_metadata(self, fits_path):
+        self.ingest_type = "image"
+        self.image_path_list.append(fits_path)
+        self.metadata = fitsio.read_header(fits_path)
+        self.file_name = os.path.basename(fits_path)
+        res_grps = self.create_image_index_tree()
+        img_datasets = self.create_img_datasets(res_grps)
+        self.add_metadata(img_datasets)
+
+    def write_spectra_metadata(self, spectra_folder):
+        for fits_path in pathlib.Path(spectra_folder).rglob(self.SPECTRA_PATTERN):
+            self.write_spectrum_metadata(fits_path)
+
+    def write_spectrum_metadata(self, fits_path):
+        self.ingest_type = "spectrum"
+        self.spectra_path_list.append(fits_path)
+        self.metadata = fitsio.read_header(fits_path)
+        self.spectrum_length = fitsio.read_header(fits_path, 1)["NAXIS2"]
+        self.file_name = os.path.basename(fits_path)
+        res_grps = self.create_spectrum_index_tree()
+        spec_datasets = self.create_spec_datasets(res_grps)
+        self.add_metadata(spec_datasets)
+
+    def ingest_metadata(self, image_path, spectra_path):
+        self.write_images_metadata(image_path)
+        self.write_spectra_metadata(spectra_path)
+
+    def write_img_datasets(self):
+        res_grp_list = self.get_image_resolution_groups()
+        img_datasets = []
+        for group in res_grp_list:
+            res_tuple = group.name.split('/')[-1]
+            wanted_res = next(img for img in self.data if str(img["res"]) == res_tuple)  # parsing 2D resolution
+            img_data = np.dstack((wanted_res["flux_mean"], wanted_res["flux_sigma"]))
+            if self.FLOAT_COMPRESS:
+                img_data = self.float_compress(img_data)
+            ds = group[self.file_name]
+            ds.write_direct(img_data)
+            img_datasets.append(ds)
+        return img_datasets
+
+    def get_image_resolution_groups(self):
+        spatial_path = self.get_image_heal_path(ra=self.metadata["CRVAL1"], dec=self.metadata["CRVAL2"])
+        tai_time = self.metadata["TAI"]
+        spectral_midpoint = self.cube_utils.filter_midpoints[self.metadata["filter"]]
+        path = "/".join([spatial_path, str(tai_time), str(spectral_midpoint)])
+        spectral_grp = self.f[path]
+        for res_grp in spectral_grp:
+            yield spectral_grp[res_grp]
+

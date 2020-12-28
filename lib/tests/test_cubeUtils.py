@@ -5,7 +5,7 @@ import numpy as np
 class TestCubeUtils:
 
     def setup_method(self, test_method):
-        self.cube_utils = utils.CubeUtils("../../config/SDSS_Bands",
+        self.cube_utils = utils.Photometry("../../config/SDSS_Bands",
                                           "../../config/ccd_gain.tsv",
                                           "../../config/ccd_dark_variance.tsv")
 

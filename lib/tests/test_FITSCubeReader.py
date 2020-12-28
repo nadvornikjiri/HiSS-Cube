@@ -10,7 +10,7 @@ from lib import photometry as cu
 class TestFITSCubeReader:
 
     def setup_method(self, test_method):
-        self.cube_utils = cu.CubeUtils("../../config/SDSS_Bands",
+        self.cube_utils = cu.Photometry("../../config/SDSS_Bands",
                                        "../../config/ccd_gain.tsv",
                                        "../../config/ccd_dark_variance.tsv")
         spectra_path = "../../data/galaxy_small/spectra"

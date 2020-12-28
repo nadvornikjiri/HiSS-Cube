@@ -16,7 +16,7 @@ def is_cutout_whole(cutout_bounds, image_ds):
 
 
 class SDSSCubeHandler(object):
-    def __init__(self, h5_file, cube_utils):
+    def __init__(self, h5_file=None, cube_utils=None):
         """
         Initialize contains configuration relevant to both HDF5 Reader and Writer.
         Parameters
@@ -36,11 +36,13 @@ class SDSSCubeHandler(object):
         self.ORIG_CUBE_NAME = self.config["Handler"]["ORIG_CUBE_NAME"]
         self.DENSE_CUBE_NAME = self.config["Handler"]["DENSE_CUBE_NAME"]
         self.NO_IMG_RESOLUTIONS = int(self.config["Handler"]["NO_IMG_RESOLUTIONS"])
-        self.INCLUDE_ADDITIONAL_METADATA = bool(self.config["Handler"]["INCLUDE_ADDITIONAL_METADATA"])
+        self.INCLUDE_ADDITIONAL_METADATA = self.config.getboolean("Handler", "INCLUDE_ADDITIONAL_METADATA")
         self.INIT_ARRAY_SIZE = int(self.config["Handler"]["INIT_ARRAY_SIZE"])
+        self.FITS_MEM_MAP = self.config.getboolean("Handler", "FITS_MEM_MAP")
 
         self.cube_utils = cube_utils
         self.f = h5_file
+        self.h5_path = None
         self.file_name = None
         self.fits_path = None
         self.data = None

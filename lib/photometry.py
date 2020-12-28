@@ -11,9 +11,9 @@ import math
 import numpy as np
 
 
-class CubeUtils:
+class Photometry:
 
-    def __init__(self, filter_curve_path, ccd_gain_path, ccd_dark_var_path):
+    def __init__(self, filter_curve_path, ccd_gain_path, ccd_dark_var_path, fits_mem_map=True):
         """
         Initializes the parameters of SDSS photometry from the ccd_gain and ccd_dark_var files. The transmission curves
         are initialized directly here.
@@ -23,9 +23,9 @@ class CubeUtils:
         ccd_gain_path
         ccd_dark_var_path
         """
-        self.fitsMemMap = True
         self.ccd_gain_config = self.read_config(ccd_gain_path)
         self.ccd_dark_variance_config = self.read_config(ccd_dark_var_path)
+        self.fits_mem_map = fits_mem_map
 
         self.filter_midpoints = {
             "u": 3551,
@@ -94,13 +94,13 @@ class CubeUtils:
             self.read_fits_file(path)
 
     def read_fits_file(self, filename):
-        with fits.open(filename, memmap=self.fitsMemMap) as f:
+        with fits.open(filename, memmap=self.fits_mem_map) as f:
             header = f[0].header
             data = f[0].data
             return [header, data, f]
 
     def read_spectrum(self, filename):
-        with fits.open(filename, memmap=self.fitsMemMap) as hdul:
+        with fits.open(filename, memmap=self.fits_mem_map) as hdul:
             fits_header = hdul[0].header
             data = hdul[1].data
             return data, fits_header
@@ -209,7 +209,7 @@ class CubeUtils:
         -------
 
         """
-        with fits.open(fits_path, memmap=self.fitsMemMap) as f:
+        with fits.open(fits_path, memmap=self.fits_mem_map) as f:
             fits_header = f[0].header
             img = f[0].data
             y_size = fits_header["NAXIS2"]
