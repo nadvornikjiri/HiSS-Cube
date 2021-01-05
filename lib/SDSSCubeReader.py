@@ -101,18 +101,21 @@ class SDSSCubeReader(h5.SDSSCubeHandler):
         self.resize_output_if_necessary(spectrum_5d)
         self.spectral_cube[self.output_counter:self.output_counter + spectrum_5d.shape[0]] = spectrum_5d
         self.output_counter += spectrum_5d.shape[0]
-        cutout_refs = spectrum_ds.attrs["image_cutouts"]
+        cutout_refs = spectrum_ds.parent["image_cutouts"]
 
         if len(cutout_refs) > 0:
             for region_ref in cutout_refs:
-                print("reading region %s dataset: %s" % (region_ref, spectrum_ds.name))
-                try:
-                    image_5d = self.get_pixels_from_image_cutout(spectrum_ds, self.output_res, region_ref)
-                    self.resize_output_if_necessary(image_5d)
-                    self.spectral_cube[self.output_counter:self.output_counter + image_5d.shape[0]] = image_5d
-                    self.output_counter += image_5d.shape[0]
-                except ValueError as e:
-                    self.logger.error("Could not process region for %s, message: %s" % (spectrum_ds.name, str(e)))
+                if region_ref:
+                    print("reading region %s dataset: %s" % (region_ref, spectrum_ds.name))
+                    try:
+                        image_5d = self.get_pixels_from_image_cutout(spectrum_ds, self.output_res, region_ref)
+                        self.resize_output_if_necessary(image_5d)
+                        self.spectral_cube[self.output_counter:self.output_counter + image_5d.shape[0]] = image_5d
+                        self.output_counter += image_5d.shape[0]
+                    except ValueError as e:
+                        self.logger.error("Could not process region for %s, message: %s" % (spectrum_ds.name, str(e)))
+                else:
+                    break  # necessary because of how null object references are tested in h5py dataset
 
     def resize_output_if_necessary(self, spectrum_5d):
         if self.output_counter + spectrum_5d.shape[0] > self.spectral_cube.shape[0]:

@@ -1,6 +1,7 @@
 *.fits
 h5dump
 data/
+galaxy_small_decompressed/
 disk_benchmark/
 HDFits/
 prof/

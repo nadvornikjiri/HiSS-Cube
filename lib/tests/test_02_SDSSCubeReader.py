@@ -39,7 +39,7 @@ class TestH5Reader:
         self.output_path = "output.fits"
         self.reader.get_spectral_cube_from_orig_for_res(self.resolution)
         self.reader.write_FITS(self.output_path)
-        #self.send_samp("table.load.fits")
+        self.send_samp("table.load.fits")
         assert True
 
     def test_write_FITS_zoomed(self):

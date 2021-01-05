@@ -9,9 +9,18 @@ from mpi4py import MPI
 import lib.SDSSCubeWriter as Writer
 
 from lib import photometry as cu
+import pydevd_pycharm
+
+size = MPI.COMM_WORLD.Get_size()
+rank = MPI.COMM_WORLD.Get_rank()
+
+port_mapping = [34725, 41905]
+pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
+
+print(os.getpid())
 
 WORK_TAG = 0
-DIE_TAG = 1
+FINISHED_TAG = 1
 
 
 class SDSSCubeParallelWriter(Writer.SDSSCubeWriter):
@@ -24,10 +33,6 @@ class SDSSCubeParallelWriter(Writer.SDSSCubeWriter):
         self.comm = MPI.COMM_WORLD
         self.mpi_size = self.comm.Get_size()
         self.mpi_rank = self.comm.Get_rank()
-        # preprocessing
-        self.IMAGE_PATTERN = self.config["Writer"]["IMAGE_PATTERN"]
-        self.SPECTRA_PATTERN = self.config["Writer"]["SPECTRA_PATTERN"]
-        self.MAX_CUTOUT_REFS = int(self.config["Writer"]["MAX_CUTOUT_REFS"])
 
         # utils
         lib_path = pathlib.Path(__file__).parent.absolute()
@@ -37,74 +42,89 @@ class SDSSCubeParallelWriter(Writer.SDSSCubeWriter):
         super().__init__(h5_file, cube_utils)
 
         self.h5_path = h5_path
-        if not h5_file:
-            self.open_h5_file()
 
-    def open_h5_file(self):
+    def open_h5_file_serial(self):
+        self.f = h5py.File(self.h5_path, 'r+')
+
+    def open_h5_file_parallel(self):
         if self.mpio:
-            self.f = h5py.File(self.h5_path, 'w', driver='mpio', comm=self.comm)
+            self.f = h5py.File(self.h5_path, 'r+', driver='mpio', comm=self.comm)
         else:
-            self.f = h5py.File(self.h5_path, 'w')
+            self.f = h5py.File(self.h5_path, 'r+')
 
-    def ingest_data(self, image_path, spectra_path):
+    def truncate_h5_file(self):
+        self.f = h5py.File(self.h5_path, 'w')
+        self.f.close()
+
+    def ingest_data(self, image_path, spectra_path, truncate_file=None):
         if self.mpi_rank == 0:
+            if truncate_file:
+                self.truncate_h5_file()
+            if not self.f:
+                self.open_h5_file_serial()
             self.ingest_metadata(image_path, spectra_path)
-        # if self.mpi_rank == 0:
-        #     self.distribute_work(self.image_path_list)
-        # else:
-        #     self.write_image_data()
-        # self.comm.Barrier()
-        # if self.mpi_rank == 0:
-        #     self.distribute_work(self.spectra_path_list)
-        # else:
-        #     self.write_spectra_data_and_links()
+            self.close_h5_file()
+        self.comm.Barrier()
+        self.open_h5_file_parallel()
+        if self.mpi_rank == 0:
+            self.distribute_work(self.image_path_list)
+        else:
+            self.write_image_data()
+        self.comm.Barrier()
+        if self.mpi_rank == 0:
+            self.distribute_work(self.spectra_path_list)
+        else:
+            self.write_spectra_data_and_links()
+        self.close_h5_file()
 
-    def ingest_image(self, image_path, res_grps):
-        self.metadata, self.data = self.cube_utils.get_multiple_resolution_image(image_path, self.IMG_MIN_RES)
-        self.file_name = os.path.basename(image_path)
-        img_datasets = self.create_img_datasets(res_grps)
-        self.add_metadata(img_datasets)
-        return img_datasets
-
-    def ingest_spectrum(self, spec_path):
+    def write_spectrum_data(self, spec_path):
         return super().ingest_spectrum(spec_path)
 
     def write_image_data(self):
         status = MPI.Status()
         image_path_list = self.receive_work(status)
-        while status.Get_tag() != DIE_TAG:
-            for path in image_path_list:
-                self.ingest_image(path)
+        while status.Get_tag() != FINISHED_TAG:
+            for image_path in image_path_list:
+                self.metadata, self.data = self.cube_utils.get_multiple_resolution_image(image_path, self.IMG_MIN_RES)
+                self.file_name = image_path.name
+                self.write_img_datasets()
             self.comm.send(obj=None, dest=0)
             image_path_list = self.receive_work(status)
 
     def receive_work(self, status):
-        return self.comm.recv(obj=None, source=0, tag=MPI.ANY_TAG, status=status)
+        data = self.comm.recv(source=0, tag=MPI.ANY_TAG, status=status)
+        self.logger.info("Received work from master: %s" % data)
+        return data
 
     def write_spectra_data_and_links(self):
         status = MPI.Status()
         spectra_path_list = self.receive_work(status)
-        while status.Get_tag() != DIE_TAG:
-            for path in spectra_path_list:
-                self.ingest_spectrum(path)
+        while status.Get_tag() != FINISHED_TAG:
+            for spec_path in spectra_path_list:
+                self.metadata, self.data = self.cube_utils.get_multiple_resolution_spectrum(spec_path,
+                                                                                            self.SPEC_MIN_RES)
+                spec_datasets = self.write_spec_datasets()
+                self.add_image_refs_to_spectra(spec_datasets)
             self.comm.send(obj=None, dest=0)
             spectra_path_list = self.receive_work(status)
 
     def distribute_work(self, path_list):
         status = MPI.Status()
-        batches = chunks(path_list, self.BATCH_SIZE)
+        batches = list(chunks(path_list, self.BATCH_SIZE))
         for i in range(1, self.mpi_size):
             self.send_work(batches, dest=i)
         while len(batches) > 0:
-            self.comm.recv(obj=None, source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
+            self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
             self.send_work(batches, status.Get_source())
 
     def send_work(self, batches, dest):
+        self.logger.info("Sending work batch to dest:%d " % dest)
+        batch = []
         try:
             batch = batches.pop()
             tag = WORK_TAG
         except IndexError:
-            tag = DIE_TAG
+            tag = FINISHED_TAG
         self.comm.send(obj=batch, dest=dest, tag=tag)
 
 
@@ -120,9 +140,11 @@ if __name__ == "__main__":
                         help="data folder that includes folders images and spectra")
     parser.add_argument('output_path', metavar="output", type=str,
                         help="path to HDF5 file, does not need to exist")
+    parser.add_argument('-t', '--truncate', action='store_const', const=True,
+                        help="Should truncate the file if exists?")
     args = parser.parse_args()
 
     fits_image_path = "%s/images" % args.input_path
     fits_spectra_path = "%s/spectra" % args.input_path
 
-    SDSSCubeParallelWriter(args.output_path).ingest_data(fits_image_path, fits_spectra_path)
+    SDSSCubeParallelWriter(args.output_path).ingest_data(fits_image_path, fits_spectra_path, args.truncate)

@@ -28,33 +28,14 @@ class TestH5Writer:
     def setup_method(self, test_method):
         self.h5_file = h5py.File(H5PATH, 'r+', track_order=True)
         self.cube_utils = cu.Photometry("../../config/SDSS_Bands",
-                                       "../../config/ccd_gain.tsv",
-                                       "../../config/ccd_dark_variance.tsv")
+                                        "../../config/ccd_gain.tsv",
+                                        "../../config/ccd_dark_variance.tsv")
 
     def teardown_method(self, test_method):
         self.h5_file.close()
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image(self):
-        image_path = "../../data/images/301/4797/1/frame-g-004797-1-0019.fits.bz2"
-
-        writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
-        start_time = timeit.default_timer()
-        writer.metadata, writer.data = writer.cube_utils.get_multiple_resolution_image(image_path, writer.IMG_MIN_RES)
-        print(timeit.default_timer() - start_time)
-        start_time = timeit.default_timer()
-        writer.file_name = os.path.basename(image_path)
-        res_grps = writer.create_image_index_tree()
-        img_datasets = writer.create_img_datasets(res_grps)
-        print(timeit.default_timer() - start_time)
-        start_time = timeit.default_timer()
-        writer.add_metadata(img_datasets)
-        print(timeit.default_timer() - start_time)
-        writer.f.flush()
-        assert len(img_datasets) == 4
-
-    @pytest.mark.usefixtures("truncate_test_file")
-    def test_add_image2(self):
         test_path = "../../data/images_medium_ds/frame-u-004948-3-0199.fits.bz2"
 
         writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
@@ -66,27 +47,12 @@ class TestH5Writer:
 
         writer = h5u.SDSSCubeWriter(self.h5_file, self.cube_utils)
 
-        start_time = timeit.default_timer()
-        writer.metadata, writer.data = writer.cube_utils.get_multiple_resolution_spectrum(test_path,
-                                                                                          writer.SPEC_MIN_RES)
-        print(timeit.default_timer() - start_time)
-        start_time = timeit.default_timer()
-        writer.file_name = os.path.basename(test_path)
-        res_grps = writer.create_spectrum_index_tree()
-        spec_datasets = writer.create_spec_datasets(res_grps)
-        print(timeit.default_timer() - start_time)
-        start_time = timeit.default_timer()
-        writer.add_metadata(spec_datasets)
-        print(timeit.default_timer() - start_time)
-        start_time = timeit.default_timer()
-        writer.f.flush()
-        writer.add_image_refs_to_spectra(spec_datasets)
-        print(timeit.default_timer() - start_time)
-        assert len(spec_datasets) == 4
+        h5_datasets = writer.ingest_spectrum(test_path)
+        assert len(h5_datasets) == 4
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image_multiple(self):
-        # test_images = "../../data/images/301/2820/3/frame-*-002820-3-0122.fits.bz2"
+        #test_images = "../../data/images/301/2820/3"
         # test_images = "../../data/images_medium_ds"
         test_images = "../../data/galaxy_small/images"
         image_pattern = "*.fits.bz2"
@@ -101,7 +67,9 @@ class TestH5Writer:
         spec_datasets = writer.ingest_spectrum(test_spectrum)
         spec_datasets = writer.add_image_refs_to_spectra(spec_datasets)
         for spec_dataset in spec_datasets:
-            for cutout in spec_dataset.attrs["image_cutouts"]:
+            for cutout in spec_dataset.parent["image_cutouts"]:
+                if not cutout:
+                    break
                 cutout_shape = self.h5_file[cutout][cutout].shape
                 assert (0 <= cutout_shape[0] <= 64)
                 assert (0 <= cutout_shape[1] <= 64)
@@ -113,7 +81,9 @@ class TestH5Writer:
         spec_datasets = writer.ingest_spectrum(test_spectrum)
         spec_datasets = writer.add_image_refs_to_spectra(spec_datasets)
         for spec_dataset in spec_datasets:
-            for cutout in spec_dataset.attrs["image_cutouts"]:
+            for cutout in spec_dataset.parent["image_cutouts"]:
+                if not cutout:
+                    break
                 cutout_shape = self.h5_file[cutout][cutout].shape
                 assert (0 <= cutout_shape[0] <= 64)
                 assert (0 <= cutout_shape[1] <= 64)

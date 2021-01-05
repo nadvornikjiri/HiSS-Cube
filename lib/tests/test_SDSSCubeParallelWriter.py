@@ -15,3 +15,10 @@ class TestSDSSCubeParallelWriter:
         writer = SDSSCubeParallelWriter(h5_path=H5PATH)
         writer.ingest_metadata(image_path, spectra_path)
         assert True
+
+    def test_ingest_data(self):
+        image_path = "../../galaxy_small_decompressed/images"
+        spectra_path = "../../data/galaxy_small/spectra"
+        writer = SDSSCubeParallelWriter(h5_path=H5PATH)
+        writer.ingest_data(image_path, spectra_path, False)
+        assert True

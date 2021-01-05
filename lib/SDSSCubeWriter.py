@@ -31,6 +31,9 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         self.image_path_list = []
         self.spectra_path_list = []
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.IMAGE_PATTERN = self.config["Writer"]["IMAGE_PATTERN"]
+        self.SPECTRA_PATTERN = self.config["Writer"]["SPECTRA_PATTERN"]
+        self.MAX_CUTOUT_REFS = int(self.config["Writer"]["MAX_CUTOUT_REFS"])
         self.COMPRESSION = self.config["Writer"]["COMPRESSION"]
         self.COMPRESSION_OPTS = self.config["Writer"]["COMPRESSION_OPTS"]
         self.FLOAT_COMPRESS = self.config.getboolean("Writer", "FLOAT_COMPRESS")
@@ -67,12 +70,9 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         -------
 
         """
+        self.write_spectrum_metadata(spec_path)
         self.metadata, self.data = self.cube_utils.get_multiple_resolution_spectrum(spec_path, self.SPEC_MIN_RES)
-        self.file_name = os.path.basename(spec_path)
-        res_grps = self.create_spectrum_index_tree()
-        spec_datasets = self.create_spec_datasets(res_grps)
-        self.add_metadata(spec_datasets)
-        self.f.flush()
+        spec_datasets = self.write_spec_datasets()
         self.add_image_refs_to_spectra(spec_datasets)
         return spec_datasets
 
@@ -218,7 +218,7 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
             y_lower_res = int(self.metadata["NAXIS2"])
             res_zoom = 0
             while not (x_lower_res < min_res or y_lower_res < min_res):
-                res_grp_name = str((y_lower_res, x_lower_res))
+                res_grp_name = str((x_lower_res, y_lower_res))
                 grp = self.require_group(parent_grp, res_grp_name)
                 grp.attrs["type"] = "resolution"
                 grp.attrs["res_zoom"] = res_zoom
@@ -244,7 +244,7 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         img_datasets = []
         for group in parent_grp_list:
             res_tuple = group.name.split('/')[-1]
-            img_data_shape = make_tuple(res_tuple) + (2,)
+            img_data_shape = tuple(reversed(make_tuple(res_tuple))) + (2,)
             img_data_dtype = np.dtype('f4')
 
             ds = group.require_dataset(self.file_name, img_data_shape, img_data_dtype,
@@ -260,7 +260,7 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         spec_datasets = []
         for group in parent_grp_list:
             res = int(group.name.split('/')[-1])
-            spec_data_shape = (res,) + (2,)
+            spec_data_shape = (1,) + (res,) + (3,)
             spec_data_dtype = np.dtype('f4')
 
             ds = group.require_dataset(self.file_name, spec_data_shape, spec_data_dtype,
@@ -270,34 +270,6 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
             ds.attrs["mime-type"] = "spectrum"
             spec_datasets.append(ds)
             group.require_dataset("image_cutouts", (self.MAX_CUTOUT_REFS,), dtype=h5py.regionref_dtype)
-        return spec_datasets
-
-    def create_spec_datasets_old(self, parent_grp_list):
-        """
-        Creates spectral datasets in a given list of groups (individual resolutions). Optionally uses compression,
-        but not chunking.
-        Parameters
-        ----------
-        parent_grp_list [HDF5 Group]
-
-        Returns
-        -------
-
-        """
-        spec_datasets = []
-        for group in parent_grp_list:
-            res = group.name.split('/')[-1]
-            wanted_res = next(spec for spec in self.data if str(spec["res"]) == res)
-            spec_data = np.dstack((wanted_res["wl"], wanted_res["flux_mean"], wanted_res["flux_sigma"]))
-            if self.COMPRESSION:
-                spec_data = self.float_compress(spec_data)
-            ds = group.require_dataset(self.file_name, spec_data.shape, spec_data.dtype,
-                                       compression=self.COMPRESSION,
-                                       compression_opts=self.COMPRESSION_OPTS,
-                                       shuffle=self.SHUFFLE)
-            ds.write_direct(spec_data)
-            ds.attrs["mime-type"] = "spectrum"
-            spec_datasets.append(ds)
         return spec_datasets
 
     def add_metadata(self, datasets):
@@ -390,13 +362,15 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
             image_refs[res] = np.array(image_refs[res],
                                        dtype=h5py.regionref_dtype)
         for spec_res_idx, spec_ds in enumerate(spec_datasets):
+            image_cutout_ds = spec_ds.parent["image_cutouts"]
             if len(image_refs) > 0:
+
                 if spec_res_idx > image_min_res_idx:
-                    spec_ds.attrs["image_cutouts"] = image_refs[image_min_res_idx]
+                    no_references = len(image_refs[image_min_res_idx])
+                    image_cutout_ds[0:no_references] = image_refs[image_min_res_idx]
                 else:
-                    spec_ds.attrs["image_cutouts"] = image_refs[spec_res_idx]
-            else:
-                spec_ds.attrs["image_cutouts"] = []
+                    no_references = len(image_refs[spec_res_idx])
+                    image_cutout_ds[0:no_references] = image_refs[spec_res_idx]
         return spec_datasets
 
     def find_images_overlapping_spectrum(self):
@@ -407,7 +381,7 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         Yields         (int, HDF5 dataset)
         -------
         """
-        heal_path = self.get_image_heal_path()
+        heal_path = self.get_heal_path_from_coords()
         heal_path_group = self.f[heal_path]
         for time in heal_path_group:
             time_grp = heal_path_group[time]
@@ -424,11 +398,13 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
                             except KeyError:
                                 pass
 
-    def get_image_heal_path(self, ra=None, dec=None):
+    def get_heal_path_from_coords(self, ra=None, dec=None, order=None):
         if ra is None and dec is None:
             ra = self.metadata["PLUG_RA"]
             dec = self.metadata["PLUG_DEC"]
-        pixel_IDs = hp.ang2pix(hp.order2nside(np.arange(self.IMG_SPAT_INDEX_ORDER)),
+        if order is None:
+            order = self.IMG_SPAT_INDEX_ORDER
+        pixel_IDs = hp.ang2pix(hp.order2nside(np.arange(order)),
                                ra,
                                dec,
                                nest=True,
@@ -536,8 +512,23 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
             img_datasets.append(ds)
         return img_datasets
 
+    def write_spec_datasets(self):
+        res_grp_list = self.get_spectral_resolution_groups()
+        spec_datasets = []
+        for group in res_grp_list:
+            res = group.name.split('/')[-1]
+            wanted_res = next(spec for spec in self.data if str(spec["res"]) == res)
+            spec_data = np.dstack((wanted_res["wl"], wanted_res["flux_mean"], wanted_res["flux_sigma"]))
+            if self.COMPRESSION:
+                spec_data = self.float_compress(spec_data)
+            ds = group[self.file_name]
+            ds.write_direct(spec_data)
+            spec_datasets.append(ds)
+        return spec_datasets
+
     def get_image_resolution_groups(self):
-        spatial_path = self.get_image_heal_path(ra=self.metadata["CRVAL1"], dec=self.metadata["CRVAL2"])
+        reference_coord = astrometry.get_boundary_coords(self.metadata)[0]
+        spatial_path = self.get_heal_path_from_coords(ra=reference_coord[0], dec=reference_coord[1])
         tai_time = self.metadata["TAI"]
         spectral_midpoint = self.cube_utils.filter_midpoints[self.metadata["filter"]]
         path = "/".join([spatial_path, str(tai_time), str(spectral_midpoint)])
@@ -545,3 +536,13 @@ class SDSSCubeWriter(h5.SDSSCubeHandler):
         for res_grp in spectral_grp:
             yield spectral_grp[res_grp]
 
+    def get_spectral_resolution_groups(self):
+        spatial_path = self.get_heal_path_from_coords(order=self.SPEC_SPAT_INDEX_ORDER)
+        try:
+            time = self.metadata["TAI"]
+        except KeyError:
+            time = self.metadata["MJD"]
+        path = "/".join([spatial_path, str(time)])
+        time_grp = self.f[path]
+        for res_grp in time_grp:
+            yield time_grp[res_grp]
