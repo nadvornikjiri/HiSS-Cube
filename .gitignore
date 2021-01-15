@@ -8,6 +8,7 @@ prof/
 *.asc
 *.log
 zenodo/
+qso/
 
 
 photoop/
