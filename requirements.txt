@@ -7,7 +7,7 @@ h5py==3.1.0
 healpy==1.13.0
 ipyparallel==6.3.0
 jupyter==1.0.0
-lxml==4.5.0
+lxml==4.6.3
 numpydoc==0.9.2
 opencv-python==4.2.0.34
 pip-chill==1.0.0
