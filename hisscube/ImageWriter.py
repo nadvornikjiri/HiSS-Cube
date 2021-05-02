@@ -1,7 +1,22 @@
-from Writer import Writer
+import os
+import pathlib
+
+import fitsio
 
 
-class ImageWriter(Writer):
+from hisscube import astrometry
+from ast import literal_eval as make_tuple
+import numpy as np
+
+from hisscube.H5Handler import H5Handler
+
+
+class ImageWriter(H5Handler):
+
+    def __init__(self, h5_file=None, cube_utils=None):
+        super().__init__(h5_file, cube_utils)
+        self.img_cnt = 0
+
     def ingest_image(self, image_path):
         """
         Method that writes an image to the opened HDF5 file (self.f).
@@ -14,7 +29,7 @@ class ImageWriter(Writer):
 
         """
         self.write_image_metadata(image_path)
-        self.metadata, self.data = self.cube_utils.get_multiple_resolution_image(image_path, self.IMG_MIN_RES)
+        self.metadata, self.data = self.cube_utils.get_multiple_resolution_image(image_path, self.config.getint("Handler", "IMG_ZOOM_CNT"))
         img_datasets = self.write_img_datasets()
         return img_datasets
 
@@ -32,3 +47,128 @@ class ImageWriter(Writer):
         img_spectral_grp = self.require_image_spectral_grp(time_grp)
         res_grps = self.require_res_grps(img_spectral_grp)
         return res_grps
+
+    def require_image_spatial_grp_structure(self, parent_grp):
+        """
+        creates the spatial part of index for the image. Returns all of the leaf nodes (resolutions) that we want to
+        construct.
+
+        Parameters
+        ----------
+        parent_grp  HDF5 Group
+
+        Returns     [HDF5 Group]
+        -------
+
+        """
+        orig_parent = parent_grp
+        boundaries = astrometry.get_boundary_coords(self.metadata)
+        leaf_grp_set = []
+        for coord in boundaries:
+            parent_grp = orig_parent
+            for order in range(self.config.getint("Handler", "IMG_SPAT_INDEX_ORDER")):
+                parent_grp = self.require_spatial_grp(order, parent_grp, coord)
+                if order == self.config.getint("Handler", "IMG_SPAT_INDEX_ORDER") - 1:
+                    # only return each leaf group once.
+                    if len(leaf_grp_set) == 0 or \
+                            not (any(grp.name == parent_grp.name for grp in leaf_grp_set)):
+                        leaf_grp_set.append(parent_grp)
+        return leaf_grp_set
+
+    def require_image_time_grp(self, parent_grp):
+        tai_time = self.metadata["TAI"]
+        grp = self.require_group(parent_grp, str(tai_time))
+        grp.attrs["type"] = "time"
+        return grp
+
+    def require_image_spectral_grp(self, parent_grp):
+        grp = self.require_group(parent_grp, str(self.cube_utils.filter_midpoints[self.metadata["filter"]]))
+        grp.attrs["type"] = "spectral"
+        return grp
+
+    def create_img_datasets(self, parent_grp_list):
+        img_datasets = []
+        for group in parent_grp_list:
+            res_tuple = group.name.split('/')[-1]
+            img_data_shape = tuple(reversed(make_tuple(res_tuple))) + (2,)
+            img_data_dtype = np.dtype('f4')
+
+            if self.config.get("Handler", "CHUNK_SIZE"):
+                ds = group.require_dataset(self.file_name, img_data_shape, img_data_dtype,
+                                           chunks=make_tuple(self.config.get("Handler", "CHUNK_SIZE")),
+                                           compression=self.config.get("Writer", "COMPRESSION"),
+                                           compression_opts=self.config.get("Writer", "COMPRESSION_OPTS"),
+                                           shuffle=self.config.getboolean("Writer", "SHUFFLE"))
+            else:
+                ds = group.require_dataset(self.file_name, img_data_shape, img_data_dtype,
+                                           compression=self.config.get("Writer", "COMPRESSION"),
+                                           compression_opts=self.config.get("Writer", "COMPRESSION_OPTS"),
+                                           shuffle=self.config.getboolean("Writer", "SHUFFLE"))
+            ds.attrs["mime-type"] = "image"
+            img_datasets.append(ds)
+        return img_datasets
+
+    def write_lower_res_wcs(self, ds, res_idx=0):
+        """
+        Modifies the FITS WCS parameters for lower resolutions of the image so it is still correct.
+        Parameters
+        ----------
+        ds      HDF5 dataset
+        res_idx int
+
+        Returns
+        -------
+
+        """
+        w = astrometry.get_optimized_wcs(self.metadata)
+        w.wcs.crpix /= 2 ** res_idx  # shift center of the image
+        w.wcs.cd *= 2 ** res_idx  # change the pixel scale
+        image_fits_header = ds.attrs
+        image_fits_header["CRPIX1"], image_fits_header["CRPIX2"] = w.wcs.crpix
+        [[image_fits_header["CD1_1"], image_fits_header["CD1_2"]],
+         [image_fits_header["CD2_1"], image_fits_header["CD2_2"]]] = w.wcs.cd
+        image_fits_header["CRVAL1"], image_fits_header["CRVAL2"] = w.wcs.crval
+        image_fits_header["CTYPE1"], image_fits_header["CTYPE2"] = w.wcs.ctype
+
+    def write_images_metadata(self, image_folder):
+        for fits_path in pathlib.Path(image_folder).rglob(self.config.get("Writer", "IMAGE_PATTERN")):
+            self.write_image_metadata(fits_path)
+            self.img_cnt += 1
+        self.f.attrs["image_count"] = self.img_cnt
+
+    def write_image_metadata(self, fits_path):
+        self.ingest_type = "image"
+        self.image_path_list.append(fits_path)
+        self.metadata = fitsio.read_header(fits_path)
+        self.file_name = os.path.basename(fits_path)
+        res_grps = self.create_image_index_tree()
+        img_datasets = self.create_img_datasets(res_grps)
+        self.add_metadata(img_datasets)
+
+    def write_img_datasets(self):
+        res_grp_list = self.get_image_resolution_groups()
+        img_datasets = []
+        for group in res_grp_list:
+            res_tuple = group.name.split('/')[-1]
+            wanted_res = next(img for img in self.data if str(img["res"]) == res_tuple)  # parsing 2D resolution
+            img_data = np.dstack((wanted_res["flux_mean"], wanted_res["flux_sigma"]))
+            img_data[img_data == np.inf] = np.nan
+            if self.config.getboolean("Writer", "FLOAT_COMPRESS"):
+                img_data = self.float_compress(img_data)
+            ds = group[self.file_name]
+            ds.write_direct(img_data)
+            ds.flush()
+            img_datasets.append(ds)
+        return img_datasets
+
+    def get_image_resolution_groups(self):
+        reference_coord = astrometry.get_boundary_coords(self.metadata)[0]
+        spatial_path = self.get_heal_path_from_coords(ra=reference_coord[0], dec=reference_coord[1])
+        tai_time = self.metadata["TAI"]
+        spectral_midpoint = self.cube_utils.filter_midpoints[self.metadata["filter"]]
+        path = "/".join([spatial_path, str(tai_time), str(spectral_midpoint)])
+        spectral_grp = self.f[path]
+        for res_grp in spectral_grp:
+            yield spectral_grp[res_grp]
+
+

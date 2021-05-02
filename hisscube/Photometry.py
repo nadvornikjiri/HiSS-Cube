@@ -123,7 +123,7 @@ class Photometry:
                         merged[key] = [band, d[key]]
         return merged
 
-    def get_multiple_resolution_spectrum(self, path, min_res, apply_rebin=False, rebin_min=0, rebin_max=0,
+    def get_multiple_resolution_spectrum(self, path, spec_zoom_cnt, apply_rebin=False, rebin_min=0, rebin_max=0,
                                          rebin_samples=0, apply_transmission=True):
         """
         Constructs lower resolutions for a spectrum, optionally with applied transmission curve to simulate
@@ -136,7 +136,7 @@ class Photometry:
         rebin_max           Maximum wavelength of the to which the spectra will be rebinned.
         apply_rebin         Flag specifying whether rebinning will be applied.
         path                String
-        min_res             int
+        spec_zoom_cnt       int
         apply_transmission  Bool
 
         Returns             (Dictionary, numpy array)
@@ -158,21 +158,23 @@ class Photometry:
                                                                                   flux_sigma_orig_res,
                                                                                   transmission_ratio)
         if apply_rebin:
-            wl_orig_res, flux_mean_orig_res, flux_sigma_orig_res = self._get_rebinned_spectrum(wl_orig_res, flux_sigma_orig_res,
-                                                                                  flux_mean_orig_res, rebin_min,
-                                                                                  rebin_max, rebin_samples)
+            wl_orig_res, flux_mean_orig_res, flux_sigma_orig_res = self._get_rebinned_spectrum(wl_orig_res,
+                                                                                               flux_sigma_orig_res,
+                                                                                               flux_mean_orig_res,
+                                                                                               rebin_min,
+                                                                                               rebin_max, rebin_samples)
 
         multiple_resolution_cube.append({"res": len(wl_orig_res),
                                          "wl": wl_orig_res,
                                          "flux_mean": flux_mean_orig_res,
                                          "flux_sigma": flux_sigma_orig_res})
-        if min_res < 4620:
+        if spec_zoom_cnt > 0:
             self._append_lower_resolution_1D(multiple_resolution_cube, flux_mean_orig_res, flux_sigma_orig_res,
                                              wl_orig_res,
-                                             min_res)
+                                             spec_zoom_cnt)
         return fits_header, multiple_resolution_cube
 
-    def get_multiple_resolution_image(self, path, min_res):
+    def get_multiple_resolution_image(self, path, img_zoom_cnt):
         """
         Constructs multiple resolutions for the input image. Can be called recursively.
 
@@ -198,9 +200,9 @@ class Photometry:
         multiple_resolution_cube.append({"res": (x_orig_res, y_orig_res),
                                          "flux_mean": img_orig_res_flux,
                                          "flux_sigma": img_orig_res_flux_sigma})
-        if min_res < 2048:
+        if img_zoom_cnt > 0:
             self._append_lower_resolution_2D(multiple_resolution_cube, img_orig_res_flux, img_orig_res_flux_sigma,
-                                             min_res)
+                                             img_zoom_cnt)
         return fits_header, multiple_resolution_cube
 
     def _get_image_with_errors(self, fits_path):
@@ -272,7 +274,7 @@ class Photometry:
 
     def _append_lower_resolution_1D(self, multiple_resolution_cube, flux_mean_orig_res, flux_sigma_orig_res,
                                     wl_orig_res,
-                                    min_res):
+                                    spec_zoom_cnt):
         # smoothing the curve with gaussian kernel to simulate observation in lower resolution (assuming gaussian-distributed errors)
         gauss_kernel = Gaussian1DKernel(stddev=2)
         smoothed_flux_mean_orig_res = convolve(flux_mean_orig_res, gauss_kernel)
@@ -294,13 +296,14 @@ class Photometry:
                                          "flux_mean": flux_lower_res,
                                          "flux_sigma": flux_sigma_lower_res})
 
-        if not len(wl_lower_res) / 2 < min_res:
+        if spec_zoom_cnt >= 0:
+            spec_zoom_cnt -= 1
             self._append_lower_resolution_1D(multiple_resolution_cube, flux_lower_res, flux_sigma_lower_res,
                                              wl_lower_res,
-                                             min_res)
+                                             spec_zoom_cnt)
 
     def _append_lower_resolution_2D(self, multiple_resolution_cube, flux_mean_orig_res, flux_sigma_orig_res,
-                                    min_res):
+                                    res_zoom):
         # producing lower resolution
         flux_lower_res = cv2.resize(flux_mean_orig_res, dsize=(int(flux_mean_orig_res.shape[1] / 2),
                                                                int(flux_mean_orig_res.shape[0] / 2)),
@@ -311,16 +314,15 @@ class Photometry:
                                                    interpolation=cv2.INTER_CUBIC)
         flux_sigma_lower_res = np.divide(flux_sigma_every_second_point,
                                          4)  # resampling to every second coordinate in 2D divides the variance by 2x2
-        x_lower_res = flux_lower_res.shape[1]
-        y_lower_res = flux_lower_res.shape[0]
 
         multiple_resolution_cube.append({"res": (flux_lower_res.shape[1], flux_lower_res.shape[0]),
                                          "flux_mean": flux_lower_res,
                                          "flux_sigma": flux_sigma_lower_res})
 
-        if not (x_lower_res / 2 < min_res or y_lower_res / 2 < min_res):
+        if res_zoom >= 0:
+            res_zoom -= 1
             self._append_lower_resolution_2D(multiple_resolution_cube, flux_lower_res, flux_sigma_lower_res,
-                                             min_res)
+                                             res_zoom)
 
     def _get_rebinned_spectrum(self, orig_wavs, flux_sigma_orig_res, flux_mean_orig_res, rebin_min, rebin_max,
                                rebin_samples):

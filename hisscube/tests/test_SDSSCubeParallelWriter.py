@@ -27,6 +27,7 @@ class TestSDSSCubeParallelWriter:
         writer.close_h5_file()
         assert True
 
+    @pytest.mark.usefixtures("truncate_test_file")
     def test_ingest_data(self):
         image_path = "../../data/processed/galaxy_small_decompressed/images"
         spectra_path = "../../data/raw/galaxy_small/spectra"

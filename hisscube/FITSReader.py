@@ -6,11 +6,11 @@ from astropy import wcs
 from astropy.io import fits
 from astropy.time import Time
 
-import Reader
+import VisualizationProcessor
 from hisscube.astrometry import NoCoverageFoundError, is_cutout_whole
 
 
-class FITSReader(Reader):
+class FITSReader(VisualizationProcessor):
 
     def __init__(self, spectra_path, image_path, cube_utils, spectra_regex="*.fits", image_regex="*.fits*"):
         super(FITSReader, self).__init__(None, cube_utils)
