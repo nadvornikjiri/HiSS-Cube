@@ -1,4 +1,4 @@
-import logging
+
 
 import numpy as np
 
@@ -7,7 +7,7 @@ from hisscube.astrometry import get_optimized_wcs, get_cutout_bounds
 
 
 class Processor(H5Handler):
-    def __init__(self, h5_file, cube_utils):
+    def __init__(self, h5_file):
         """
         Initializes the reader related properties, such as the array type for the exported dense cube.
         Parameters
@@ -15,9 +15,9 @@ class Processor(H5Handler):
         h5_file
         cube_utils
         """
-        super().__init__(h5_file, cube_utils)
+        super().__init__(h5_file)
 
-        self.logger = logging.getLogger(self.__class__.__name__)
+        #self.logger = logging.getLogger(self.__class__.__name__)
         self.OUTPUT_HEAL_ORDER = int(self.config["Reader"]["OUTPUT_HEAL_ORDER"])
 
     def get_cutout_bounds_from_spectrum(self, image_ds, res_idx, spectrum_ds):

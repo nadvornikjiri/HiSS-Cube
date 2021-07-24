@@ -11,8 +11,8 @@ from hisscube.astrometry import NoCoverageFoundError
 
 class SpectrumWriter(H5Handler):
 
-    def __init__(self, h5_file=None, cube_utils=None):
-        super().__init__(h5_file, cube_utils)
+    def __init__(self, h5_file=None):
+        super().__init__(h5_file)
         self.spec_cnt = 0
 
     def ingest_spectrum(self, spec_path):
@@ -67,9 +67,10 @@ class SpectrumWriter(H5Handler):
             child_grp = self.require_spatial_grp(order, child_grp, spectrum_coord)
 
         for img_zoom in range(self.config.getint("Handler", "IMG_ZOOM_CNT")):
-            child_grp.require_dataset("image_cutouts_%d" % img_zoom,
-                                      (self.config.getint("Writer", "MAX_CUTOUT_REFS"),),
-                                      dtype=h5py.regionref_dtype)
+            ds = child_grp.require_dataset("image_cutouts_%d" % img_zoom,
+                                           (self.config.getint("Writer", "MAX_CUTOUT_REFS"),),
+                                           dtype=h5py.regionref_dtype)
+            # ds[0] = None
         return child_grp
 
     def require_spectrum_time_grp(self, parent_grp):
@@ -90,6 +91,7 @@ class SpectrumWriter(H5Handler):
                                        compression_opts=self.config.get("Writer", "COMPRESSION_OPTS"),
                                        shuffle=self.config.getboolean("Writer", "SHUFFLE"))
             ds.attrs["mime-type"] = "spectrum"
+            ds[0, 0] = 0
             spec_datasets.append(ds)
         return spec_datasets
 
@@ -111,7 +113,8 @@ class SpectrumWriter(H5Handler):
         else:
             if isinstance(h5_grp, h5py.Group):
                 for child_grp in h5_grp.values():
-                    self.add_image_refs(child_grp, depth + 1)
+                    if isinstance(child_grp, h5py.Group):
+                        self.add_image_refs(child_grp, depth + 1)
 
     def add_image_refs_to_spectra(self, spec_datasets):
         """
@@ -128,6 +131,7 @@ class SpectrumWriter(H5Handler):
 
         image_refs = {}
         image_min_zoom_idx = 0
+        self.metadata = spec_datasets[0].attrs
         for image_res_idx, image_ds in self.find_images_overlapping_spectrum():
             if not image_res_idx in image_refs:
                 image_refs[image_res_idx] = []
@@ -135,8 +139,8 @@ class SpectrumWriter(H5Handler):
                 image_refs[image_res_idx].append(self.get_region_ref(image_res_idx, image_ds))
                 if image_res_idx > image_min_zoom_idx:
                     image_min_zoom_idx = image_res_idx
-            except NoCoverageFoundError:
-                self.logger.debug("No coverage found for spectrum %s and image %s" % (self.file_name, image_ds))
+            except NoCoverageFoundError as e:
+                # self.logger.debug("No coverage found for spectrum %s and image %s, reason %s" % (self.file_name, image_ds, str(e)))
                 pass
 
         for res in image_refs:
@@ -145,8 +149,7 @@ class SpectrumWriter(H5Handler):
         for spec_zoom_idx, spec_ds in enumerate(spec_datasets):
             image_cutout_ds = spec_ds.parent.parent.parent[
                 "image_cutouts_%d" % spec_zoom_idx]  # we write image cutout zoom equivalent to the spectral zoom
-            if len(image_refs) > 0:
-
+            if len(image_refs[0]) > 0:
                 if spec_zoom_idx > image_min_zoom_idx:
                     no_references = len(image_refs[image_min_zoom_idx])
                     image_cutout_ds[0:no_references] = image_refs[image_min_zoom_idx]
@@ -186,7 +189,7 @@ class SpectrumWriter(H5Handler):
 
     def write_spectrum_metadata(self, fits_path):
         self.ingest_type = "spectrum"
-        self.spectra_path_list.append(fits_path)
+        self.spectra_path_list.append(str(fits_path))
         self.metadata = fitsio.read_header(fits_path)
         if self.config.getboolean("Preprocessing", "APPLY_REBIN") is False:
             self.spectrum_length = fitsio.read_header(fits_path, 1)["NAXIS2"]
@@ -209,7 +212,6 @@ class SpectrumWriter(H5Handler):
                 spec_data = self.float_compress(spec_data)
             ds = group[self.file_name]
             ds.write_direct(spec_data)
-            ds.flush()
             spec_datasets.append(ds)
         return spec_datasets
 

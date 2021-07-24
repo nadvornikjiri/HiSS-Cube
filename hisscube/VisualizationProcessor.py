@@ -9,8 +9,8 @@ from hisscube.Processor import Processor
 
 class VisualizationProcessor(Processor):
 
-    def __init__(self, h5_file, cube_utils):
-        super().__init__(h5_file, cube_utils)
+    def __init__(self, h5_file):
+        super().__init__(h5_file)
         if self.config.getboolean("Handler",
                                   "INCLUDE_ADDITIONAL_METADATA"):  # TODO add the grouprefs to the images and spectra from dense cube
             self.array_type = [('heal_id', '<i8'), ('ra', '<f4'), ('dec', '<f4'), ('time', '<f4'), ('wl', '<f4'),
@@ -193,12 +193,12 @@ class VisualizationProcessor(Processor):
 
     def get_table_image_pixels_from_cutout_bounds(self, cutout_bounds, image_path, image_region, spectrum_path, time, w,
                                                   wl):
-        pixel_ID, ra, dec = self.get_cutout_pixel_coords(cutout_bounds, w)
+        ra, dec = self.get_cutout_pixel_coords(cutout_bounds, w)
         no_pixels = ra.size
-        pixel_ID = hp.ang2pix(hp.order2nside(self.OUTPUT_HEAL_ORDER),
+        spectrum_healpix = hp.ang2pix(hp.order2nside(self.OUTPUT_HEAL_ORDER),
                               self.metadata["PLUG_RA"], self.metadata["PLUG_DEC"],
                               nest=True, lonlat=True)
-        pixel_IDs_column = np.repeat([pixel_ID], no_pixels, axis=0)
+        spec_healpix_column = np.repeat([spectrum_healpix], no_pixels, axis=0)
         ra_column = ra.reshape(no_pixels, )
         dec_column = dec.reshape(no_pixels, )
         data_columns = np.reshape(image_region, (no_pixels, 2))
@@ -206,7 +206,7 @@ class VisualizationProcessor(Processor):
         time_column = np.repeat([time], no_pixels, axis=0)
         if self.config.getboolean("Handler", "INCLUDE_ADDITIONAL_METADATA") is False:
             image_column_names = 'heal, ra, dec, time, wl, mean, sigma'
-            image_columns = [pixel_IDs_column, ra_column, dec_column, time_column, wl_column,
+            image_columns = [spec_healpix_column, ra_column, dec_column, time_column, wl_column,
                              data_columns[:, 0].reshape(no_pixels, 1),
                              data_columns[:, 1].reshape(no_pixels, 1)]
         else:
@@ -219,7 +219,7 @@ class VisualizationProcessor(Processor):
             spectrum_ra_column, spectrum_dec_column, spectrum_name_column = self.get_spectrum_table_columns(no_pixels,
                                                                                                             spectrum_fits_name)
 
-            image_columns = [pixel_IDs_column,
+            image_columns = [spec_healpix_column,
                              ra_column,
                              dec_column,
                              time_column,

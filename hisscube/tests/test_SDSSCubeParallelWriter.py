@@ -1,6 +1,7 @@
 import h5py
 import pytest
 
+from hisscube.WriterFactory import WriterFactory
 from hisscube.ParallelWriter import ParallelWriter
 
 H5PATH = "../../data/processed/SDSS_cube_parallel.h5"
@@ -21,16 +22,15 @@ class TestSDSSCubeParallelWriter:
     def test_ingest_metadata(self):
         image_path = "../../data/processed/galaxy_small_decompressed/images"
         spectra_path = "../../data/raw/galaxy_small/spectra"
-        writer = ParallelWriter(h5_path=H5PATH)
+        writer = WriterFactory().get_writer(h5_path=H5PATH)
         writer.open_h5_file_serial()
         writer.ingest_metadata(image_path, spectra_path)
         writer.close_h5_file()
         assert True
 
-    @pytest.mark.usefixtures("truncate_test_file")
     def test_ingest_data(self):
         image_path = "../../data/processed/galaxy_small_decompressed/images"
         spectra_path = "../../data/raw/galaxy_small/spectra"
-        writer = ParallelWriter(h5_path=H5PATH)
+        writer = WriterFactory().get_writer(h5_path=H5PATH)
         writer.ingest_data(image_path, spectra_path, False)
         assert True

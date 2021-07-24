@@ -24,7 +24,7 @@ cube_utils = Photometry("../config/SDSS_Bands",
 
 with h5py.File(H5PATH, 'w') as h5_file:  # truncate file
     start1 = timer()
-    writer = Writer(h5_file, cube_utils)
+    writer = Writer(h5_file)
     image_paths = list(Path(image_folder).rglob(image_pattern))
     for image in tqdm(image_paths, desc="Images completed: "):
         writer.ingest_image(image)

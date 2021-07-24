@@ -12,9 +12,9 @@ class TestCubeUtils:
     def test_get_spectrum_lower_resolution(self):
         test_spectrum = "../../data/raw/spectra/spec-4500-55543-0331.fits"
         expected_spectra_resolutions = [4620, 2310, 1155, 577, 288]
-        MIN_RES = 256
+        SPEC_ZOOM_CNT = 4
 
-        fits_header, multiple_res_cube = self.cube_utils.get_multiple_resolution_spectrum(test_spectrum, MIN_RES,
+        fits_header, multiple_res_cube = self.cube_utils.get_multiple_resolution_spectrum(test_spectrum, SPEC_ZOOM_CNT,
                                                                                           apply_transmission=True)
         assert (len(multiple_res_cube) == len(expected_spectra_resolutions))
         for i, res in enumerate(expected_spectra_resolutions):
@@ -30,8 +30,8 @@ class TestCubeUtils:
     def test_get_image_lower_resolution(self):
         test_image = "../../data/raw/images/301/4797/1/frame-g-004797-1-0019.fits.bz2"
         expected_image_resolutions = [(2048, 1489), (1024, 744), (512, 372), (256, 186), (128, 93)]
-        MIN_RES = 64
-        fits_header, multiple_res_cube = self.cube_utils.get_multiple_resolution_image(test_image, MIN_RES)
+        IMG_ZOOM_CNT = 4
+        fits_header, multiple_res_cube = self.cube_utils.get_multiple_resolution_image(test_image, IMG_ZOOM_CNT)
         assert (len(multiple_res_cube) == len(expected_image_resolutions))
         for i, res in enumerate(expected_image_resolutions):
             assert (multiple_res_cube[i]["res"] == expected_image_resolutions[i])

@@ -11,10 +11,11 @@ import numpy as np
 from astropy.time import Time
 
 from hisscube.astrometry import NoCoverageFoundError, get_cutout_bounds, is_cutout_whole
+from hisscube import Photometry as cu
 
 
 class H5Handler(object):
-    def __init__(self, h5_file=None, cube_utils=None):
+    def __init__(self, h5_file=None):
         """
         Initialize contains configuration relevant to both HDF5 Reader and Writer.
         Parameters
@@ -25,11 +26,16 @@ class H5Handler(object):
         lib_path = pathlib.Path(__file__).parent.absolute()
         self.config = configparser.ConfigParser(allow_no_value=True)
         self.config.read("%s/config.ini" % lib_path)
+        # utils
+        lib_path = pathlib.Path(__file__).parent.absolute()
+        cube_utils = self.cube_utils = cu.Photometry("%s/../config/SDSS_Bands" % lib_path,
+                                                     "%s/../config/ccd_gain.tsv" % lib_path,
+                                                     "%s/../config/ccd_dark_variance.tsv" % lib_path)
         self.ingest_type = None
         self.spectrum_length = None
         self.image_path_list = []
         self.spectra_path_list = []
-        self.logger = logging.getLogger(self.__class__.__name__)
+        #self.logger = logging.getLogger(self.__class__.__name__)
         self.cube_utils = cube_utils
         self.f = h5_file
         self.h5_path = None
@@ -58,7 +64,7 @@ class H5Handler(object):
         cutout_bounds = get_cutout_bounds(image_ds, res_idx, self.metadata,
                                           self.config.getint("Handler", "SPECTRAL_CUTOUT_SIZE"))
         if not is_cutout_whole(cutout_bounds, image_ds):
-            raise NoCoverageFoundError
+            raise NoCoverageFoundError("Cutout not whole.")
         region_ref = image_ds.regionref[cutout_bounds[0][1][1]:cutout_bounds[1][1][1],
                      cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
         cutout_shape = self.f[region_ref][region_ref].shape
@@ -66,9 +72,9 @@ class H5Handler(object):
             if not (0 <= cutout_shape[0] <= (64 / 2 ** res_idx) and
                     0 <= cutout_shape[1] <= (64 / 2 ** res_idx) and
                     cutout_shape[2] == 2):
-                raise NoCoverageFoundError
+                raise NoCoverageFoundError("Cutout not in correct shape.")
         except IndexError:
-            raise NoCoverageFoundError
+            raise NoCoverageFoundError("IndexError")
         return region_ref
 
     def require_raw_cube_grp(self):
@@ -148,11 +154,13 @@ class H5Handler(object):
             else:
                 for key, value in dict(self.metadata).items():
                     if key == "COMMENT":
+                        continue    # TODO debug thing
                         to_print = 'COMMENT\n--------\n'
                         for item in value:
                             to_print += item + '\n'
                         ds.parent.create_dataset("COMMENT", data=np.string_(to_print), dtype=unicode_dt)
                     elif key == "HISTORY":
+                        continue
                         to_print = 'HISTORY\n--------\n'
                         for item in value:
                             to_print += item + '\n'

@@ -1,11 +1,11 @@
 from pathlib import Path
 
+
 from tqdm.auto import tqdm
 
 from hisscube.ImageWriter import ImageWriter
 from hisscube.VisualizationProcessor import VisualizationProcessor
 from hisscube.SpectrumWriter import SpectrumWriter
-import numpy as np
 
 
 class Writer(ImageWriter, SpectrumWriter):
@@ -18,7 +18,7 @@ class Writer(ImageWriter, SpectrumWriter):
         -------
 
         """
-        reader = VisualizationProcessor(self.f, self.cube_utils)
+        reader = VisualizationProcessor(self.f)
         dense_cube_grp = self.f.require_group(self.config.get("Handler", "DENSE_CUBE_NAME"))
         for zoom in range(
                 min(self.config.getint("Handler", "SPEC_ZOOM_CNT"), self.config.getint("Handler", "IMG_ZOOM_CNT"))):
@@ -47,3 +47,6 @@ class Writer(ImageWriter, SpectrumWriter):
         for spectrum in tqdm(spectra_paths, desc="Spectra Progress: "):
             self.ingest_spectrum(spectrum)
         self.add_image_refs(self.f)
+
+
+

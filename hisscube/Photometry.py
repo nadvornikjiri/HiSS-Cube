@@ -169,6 +169,7 @@ class Photometry:
                                          "flux_mean": flux_mean_orig_res,
                                          "flux_sigma": flux_sigma_orig_res})
         if spec_zoom_cnt > 0:
+            spec_zoom_cnt -=1
             self._append_lower_resolution_1D(multiple_resolution_cube, flux_mean_orig_res, flux_sigma_orig_res,
                                              wl_orig_res,
                                              spec_zoom_cnt)
@@ -201,6 +202,7 @@ class Photometry:
                                          "flux_mean": img_orig_res_flux,
                                          "flux_sigma": img_orig_res_flux_sigma})
         if img_zoom_cnt > 0:
+            img_zoom_cnt -= 1
             self._append_lower_resolution_2D(multiple_resolution_cube, img_orig_res_flux, img_orig_res_flux_sigma,
                                              img_zoom_cnt)
         return fits_header, multiple_resolution_cube
@@ -296,7 +298,7 @@ class Photometry:
                                          "flux_mean": flux_lower_res,
                                          "flux_sigma": flux_sigma_lower_res})
 
-        if spec_zoom_cnt >= 0:
+        if spec_zoom_cnt > 0:
             spec_zoom_cnt -= 1
             self._append_lower_resolution_1D(multiple_resolution_cube, flux_lower_res, flux_sigma_lower_res,
                                              wl_lower_res,
@@ -319,7 +321,7 @@ class Photometry:
                                          "flux_mean": flux_lower_res,
                                          "flux_sigma": flux_sigma_lower_res})
 
-        if res_zoom >= 0:
+        if res_zoom > 0:
             res_zoom -= 1
             self._append_lower_resolution_2D(multiple_resolution_cube, flux_lower_res, flux_sigma_lower_res,
                                              res_zoom)

@@ -9,17 +9,14 @@ H5PATH = "../../data/processed/galaxy_small.h5"
 class TestMLProcessor():
     def setup_method(self, test_method):
         self.h5_file = h5py.File(H5PATH, 'r+', track_order=True)
-        self.cube_utils = Photometry("../../config/SDSS_Bands",
-                                     "../../config/ccd_gain.tsv",
-                                     "../../config/ccd_dark_variance.tsv")
 
     def test_create_3d_cube(self):
-        writer = MLProcessor(self.h5_file, self.cube_utils)
+        writer = MLProcessor(self.h5_file)
         writer.create_3d_cube()
         assert True
 
     def test_count_spatial_groups_with_depth(self):
-        processor = MLProcessor(self.h5_file, self.cube_utils)
+        processor = MLProcessor(self.h5_file)
         target_cnt = processor.count_spatial_groups_with_depth(
             processor.f[processor.config.get("Handler", "ORIG_CUBE_NAME")],
             processor.config.getint("Handler", "SPEC_SPAT_INDEX_ORDER"))
