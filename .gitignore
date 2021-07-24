@@ -25,7 +25,7 @@ venv*
 #profiling
 profile
 *.slog2
-*.clog2 
+*.clog2
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
