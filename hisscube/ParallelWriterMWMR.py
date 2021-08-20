@@ -5,6 +5,7 @@ import h5py
 from mpi4py import MPI
 
 from hisscube.ParallelWriter import ParallelWriter, FINISHED_TAG, chunks
+from timeit import default_timer as timer
 
 print(os.getpid())
 
@@ -19,6 +20,7 @@ class ParallelWriterMWMR(ParallelWriter):
         self.comm.Barrier()
         self.parse_path_lists(image_path, spectra_path)
         self.open_h5_file_parallel()
+        start = timer()
         if self.mpi_rank == 0:
             self.logger.info("Processing images.")
             self.distribute_work(self.image_path_list)
@@ -31,11 +33,13 @@ class ParallelWriterMWMR(ParallelWriter):
         else:
             self.write_spectra_data()
         self.close_h5_file()
+        end = timer()
         if self.mpi_rank == 0:
             self.logger.info("Adding image region references.")
             self.open_h5_file_serial()
             self.add_image_refs(self.f)
             self.close_h5_file()
+        self.logger.info("Parallel part time: %s", end - start)
 
     def parse_path_lists(self, image_path, spectra_path):
         fits_pattern = "*.fits"

@@ -2,6 +2,7 @@ import os
 import pathlib
 
 import fitsio
+import h5py.h5p
 
 from hisscube import astrometry
 from ast import literal_eval as make_tuple
@@ -93,21 +94,11 @@ class ImageWriter(H5Handler):
         for group in parent_grp_list:
             res_tuple = group.name.split('/')[-1]
             img_data_shape = tuple(reversed(make_tuple(res_tuple))) + (2,)
-            img_data_dtype = np.dtype('f4')
-
+            dcpl, space, img_data_dtype = self.get_property_list(img_data_shape)
             if self.config.get("Handler", "CHUNK_SIZE"):
-                ds = group.require_dataset(self.file_name, img_data_shape, img_data_dtype,
-                                           chunks=make_tuple(self.config.get("Handler", "CHUNK_SIZE")),
-                                           compression=self.config.get("Writer", "COMPRESSION"),
-                                           compression_opts=self.config.get("Writer", "COMPRESSION_OPTS"),
-                                           shuffle=self.config.getboolean("Writer", "SHUFFLE"))
-                ds[0, 0, 0] = 0  # allocate memory
-            else:
-                ds = group.require_dataset(self.file_name, img_data_shape, img_data_dtype,
-                                           compression=self.config.get("Writer", "COMPRESSION"),
-                                           compression_opts=self.config.get("Writer", "COMPRESSION_OPTS"),
-                                           shuffle=self.config.getboolean("Writer", "SHUFFLE"))
-                ds[0, 0, 0] = 0  # allocate memory
+                dcpl.set_chunk(make_tuple(self.config.get("Handler", "CHUNK_SIZE")))
+            dsid = h5py.h5d.create(group.id, self.file_name.encode(), img_data_dtype, space, dcpl=dcpl)
+            ds = h5py.Dataset(dsid)
             ds.attrs["mime-type"] = "image"
             img_datasets.append(ds)
         return img_datasets

@@ -84,14 +84,10 @@ class SpectrumWriter(H5Handler):
         for group in parent_grp_list:
             res = int(group.name.split('/')[-1])
             spec_data_shape = (res,) + (3,)
-            spec_data_dtype = np.dtype('f4')
-
-            ds = group.require_dataset(self.file_name, spec_data_shape, spec_data_dtype,
-                                       compression=self.config.get("Writer", "COMPRESSION"),
-                                       compression_opts=self.config.get("Writer", "COMPRESSION_OPTS"),
-                                       shuffle=self.config.getboolean("Writer", "SHUFFLE"))
+            dcpl, space, spec_data_dtype = self.get_property_list(spec_data_shape)
+            dsid = h5py.h5d.create(group.id, self.file_name.encode(), spec_data_dtype, space, dcpl=dcpl)
+            ds = h5py.Dataset(dsid)
             ds.attrs["mime-type"] = "spectrum"
-            ds[0, 0] = 0
             spec_datasets.append(ds)
         return spec_datasets
 

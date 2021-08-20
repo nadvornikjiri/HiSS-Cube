@@ -252,3 +252,27 @@ class H5Handler(object):
         except KeyError:
             time = spec_header["MJD"]
         return time
+
+
+    def get_property_list(self, dataset_shape):
+        """
+        Creates the property list so it is compatible for parallel file write and reading.
+
+        Parameters
+        ----------
+        dataset_shape
+
+        Returns
+        -------
+
+        """
+        dataset_type = h5py.h5t.py_create(np.dtype('f4'))
+        dcpl = h5py.h5p.create(h5py.h5p.DATASET_CREATE)
+        dcpl.set_alloc_time(h5py.h5d.ALLOC_TIME_EARLY)
+        dcpl.set_fill_time(h5py.h5d.FILL_TIME_NEVER)
+        space = h5py.h5s.create_simple(dataset_shape)
+        if self.config.get("Writer", "COMPRESSION"):
+            dcpl.set_deflate(self.config.get("Writer", "COMPRESSION_OPTS"))
+        if self.config.getboolean("Writer", "SHUFFLE"):
+            dcpl.set_shuffle()
+        return dcpl, space, dataset_type
