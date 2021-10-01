@@ -51,7 +51,7 @@ class NoCoverageFoundError(Exception):
     pass
 
 
-def get_cutout_bounds(image_ds, res_idx, spectrum_fits_header, spectral_cutout_size):
+def get_cutout_bounds(image_ds, res_idx, spectrum_fits_header, cutout_size):
     """
     Gets cutout bounds for an image dataset for a given resolution index (zoom) and a spectrum_fits_header where we get the location of that cutout.
 
@@ -67,10 +67,10 @@ def get_cutout_bounds(image_ds, res_idx, spectrum_fits_header, spectral_cutout_s
     """
     w = get_optimized_wcs(image_ds.attrs)
     image_size = np.array((image_ds.attrs["NAXIS0"], image_ds.attrs["NAXIS1"]))
-    return process_cutout_bounds(w, image_size, spectrum_fits_header, spectral_cutout_size, res_idx)
+    return process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, res_idx)
 
 
-def process_cutout_bounds(w, image_size, spectrum_fits_header, spectral_cutout_size, res_idx=0):
+def process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, res_idx=0):
     """
     Returns the process cutout_bounds for an image with a give w (WCS header), image_size, spectrum header and resolution index (zoom).
     Parameters
@@ -89,7 +89,7 @@ def process_cutout_bounds(w, image_size, spectrum_fits_header, spectral_cutout_s
         w))
     if 0 <= pixel_coords[0] <= image_size[0] and 0 <= pixel_coords[1] <= image_size[1]:
         pixel_coords = (pixel_coords[0], pixel_coords[1])
-        region_size = int(spectral_cutout_size / (2 ** res_idx))
+        region_size = int(cutout_size / (2 ** res_idx))
         top_left = np.array((int(pixel_coords[0]) - (region_size / 2),
                              int(pixel_coords[1]) - (region_size / 2)), dtype=int)
         top_right = top_left + (region_size, 0)

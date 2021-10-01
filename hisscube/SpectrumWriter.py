@@ -85,8 +85,12 @@ class SpectrumWriter(H5Handler):
             res = int(group.name.split('/')[-1])
             spec_data_shape = (res,) + (3,)
             dcpl, space, spec_data_dtype = self.get_property_list(spec_data_shape)
-            dsid = h5py.h5d.create(group.id, self.file_name.encode(), spec_data_dtype, space, dcpl=dcpl)
-            ds = h5py.Dataset(dsid)
+            ds_name = self.file_name.encode()
+            if not ds_name in group:
+                dsid = h5py.h5d.create(group.id, ds_name, spec_data_dtype, space, dcpl=dcpl)
+                ds = h5py.Dataset(dsid)
+            else:
+                ds = group[ds_name]
             ds.attrs["mime-type"] = "spectrum"
             spec_datasets.append(ds)
         return spec_datasets
@@ -177,8 +181,8 @@ class SpectrumWriter(H5Handler):
                                 except KeyError:
                                     pass
 
-    def write_spectra_metadata(self, spectra_folder):
-        for fits_path in pathlib.Path(spectra_folder).rglob(self.config.get("Writer", "SPECTRA_PATTERN")):
+    def write_spectra_metadata(self, spectra_folder, spectra_pattern):
+        for fits_path in pathlib.Path(spectra_folder).rglob(spectra_pattern):
             self.write_spectrum_metadata(fits_path)
             self.spec_cnt += 1
             self.f.attrs["spectrum_count"] = self.spec_cnt

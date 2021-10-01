@@ -125,8 +125,8 @@ class ImageWriter(H5Handler):
         image_fits_header["CRVAL1"], image_fits_header["CRVAL2"] = w.wcs.crval
         image_fits_header["CTYPE1"], image_fits_header["CTYPE2"] = w.wcs.ctype
 
-    def write_images_metadata(self, image_folder):
-        for fits_path in pathlib.Path(image_folder).rglob(self.config.get("Writer", "IMAGE_PATTERN")):
+    def write_images_metadata(self, image_folder, image_pattern):
+        for fits_path in pathlib.Path(image_folder).rglob(image_pattern):
             self.write_image_metadata(fits_path)
             self.img_cnt += 1
         self.f.attrs["image_count"] = self.img_cnt

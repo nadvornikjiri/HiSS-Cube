@@ -10,6 +10,9 @@ class TestMLProcessor():
     def setup_method(self, test_method):
         self.h5_file = h5py.File(H5PATH, 'r+', track_order=True)
 
+    def teardown_method(self, test_method):
+        self.h5_file.close()
+
     def test_create_3d_cube(self):
         writer = MLProcessor(self.h5_file)
         writer.create_3d_cube()

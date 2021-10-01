@@ -33,20 +33,29 @@ class Writer(ImageWriter, SpectrumWriter):
                                                shuffle=self.config.getboolean("Writer", "SHUFFLE"))
             ds.write_direct(spectral_cube)
 
-    def ingest_metadata(self, image_path, spectra_path):
+    def ingest_metadata(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None):
+        image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
         self.logger.info("Writing image metadata.")
-        self.write_images_metadata(image_path)
+        self.write_images_metadata(image_path, image_pattern)
         self.logger.info("Writing spectra metadata.")
-        self.write_spectra_metadata(spectra_path)
+        self.write_spectra_metadata(spectra_path, spectra_pattern)
 
-    def ingest_data(self, image_path, spectra_path):
-        image_paths = list(Path(image_path).rglob(self.config.get("Writer", "IMAGE_PATTERN")))
+    def ingest_data(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
+        image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
+        image_paths = list(Path(image_path).rglob(), image_pattern)
         for image in tqdm(image_paths, desc="Images completed: "):
             self.ingest_image(image)
-        spectra_paths = list(Path(spectra_path).rglob(self.config.get("Writer", "SPECTRA_PATTERN")))
+        spectra_paths = list(Path(spectra_path).rglob(), spectra_pattern)
         for spectrum in tqdm(spectra_paths, desc="Spectra Progress: "):
             self.ingest_spectrum(spectrum)
         self.add_image_refs(self.f)
+
+    def get_path_patterns(self, image_pattern, spectra_pattern):
+        if not image_pattern:
+            image_pattern = self.config.get("Writer", "IMAGE_PATTERN")
+        if not spectra_pattern:
+            spectra_pattern = self.config.get("Writer", "SPECTRA_PATTERN")
+        return image_pattern, spectra_pattern
 
 
 

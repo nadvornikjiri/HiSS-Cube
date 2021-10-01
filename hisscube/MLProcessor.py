@@ -20,7 +20,7 @@ class MLProcessor(Processor):
         self.target_cnt = {}
 
     def create_3d_cube(self):
-        cutout_size = self.config.getint("Handler", "SPECTRAL_CUTOUT_SIZE")
+        cutout_size = self.config.getint("Handler", "IMAGE_CUTOUT_SIZE")
         rebin_samples = self.config.getint("Preprocessing", "REBIN_SAMPLES")
         dense_grp = self.f[self.config.get("Handler", "DENSE_CUBE_NAME")]
         semi_sparse_grp = self.f[self.config.get("Handler", "ORIG_CUBE_NAME")]

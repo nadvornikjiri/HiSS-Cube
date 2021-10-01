@@ -6,14 +6,15 @@ from astropy import wcs
 from astropy.io import fits
 from astropy.time import Time
 
-import VisualizationProcessor
+from hisscube import astrometry
+from hisscube.VisualizationProcessor import VisualizationProcessor
 from hisscube.astrometry import NoCoverageFoundError, is_cutout_whole
 
 
 class FITSReader(VisualizationProcessor):
 
-    def __init__(self, spectra_path, image_path, cube_utils, spectra_regex="*.fits", image_regex="*.fits*"):
-        super(FITSReader, self).__init__(None, cube_utils)
+    def __init__(self, spectra_path, image_path, spectra_regex="*.fits", image_regex="*.fits*"):
+        super(FITSReader, self).__init__(None)
         self.spectra_path = spectra_path
         self.spectra_regex = spectra_regex
         self.image_regex = image_regex
@@ -21,7 +22,7 @@ class FITSReader(VisualizationProcessor):
         self.image_metadata = None
 
     def get_spectral_cube_from_orig_for_res(self, res_idx=0):
-        self.spectral_cube = np.empty((self.INIT_ARRAY_SIZE, 1), dtype=self.array_type)
+        self.spectral_cube = np.empty((self.config.getint("Handler", "INIT_ARRAY_SIZE"), 1), dtype=self.array_type)
         self.output_res = res_idx
         self.get_spectral_cube_from_orig()
         truncated_cube = self.spectral_cube[:self.output_counter]
@@ -40,7 +41,9 @@ class FITSReader(VisualizationProcessor):
         spectrum_fits_name = str(spectrum_path).split('/')[-1]
         spectrum_5d = self.get_pixels_from_spectrum(spectrum_hdul[0].header, spectrum_hdul, spectrum_fits_name)
         self.resize_output_if_necessary(spectrum_5d)
-        self.spectral_cube[self.output_counter:self.output_counter + spectrum_5d.shape[0]] = spectrum_5d
+        self.spectral_cube[self.output_counter:self.output_counter + spectrum_5d.shape[0]] = np.reshape(spectrum_5d,
+                                                                                                        spectrum_5d.shape + (
+                                                                                                            1,))
         self.output_counter += spectrum_5d.shape[0]
 
         for image_path in Path(self.image_path).rglob(self.image_regex):
@@ -66,7 +69,7 @@ class FITSReader(VisualizationProcessor):
         res = int(len(spectrum_hdul[1].data))
         ra, dec = spectrum_header["PLUG_RA"], spectrum_header["PLUG_DEC"]
         spectrum_part = self.get_spectral_data(spectrum_hdul)
-        return self.get_pixels_from_spectrum_generic(dec, ra, res, spectrum_fits_name, spectrum_part)
+        return self.get_table_pixels_from_spectrum_generic(dec, ra, res, spectrum_fits_name, spectrum_part)
 
     def get_pixels_from_image_cutout(self, orig_spectrum_header, orig_image_header, res_idx, image_region,
                                      spectrum_path, image_path):
@@ -80,8 +83,9 @@ class FITSReader(VisualizationProcessor):
 
         w = wcs.WCS(orig_image_header)
         image_size = np.array((orig_image_header["NAXIS2"], orig_image_header["NAXIS1"]))
-        cutout_bounds = self.process_cutout_bounds(w, image_size, orig_spectrum_header)
-        return self.get_image_pixels_from_cutout_bounds(cutout_bounds, image_path, image_region, spectrum_path, time,
+        cutout_bounds = astrometry.process_cutout_bounds(w, image_size, orig_spectrum_header,
+                                                         self.config.getint("Handler", "IMAGE_CUTOUT_SIZE"))
+        return self.get_table_image_pixels_from_cutout_bounds(cutout_bounds, image_path, image_region, spectrum_path, time,
                                                         w, wl)
 
     def get_region_from_fits(self, spectrum_header, image_path):
@@ -89,12 +93,13 @@ class FITSReader(VisualizationProcessor):
             image_header = image_hdul[0].header
             w = wcs.WCS(image_header)
             image_size = np.array((image_header["NAXIS2"], image_header["NAXIS1"]))
-            cutout_bounds = self.process_cutout_bounds(w, image_size, spectrum_header)
+            cutout_bounds = astrometry.process_cutout_bounds(w, image_size, spectrum_header,
+                                                             self.config.getint("Handler", "IMAGE_CUTOUT_SIZE"))
             image_data = image_hdul[0].data
             if not is_cutout_whole(cutout_bounds, image_data):
                 raise NoCoverageFoundError
             return image_data[cutout_bounds[0][1][1]:cutout_bounds[1][1][1],
-                              cutout_bounds[1][0][0]:cutout_bounds[1][1][0]], image_header
+                   cutout_bounds[1][0][0]:cutout_bounds[1][1][0]], image_header
 
     def get_spectral_data(self, spectrum_hdul):
         data = spectrum_hdul[1].data

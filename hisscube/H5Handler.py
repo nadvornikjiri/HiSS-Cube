@@ -35,7 +35,7 @@ class H5Handler(object):
         self.spectrum_length = None
         self.image_path_list = []
         self.spectra_path_list = []
-        #self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.cube_utils = cube_utils
         self.f = h5_file
         self.h5_path = None
@@ -62,7 +62,7 @@ class H5Handler(object):
 
         """
         cutout_bounds = get_cutout_bounds(image_ds, res_idx, self.metadata,
-                                          self.config.getint("Handler", "SPECTRAL_CUTOUT_SIZE"))
+                                          self.config.getint("Handler", "IMAGE_CUTOUT_SIZE"))
         if not is_cutout_whole(cutout_bounds, image_ds):
             raise NoCoverageFoundError("Cutout not whole.")
         region_ref = image_ds.regionref[cutout_bounds[0][1][1]:cutout_bounds[1][1][1],

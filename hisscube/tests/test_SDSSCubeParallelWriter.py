@@ -15,8 +15,6 @@ def truncate_test_file(request):
 
 
 class TestSDSSCubeParallelWriter:
-    def test_write_image_metadata(self):
-        assert False
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_ingest_metadata(self):
@@ -26,11 +24,4 @@ class TestSDSSCubeParallelWriter:
         writer.open_h5_file_serial()
         writer.ingest_metadata(image_path, spectra_path)
         writer.close_h5_file()
-        assert True
-
-    def test_ingest_data(self):
-        image_path = "../../data/processed/galaxy_small_decompressed/images"
-        spectra_path = "../../data/raw/galaxy_small/spectra"
-        writer = WriterFactory().get_writer(h5_path=H5PATH)
-        writer.ingest_data(image_path, spectra_path, False)
         assert True

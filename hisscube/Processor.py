@@ -27,7 +27,7 @@ class Processor(H5Handler):
         wl = image_ds.name.split('/')[-3]
         w = get_optimized_wcs(image_ds.attrs)
         cutout_bounds = get_cutout_bounds(image_ds, res_idx, orig_spectrum_header,
-                                          self.config.getint("Handler", "SPECTRAL_CUTOUT_SIZE"))
+                                          self.config.getint("Handler", "IMAGE_CUTOUT_SIZE"))
         return cutout_bounds, time, w, wl
 
     def get_header(self, image_ds):

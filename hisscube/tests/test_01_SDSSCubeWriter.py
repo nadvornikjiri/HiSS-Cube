@@ -50,10 +50,10 @@ class TestH5Writer:
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image_multiple(self):
-        # test_images = "../../data/images/301/2820/3"
+        #test_images = "../../data/images/301/2820/3"
         # test_images = "../../data/images_medium_ds"
         test_images = "../../data/raw/galaxy_small/images"
-        image_pattern = "frame-*-002886-3-0220.fits.bz2"
+        image_pattern = "frame-*-004136-*-0129.fits"
         writer = Writer(self.h5_file)
         image_paths = list(Path(test_images).rglob(image_pattern))
         for image in tqdm(image_paths, desc="Images completed: "):

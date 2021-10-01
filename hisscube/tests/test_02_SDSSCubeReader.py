@@ -19,15 +19,18 @@ class TestH5Reader:
         self.h5_file = h5py.File(H5PATH, 'r', track_order=True)
         self.resolution = 0
 
+    def teardown_method(self, test_method):
+        self.h5_file.close()
+
     def test_get_spectral_cube_from_orig(self):
         self.reader = h5r.VisualizationProcessor(self.h5_file)
         data = self.reader.construct_spectral_cube_table(0)
-        assert data.shape == (4138628,)
+        assert data.shape == (280720,)
 
     def test_get_spectral_cube(self):
         self.reader = h5r.VisualizationProcessor(self.h5_file)
         data = self.reader.read_spectral_cube_table(0)
-        assert data.shape == (4138628,)
+        assert data.shape == (280720,)
 
     def test_write_VO_table(self):
         self.reader = h5r.VisualizationProcessor(self.h5_file)
@@ -35,20 +38,24 @@ class TestH5Reader:
         self.reader.construct_spectral_cube_table(0)
         self.reader.write_VOTable(self.output_path)
         # self.send_samp("table.load.votable")
-        assert self.reader.spectral_cube.shape == (4138628,)
+        assert self.reader.spectral_cube.shape == (280720,)
 
     def test_write_FITS(self):
         self.reader = h5r.VisualizationProcessor(self.h5_file)
         self.output_path = "../../results/output.fits"
         self.reader.construct_spectral_cube_table(self.resolution)
         self.reader.write_FITS(self.output_path)
-        self.send_samp("table.load.fits")
-        assert self.reader.spectral_cube.shape == (4138628,)
+        # self.send_samp("table.load.fits")
+        assert self.reader.spectral_cube.shape == (280720,)
 
     def test_write_FITS_zoomed(self):
         self.reader = h5r.VisualizationProcessor(self.h5_file)
         self.resolution = 3
-        self.test_write_FITS()
+        self.output_path = "../../results/output.fits"
+        self.reader.construct_spectral_cube_table(self.resolution)
+        self.reader.write_FITS(self.output_path)
+        # self.send_samp("table.load.fits")
+        assert self.reader.spectral_cube.shape == (10444,)
 
     def test_write_FITS_from_dense(self):
         self.output_path = "../../results/output.fits"

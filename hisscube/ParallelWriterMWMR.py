@@ -11,11 +11,12 @@ print(os.getpid())
 
 
 class ParallelWriterMWMR(ParallelWriter):
-    def ingest_data(self, image_path, spectra_path, truncate_file=False):
+    def ingest_data(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
+        image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
         if self.mpi_rank == 0:
             self.logger.info("Writing metadata.")
             self.open_h5_file_serial(truncate=truncate_file)
-            self.ingest_metadata(image_path, spectra_path)
+            self.ingest_metadata(image_path, spectra_path, image_pattern, spectra_pattern)
             self.close_h5_file()
         self.comm.Barrier()
         self.parse_path_lists(image_path, spectra_path)
