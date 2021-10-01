@@ -110,17 +110,18 @@ class MLProcessor(Processor):
     def write_target_3d_cube(self, spec_ds_dict):
         for zoom, spec_datasets in spec_ds_dict.items():
             cutout_cube, spectra_cube = self.construct_target_dense_cubes(zoom, spec_datasets)
-            cutout_data, cutout_dims = cutout_cube.data, cutout_cube.dims
-            spec_data, spec_dims = spectra_cube.data, spectra_cube.dims
-            spec_cube_ds = self.spec_3d_cube_datasets["spectral"][zoom]
-            image_cube_ds = self.spec_3d_cube_datasets["image"][zoom]
+            if cutout_cube:
+                cutout_data, cutout_dims = cutout_cube.data, cutout_cube.dims
+                spec_data, spec_dims = spectra_cube.data, spectra_cube.dims
+                spec_cube_ds = self.spec_3d_cube_datasets["spectral"][zoom]
+                image_cube_ds = self.spec_3d_cube_datasets["image"][zoom]
 
-            target_image_3d_cube, target_spectra_1d_cube1d_cube = self.aggregate_3d_cube(cutout_data, cutout_dims,
-                                                                                         spec_data, spec_dims)
-            spec_cube_ds[self.target_cnt[zoom]] = target_spectra_1d_cube1d_cube
-            image_cube_ds[self.target_cnt[zoom]] = target_image_3d_cube
-            self.write_dimensions(spec_cube_ds, image_cube_ds, cutout_dims, spec_dims, zoom)
-            self.target_cnt[zoom] += 1
+                target_image_3d_cube, target_spectra_1d_cube1d_cube = self.aggregate_3d_cube(cutout_data, cutout_dims,
+                                                                                             spec_data, spec_dims)
+                spec_cube_ds[self.target_cnt[zoom]] = target_spectra_1d_cube1d_cube
+                image_cube_ds[self.target_cnt[zoom]] = target_image_3d_cube
+                self.write_dimensions(spec_cube_ds, image_cube_ds, cutout_dims, spec_dims, zoom)
+                self.target_cnt[zoom] += 1
 
     def write_dimensions(self, spec_cube_ds, image_cube_ds, cutout_dims, spec_dims, zoom):
         for dim_idx, spec_dim in enumerate(spec_dims.items()):
@@ -159,46 +160,47 @@ class MLProcessor(Processor):
         return image_cutouts, spectra
 
     def get_image_cutout_cube(self, cutout_refs, image_cutouts, spec_ds, zoom):
-        if len(cutout_refs) > 0:
-            for region_ref in cutout_refs:
-                if region_ref:
-                    try:
-                        image_ds = self.f[region_ref]
-                        image_region = image_ds[region_ref]
 
-                        cutout_bounds, time, w, cutout_wl = self.get_cutout_bounds_from_spectrum(image_ds, zoom,
-                                                                                                 spec_ds)
-                        ra, dec = self.get_cutout_pixel_coords(cutout_bounds, w)
+        for region_ref in cutout_refs:
+            if region_ref:
+                try:
+                    image_ds = self.f[region_ref]
+                    image_region = image_ds[region_ref]
 
-                        if image_cutouts is None:
-                            image_cutouts = SparseTreeCube()
-                            cutout_dims = image_cutouts.dims
-                            cutout_data = image_cutouts.data
-                            cutout_dims["spatial"] = np.stack((ra, dec), axis=2)
-                            cutout_dims["child_dim"] = {}
+                    cutout_bounds, time, w, cutout_wl = self.get_cutout_bounds_from_spectrum(image_ds, zoom,
+                                                                                             spec_ds)
+                    ra, dec = self.get_cutout_pixel_coords(cutout_bounds, w)
 
-                        wl_dim = cutout_dims["child_dim"]
+                    if image_cutouts is None:
+                        image_cutouts = SparseTreeCube()
+                        cutout_dims = image_cutouts.dims
+                        cutout_data = image_cutouts.data
+                        cutout_dims["spatial"] = np.stack((ra, dec), axis=2)
+                        cutout_dims["child_dim"] = {}
 
-                        if cutout_wl not in wl_dim:
-                            wl_dim[cutout_wl] = {"child_dim": {"time": []}}
-                            cutout_data[cutout_wl] = []
-                            time_dim = wl_dim[cutout_wl]["child_dim"]["time"]
+                    wl_dim = cutout_dims["child_dim"]
 
-                        else:
-                            time_dim = cutout_dims["child_dim"][cutout_wl]["child_dim"]["time"]
-                        cutout_dense_data = cutout_data[cutout_wl]
-                        cutout_dense_data.append(image_region)
-                        time_dim.append(time)
-                    except ValueError as e:
-                        self.logger.error(
-                            "Could not process region for %s, message: %s" % (spec_ds.name, str(e)))
-                else:
-                    break  # necessary because of how null object references are tested in h5py dataset
-            for wl, arr in cutout_data.items():
-                cutout_data[wl] = np.array(arr)
-            for wl in cutout_dims["child_dim"]:
-                cutout_dims["child_dim"][wl]["child_dim"]["time"] = np.array(
-                    cutout_dims["child_dim"][wl]["child_dim"]["time"])
+                    if cutout_wl not in wl_dim:
+                        wl_dim[cutout_wl] = {"child_dim": {"time": []}}
+                        cutout_data[cutout_wl] = []
+                        time_dim = wl_dim[cutout_wl]["child_dim"]["time"]
+
+                    else:
+                        time_dim = cutout_dims["child_dim"][cutout_wl]["child_dim"]["time"]
+                    cutout_dense_data = cutout_data[cutout_wl]
+                    cutout_dense_data.append(image_region)
+                    time_dim.append(time)
+                except ValueError as e:
+                    self.logger.error(
+                        "Could not process region for %s, message: %s" % (spec_ds.name, str(e)))
+            else:
+                break  # necessary because of how null object references are tested in h5py dataset
+            if image_cutouts:
+                for wl, arr in cutout_data.items():
+                    cutout_data[wl] = np.array(arr)
+                for wl in cutout_dims["child_dim"]:
+                    cutout_dims["child_dim"][wl]["child_dim"]["time"] = np.array(
+                        cutout_dims["child_dim"][wl]["child_dim"]["time"])
         return image_cutouts
 
     def get_spectral_cube(self, spec_datasets):

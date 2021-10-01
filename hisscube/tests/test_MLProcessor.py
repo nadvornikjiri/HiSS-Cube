@@ -3,10 +3,10 @@ import h5py
 from hisscube.Photometry import Photometry
 from hisscube.MLProcessor import MLProcessor
 
-H5PATH = "../../data/processed/galaxy_small.h5"
+H5PATH = "../../results/SDSS_cube_parallel.h5"
 
 
-class TestMLProcessor():
+class TestMLProcessor:
     def setup_method(self, test_method):
         self.h5_file = h5py.File(H5PATH, 'r+', track_order=True)
 
@@ -23,4 +23,4 @@ class TestMLProcessor():
         target_cnt = processor.count_spatial_groups_with_depth(
             processor.f[processor.config.get("Handler", "ORIG_CUBE_NAME")],
             processor.config.getint("Handler", "SPEC_SPAT_INDEX_ORDER"))
-        assert (target_cnt == 2)
+        assert (target_cnt == 3)
