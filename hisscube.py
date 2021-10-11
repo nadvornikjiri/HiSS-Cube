@@ -19,8 +19,8 @@ print("test")
 size = MPI.COMM_WORLD.Get_size()
 rank = MPI.COMM_WORLD.Get_rank()
 
-# port_mapping = [33985, 41433]
-# pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
+#port_mapping = [36557, 36385]
+#pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
 
 parser = argparse.ArgumentParser(description='Import images and spectra in parallel')
 parser.add_argument('input_path', metavar="input", type=str,
@@ -35,4 +35,4 @@ fits_image_path = "%s/images" % args.input_path
 fits_spectra_path = "%s/spectra" % args.input_path
 
 writer = WriterFactory().get_writer(args.output_path)
-writer.ingest_data(fits_image_path, fits_spectra_path, args.truncate)
+writer.ingest_data(fits_image_path, fits_spectra_path, truncate_file=args.truncate)

@@ -1,3 +1,5 @@
+import time
+
 import h5py
 import logging
 from os.path import abspath
@@ -7,10 +9,10 @@ from hisscube.Writer import Writer
 from mpi4py import MPI
 import msgpack
 import msgpack_numpy as m
+
 m.patch()
 
 MPI.pickle.__init__(lambda *x: msgpack.dumps(x[0]), msgpack.loads)
-
 
 WORK_TAG = 0
 FINISHED_TAG = 1
@@ -84,7 +86,6 @@ class ParallelWriter(Writer):
         self.sent_work_cnt = 0
         self.received_work_cnt = 0
         self.received_result_cnt = 0
-        
 
         logging.basicConfig()
         logging.root.setLevel(logging.DEBUG)
@@ -119,6 +120,7 @@ class ParallelWriter(Writer):
         self.f.close()
 
     def receive_work(self, status):
+        self.wait_for_message(source=0, tag=MPI.ANY_TAG, status=status)
         data = self.comm.recv(source=0, tag=MPI.ANY_TAG, status=status)
         # self.logger.info(
         #     "Rank %02d: Received work no. %02d from master: %d" % (self.mpi_rank, self.sent_work_cnt, hash(str(data))))
@@ -133,6 +135,11 @@ class ParallelWriter(Writer):
                 self.mpi_rank, self.sent_work_cnt, dest, hash(str(batch))))
             self.comm.send(obj=batch, dest=dest, tag=tag)
             self.sent_work_cnt += 1
+
+    def wait_for_message(self, source, tag, status):
+        while not self.comm.Iprobe(source, tag, status):
+            time.sleep(0.1)
+        return
 
 
 def chunks(lst, n):

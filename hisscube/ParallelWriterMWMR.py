@@ -6,8 +6,26 @@ from mpi4py import MPI
 
 from hisscube.ParallelWriter import ParallelWriter, FINISHED_TAG, chunks
 from timeit import default_timer as timer
+import time
 
 print(os.getpid())
+
+
+def barrier(comm, tag=0, sleep=0.01):
+    size = comm.Get_size()
+    if size == 1:
+        return
+    rank = comm.Get_rank()
+    mask = 1
+    while mask < size:
+        dst = (rank + mask) % size
+        src = (rank - mask + size) % size
+        req = comm.isend(None, dst, tag)
+        while not comm.Iprobe(src, tag):
+            time.sleep(sleep)
+        comm.recv(None, src, tag)
+        req.Wait()
+        mask <<= 1
 
 
 class ParallelWriterMWMR(ParallelWriter):
@@ -18,7 +36,7 @@ class ParallelWriterMWMR(ParallelWriter):
             self.open_h5_file_serial(truncate=truncate_file)
             self.ingest_metadata(image_path, spectra_path, image_pattern, spectra_pattern)
             self.close_h5_file()
-        self.comm.Barrier()
+        barrier(self.comm)
         self.parse_path_lists(image_path, spectra_path)
         self.open_h5_file_parallel()
         start = timer()
@@ -27,12 +45,13 @@ class ParallelWriterMWMR(ParallelWriter):
             self.distribute_work(self.image_path_list)
         else:
             self.write_image_data()
-        self.comm.Barrier()
+        barrier(self.comm)
         if self.mpi_rank == 0:
             self.logger.info("Processing spectra.")
             self.distribute_work(self.spectra_path_list)
         else:
             self.write_spectra_data()
+        barrier(self.comm)
         self.close_h5_file()
         end = timer()
         if self.mpi_rank == 0:
@@ -51,7 +70,6 @@ class ParallelWriterMWMR(ParallelWriter):
 
     def open_and_truncate(self):
         self.f = h5py.File(self.h5_path, 'w')
-
 
     def write_spectrum_data(self, spec_path):
         return super().ingest_spectrum(spec_path)
@@ -101,6 +119,7 @@ class ParallelWriterMWMR(ParallelWriter):
             if len(batches) > 0:
                 self.send_work(batches, dest=i)
         while len(batches) > 0:
+            self.wait_for_message(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
             self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
             self.logger.info("Received response from. dest %02d: %d " % (status.Get_source(), self.sent_work_cnt))
             self.send_work(batches, status.Get_source())
