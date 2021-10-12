@@ -4,7 +4,7 @@ import pytest
 from hisscube.WriterFactory import WriterFactory
 from hisscube.ParallelWriter import ParallelWriter
 
-H5PATH = "../../data/processed/SDSS_cube_parallel.h5"
+H5PATH = "../../results/SDSS_cube_parallel.h5"
 
 
 @pytest.fixture(scope="session", autouse=False)
@@ -18,7 +18,7 @@ class TestSDSSCubeParallelWriter:
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_ingest_metadata(self):
-        image_path = "../../data/processed/galaxy_small_decompressed/images"
+        image_path = "../../data/raw/galaxy_small/images"
         spectra_path = "../../data/raw/galaxy_small/spectra"
         writer = WriterFactory().get_writer(h5_path=H5PATH)
         writer.open_h5_file_serial()
