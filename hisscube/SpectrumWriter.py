@@ -149,7 +149,7 @@ class SpectrumWriter(H5Handler):
         for spec_zoom_idx, spec_ds in enumerate(spec_datasets):
             image_cutout_ds = spec_ds.parent.parent.parent[
                 "image_cutouts_%d" % spec_zoom_idx]  # we write image cutout zoom equivalent to the spectral zoom
-            if len(image_refs[0]) > 0:
+            if len(image_refs) > 0:
                 if spec_zoom_idx > image_min_zoom_idx:
                     no_references = len(image_refs[image_min_zoom_idx])
                     image_cutout_ds[0:no_references] = image_refs[image_min_zoom_idx]

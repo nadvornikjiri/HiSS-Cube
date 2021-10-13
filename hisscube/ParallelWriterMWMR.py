@@ -38,7 +38,7 @@ class ParallelWriterMWMR(ParallelWriter):
             self.ingest_metadata(image_path, spectra_path, image_pattern, spectra_pattern)
             self.close_h5_file()
         barrier(self.comm)
-        self.parse_path_lists(image_path, spectra_path)
+        self.parse_path_lists(image_path, spectra_path, image_pattern, spectra_pattern)
         self.open_h5_file_parallel()
         start = timer()
         if self.mpi_rank == 0:
@@ -62,10 +62,9 @@ class ParallelWriterMWMR(ParallelWriter):
             self.close_h5_file()
         self.logger.info("Parallel part time: %s", end - start)
 
-    def parse_path_lists(self, image_path, spectra_path):
-        fits_pattern = "*.fits"
-        image_path_list = list(Path(image_path).rglob(fits_pattern))
-        spectra_path_list = list(Path(spectra_path).rglob(fits_pattern))
+    def parse_path_lists(self, image_path, spectra_path, image_pattern, spectra_pattern):
+        image_path_list = list(Path(image_path).rglob(image_pattern))
+        spectra_path_list = list(Path(spectra_path).rglob(spectra_pattern))
         self.image_path_list = [str(e) for e in image_path_list]
         self.spectra_path_list = [str(e) for e in spectra_path_list]
 
