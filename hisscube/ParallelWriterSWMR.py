@@ -1,6 +1,6 @@
 from msgpack import Unpacker
 
-from hisscube.ParallelWriter import ParallelWriter, FINISHED_TAG, chunks
+from hisscube.ParallelWriter import ParallelWriter, chunks
 from timeit import default_timer as timer
 from mpi4py import MPI
 
@@ -52,7 +52,7 @@ class ParallelWriterSWMR(ParallelWriter):
         status = MPI.Status()
         image_path_list = self.receive_work(status)
 
-        while status.Get_tag() != FINISHED_TAG:
+        while status.Get_tag() != self.KILL_TAG:
             processed_image_batch = []
             for image_path in image_path_list:
                 self.logger.info("Rank %02d: Processing image %s." % (self.mpi_rank, image_path))
@@ -74,7 +74,7 @@ class ParallelWriterSWMR(ParallelWriter):
     def send_processed_spectra_data(self):
         status = MPI.Status()
         spectra_path_list = self.receive_work(status)
-        while status.Get_tag() != FINISHED_TAG:
+        while status.Get_tag() != self.KILL_TAG:
             processed_spectra_batch = []
             for spec_path in spectra_path_list:
                 self.logger.info("Rank %02d: Processing spectrum %s." % (self.mpi_rank, spec_path))
@@ -96,7 +96,7 @@ class ParallelWriterSWMR(ParallelWriter):
             spectra_path_list = self.receive_work(status)
 
     def send_work_finished(self, dest):
-        tag = FINISHED_TAG
+        tag = self.KILL_TAG
         self.logger.info("Rank %02d: Terminating worker: %0d" % (self.mpi_rank, dest))
         self.comm.send(obj=None, dest=dest, tag=tag)
 

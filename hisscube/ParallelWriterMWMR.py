@@ -3,8 +3,9 @@ from pathlib import Path
 
 import h5py
 from mpi4py import MPI
+from tqdm import tqdm
 
-from hisscube.ParallelWriter import ParallelWriter, FINISHED_TAG, chunks
+from hisscube.ParallelWriter import ParallelWriter, chunks
 from timeit import default_timer as timer
 import time
 
@@ -78,7 +79,7 @@ class ParallelWriterMWMR(ParallelWriter):
         status = MPI.Status()
         image_path_list = self.receive_work(status)
 
-        while status.Get_tag() != FINISHED_TAG:
+        while status.Get_tag() != self.KILL_TAG:
             for image_path in image_path_list:
                 # self.logger.info("Rank %02d: Processing image %s." % (self.mpi_rank, image_path))
                 self.metadata, self.data = self.cube_utils.get_multiple_resolution_image(image_path,
@@ -86,13 +87,13 @@ class ParallelWriterMWMR(ParallelWriter):
                                                                                              "Handler", "IMG_ZOOM_CNT"))
                 self.file_name = image_path.split('/')[-1]
                 self.write_img_datasets()
-            self.comm.send(obj=None, dest=0)
+            self.comm.send(obj=None, tag=self.FINISHED_TAG, dest=0)
             image_path_list = self.receive_work(status)
 
     def write_spectra_data(self):
         status = MPI.Status()
         spectra_path_list = self.receive_work(status)
-        while status.Get_tag() != FINISHED_TAG:
+        while status.Get_tag() != self.KILL_TAG:
             for spec_path in spectra_path_list:
                 # self.logger.info("Rank %02d: Processing spectrum %s." % (self.mpi_rank, spec_path))
                 self.metadata, self.data = self.cube_utils.get_multiple_resolution_spectrum(
@@ -104,24 +105,24 @@ class ParallelWriterMWMR(ParallelWriter):
                     apply_transmission=self.config.getboolean("Preprocessing", "APPLY_TRANSMISSION_CURVE"))
                 self.file_name = spec_path.split('/')[-1]
                 self.write_spec_datasets()
-            self.comm.send(obj=None, dest=0)
+            self.comm.send(obj=None, tag=self.FINISHED_TAG, dest=0)
             spectra_path_list = self.receive_work(status)
 
     def send_work_finished(self, dest):
-        tag = FINISHED_TAG
+        tag = self.KILL_TAG
         self.logger.info("Terminating worker: %0d" % dest)
         self.comm.send(obj=None, dest=dest, tag=tag)
 
     def distribute_work(self, path_list):
         status = MPI.Status()
         batches = list(chunks(path_list, self.BATCH_SIZE))
-        for i in range(1, self.mpi_size):
-            if len(batches) > 0:
+        for i in tqdm(range(1, len(batches))):
+            if i < (self.mpi_size):
                 self.send_work(batches, dest=i)
-        while len(batches) > 0:
-            self.wait_for_message(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
-            self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
-            self.logger.info("Received response from. dest %02d: %d " % (status.Get_source(), self.sent_work_cnt))
-            self.send_work(batches, status.Get_source())
+            else:
+                self.wait_for_message(source=MPI.ANY_SOURCE, tag=self.FINISHED_TAG, status=status)
+                self.comm.recv(source=MPI.ANY_SOURCE, tag=self.FINISHED_TAG, status=status)
+                self.logger.info("Received response from. dest %02d: %d " % (status.Get_source(), self.sent_work_cnt))
+                self.send_work(batches, status.Get_source())
         for i in range(1, self.mpi_size):
             self.send_work_finished(dest=i)

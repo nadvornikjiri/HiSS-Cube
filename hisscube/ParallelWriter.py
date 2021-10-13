@@ -14,8 +14,7 @@ m.patch()
 
 MPI.pickle.__init__(lambda *x: msgpack.dumps(x[0]), msgpack.loads)
 
-WORK_TAG = 0
-FINISHED_TAG = 1
+
 
 
 class MPIFileHandler(logging.FileHandler):
@@ -80,6 +79,9 @@ class ParallelWriter(Writer):
         # mpio
         self.mpio = self.config.getboolean("Handler", "MPIO")
         self.BATCH_SIZE = int(self.config["Writer"]["BATCH_SIZE"])
+        self.WORK_TAG = 0
+        self.KILL_TAG = 1
+        self.FINISHED_TAG = 2
         self.comm = MPI.COMM_WORLD
         self.mpi_size = self.comm.Get_size()
         self.mpi_rank = self.comm.Get_rank()
@@ -130,7 +132,7 @@ class ParallelWriter(Writer):
     def send_work(self, batches, dest):
         if len(batches) > 0:
             batch = batches.pop()
-            tag = WORK_TAG
+            tag = self.WORK_TAG
             self.logger.info("Rank %02d: Sending work batch no. %02d to dest %02d: %d " % (
                 self.mpi_rank, self.sent_work_cnt, dest, hash(str(batch))))
             self.comm.send(obj=batch, dest=dest, tag=tag)
