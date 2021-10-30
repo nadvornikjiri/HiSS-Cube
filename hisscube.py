@@ -2,7 +2,7 @@
 
 import os
 
-import pydevd_pycharm
+
 
 os.environ['MPE_LOGFILE_PREFIX'] = 'ring'
 import mpi4py
@@ -14,11 +14,10 @@ from mpi4py import MPI
 import argparse
 from hisscube.WriterFactory import WriterFactory
 
-print("test")
-
 size = MPI.COMM_WORLD.Get_size()
 rank = MPI.COMM_WORLD.Get_rank()
 
+# import pydevd_pycharm
 # port_mapping = [38637, 37499]
 # pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
 

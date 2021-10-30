@@ -17,6 +17,9 @@ MPI.pickle.__init__(lambda *x: msgpack.dumps(x[0]), msgpack.loads)
 
 
 
+
+
+
 class MPIFileHandler(logging.FileHandler):
     def __init__(self,
                  filename,
@@ -93,7 +96,8 @@ class ParallelWriter(Writer):
         logging.root.setLevel(logging.DEBUG)
         self.logger = logging.getLogger("rank[%i]" % self.comm.rank)
         mh = MPIFileHandler("logfile.log")
-        formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(message)s')
+        formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s',
+                                      datefmt='%Y-%m-%d %H:%M:%S')
         mh.setFormatter(formatter)
         self.logger.addHandler(mh)
 
@@ -140,7 +144,7 @@ class ParallelWriter(Writer):
 
     def wait_for_message(self, source, tag, status):
         while not self.comm.Iprobe(source, tag, status):
-            time.sleep(0.1)
+            time.sleep(self.config.getfloat("Writer", "POLL_INTERVAL"))
         return
 
 

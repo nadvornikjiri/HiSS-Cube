@@ -8,37 +8,54 @@ from tqdm import tqdm
 from hisscube.ParallelWriter import ParallelWriter, chunks
 from timeit import default_timer as timer
 import time
+import cProfile, pstats
 
-print(os.getpid())
+import os
 
 
-def barrier(comm, tag=0, sleep=0.01):
-    size = comm.Get_size()
-    if size == 1:
-        return
-    rank = comm.Get_rank()
-    mask = 1
-    while mask < size:
-        dst = (rank + mask) % size
-        src = (rank - mask + size) % size
-        req = comm.isend(None, dst, tag)
-        while not comm.Iprobe(src, tag):
-            time.sleep(sleep)
-        comm.recv(None, src, tag)
-        req.Wait()
-        mask <<= 1
+def not_cpu_time():
+    times = os.times()
+    return times.elapsed - (times.system + times.user)
+
+
+def profile(filename=None, comm=MPI.COMM_WORLD):
+    def prof_decorator(f):
+        def wrap_f(*args, **kwargs):
+            pr = cProfile.Profile(not_cpu_time)
+            pr.enable()
+            result = f(*args, **kwargs)
+            pr.disable()
+
+            if filename is None:
+                pr.print_stats()
+            else:
+                filename_r = filename + ".{}".format(comm.rank)
+                pr.dump_stats(filename_r)
+
+            return result
+
+        return wrap_f
+
+    return prof_decorator
 
 
 class ParallelWriterMWMR(ParallelWriter):
     def ingest_data(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
+        self.process_metadata(image_path, image_pattern, spectra_path, spectra_pattern, truncate_file)
+        self.process_data()
+        self.add_region_references()
+
+    def process_metadata(self, image_path, image_pattern, spectra_path, spectra_pattern, truncate_file):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
         if self.mpi_rank == 0:
             self.logger.info("Writing metadata.")
             self.open_h5_file_serial(truncate=truncate_file)
             self.ingest_metadata(image_path, spectra_path, image_pattern, spectra_pattern)
             self.close_h5_file()
-        barrier(self.comm)
-        self.parse_path_lists(image_path, spectra_path, image_pattern, spectra_pattern)
+        self.barrier(self.comm)
+
+    @profile(filename="process_data_8_not_cpu")
+    def process_data(self):
         self.open_h5_file_parallel()
         start = timer()
         if self.mpi_rank == 0:
@@ -46,27 +63,23 @@ class ParallelWriterMWMR(ParallelWriter):
             self.distribute_work(self.image_path_list)
         else:
             self.write_image_data()
-        barrier(self.comm)
+        self.barrier(self.comm)
         if self.mpi_rank == 0:
             self.logger.info("Processing spectra.")
             self.distribute_work(self.spectra_path_list)
         else:
             self.write_spectra_data()
-        barrier(self.comm)
+        self.barrier(self.comm)
         self.close_h5_file()
         end = timer()
+        self.logger.info("Parallel part time: %s", end - start)
+
+    def add_region_references(self):
         if self.mpi_rank == 0:
             self.logger.info("Adding image region references.")
             self.open_h5_file_serial()
             self.add_image_refs(self.f)
             self.close_h5_file()
-        self.logger.info("Parallel part time: %s", end - start)
-
-    def parse_path_lists(self, image_path, spectra_path, image_pattern, spectra_pattern):
-        image_path_list = list(Path(image_path).rglob(image_pattern))
-        spectra_path_list = list(Path(spectra_path).rglob(spectra_pattern))
-        self.image_path_list = [str(e) for e in image_path_list]
-        self.spectra_path_list = [str(e) for e in spectra_path_list]
 
     def open_and_truncate(self):
         self.f = h5py.File(self.h5_path, 'w')
@@ -125,3 +138,20 @@ class ParallelWriterMWMR(ParallelWriter):
                 self.send_work(batches, status.Get_source())
         for i in range(1, self.mpi_size):
             self.send_work_finished(dest=i)
+
+    def barrier(self, comm, tag=0):
+        sleep = self.config.getfloat("Writer", "POLL_INTERVAL")
+        size = comm.Get_size()
+        if size == 1:
+            return
+        rank = comm.Get_rank()
+        mask = 1
+        while mask < size:
+            dst = (rank + mask) % size
+            src = (rank - mask + size) % size
+            req = comm.isend(None, dst, tag)
+            while not comm.Iprobe(src, tag):
+                time.sleep(sleep)
+            comm.recv(None, src, tag)
+            req.Wait()
+            mask <<= 1
