@@ -9,6 +9,7 @@ prof/
 *.log
 zenodo/
 qso/
+results
 results/
 
 
@@ -22,7 +23,7 @@ venv*
 *.xml
 
 #profiling
-profile
+profile*
 *.slog2
 *.clog2
 

@@ -9,6 +9,7 @@ from ast import literal_eval as make_tuple
 import numpy as np
 
 from hisscube.H5Handler import H5Handler
+from timeit import default_timer as timer
 
 
 class ImageWriter(H5Handler):
@@ -126,7 +127,13 @@ class ImageWriter(H5Handler):
         image_fits_header["CTYPE1"], image_fits_header["CTYPE2"] = w.wcs.ctype
 
     def write_images_metadata(self, image_folder, image_pattern):
+        start = timer()
         for fits_path in pathlib.Path(image_folder).rglob(image_pattern):
+            if self.img_cnt % 100 == 0 and self.img_cnt / 100 > 0:
+                end = timer()
+                self.logger.info("100 images done in %.4fs" % (end - start))
+                start = end
+                self.logger.info("Image cnt: %05d" % self.img_cnt)
             self.write_image_metadata(fits_path)
             self.img_cnt += 1
         self.f.attrs["image_count"] = self.img_cnt

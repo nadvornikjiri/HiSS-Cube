@@ -14,11 +14,6 @@ m.patch()
 MPI.pickle.__init__(lambda *x: msgpack.dumps(x[0]), msgpack.loads)
 
 
-
-
-
-
-
 class MPIFileHandler(logging.FileHandler):
     def __init__(self,
                  filename,
@@ -128,8 +123,8 @@ class ParallelWriter(Writer):
         if len(batches) > 0:
             batch = batches.pop()
             tag = self.WORK_TAG
-            self.logger.info("Rank %02d: Sending work batch no. %02d to dest %02d: %d " % (
-                self.mpi_rank, self.sent_work_cnt, dest, hash(str(batch))))
+            self.logger.info(
+                "Send work batch no. %02d to dest %02d: %d " % (self.sent_work_cnt, dest, hash(str(batch))))
             self.comm.send(obj=batch, dest=dest, tag=tag)
             self.sent_work_cnt += 1
 
