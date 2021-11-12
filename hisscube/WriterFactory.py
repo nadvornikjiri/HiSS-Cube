@@ -16,7 +16,7 @@ class WriterFactory:
         mpio = self.config.getboolean("Handler", "MPIO")
         writer_mode = self.config.get("Handler", "PARALLEL_MODE")
         if not mpio:
-            return Writer(h5_path)
+            return Writer(h5_path=h5_path)
         else:
             if writer_mode == "SWMR":
                 return ParallelWriterSWMR(h5_path=h5_path)

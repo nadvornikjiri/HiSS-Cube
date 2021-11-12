@@ -11,7 +11,7 @@ class ParallelWriterSWMR(ParallelWriter):
         self.comm_buffer = bytearray(
             self.config.getint("Writer", "BATCH_SIZE") * 100 * 1024 * 1024)  # 100 MBs for one image
 
-    def ingest_data(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
+    def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
         start1 = timer()
         if self.mpi_rank == 0:

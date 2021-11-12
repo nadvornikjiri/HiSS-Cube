@@ -17,9 +17,9 @@ from hisscube.WriterFactory import WriterFactory
 size = MPI.COMM_WORLD.Get_size()
 rank = MPI.COMM_WORLD.Get_rank()
 
-# import pydevd_pycharm
-# port_mapping = [38637, 37499]
-# pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
+import pydevd_pycharm
+port_mapping = [41213, 42135, 36723, 40693]
+pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
 
 parser = argparse.ArgumentParser(description='Import images and spectra in parallel')
 parser.add_argument('input_path', metavar="input", type=str,
@@ -34,4 +34,4 @@ fits_image_path = "%s/images" % args.input_path
 fits_spectra_path = "%s/spectra" % args.input_path
 
 writer = WriterFactory().get_writer(args.output_path)
-writer.ingest_data(fits_image_path, fits_spectra_path, truncate_file=args.truncate)
+writer.ingest(fits_image_path, fits_spectra_path, truncate_file=args.truncate)

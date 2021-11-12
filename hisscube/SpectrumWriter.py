@@ -11,8 +11,8 @@ from hisscube.astrometry import NoCoverageFoundError
 
 class SpectrumWriter(H5Handler):
 
-    def __init__(self, h5_file=None):
-        super().__init__(h5_file)
+    def __init__(self, h5_file=None, h5_path=None):
+        super().__init__(h5_file, h5_path)
         self.spec_cnt = 0
 
     def ingest_spectrum(self, spec_path):
@@ -75,7 +75,7 @@ class SpectrumWriter(H5Handler):
 
     def require_spectrum_time_grp(self, parent_grp):
         time = self.get_time_from_spectrum(self.metadata)
-        grp = self.require_group(parent_grp, str(time))
+        grp = self.require_group(parent_grp, str(time), track_order=True)
         grp.attrs["type"] = "time"
         return grp
 

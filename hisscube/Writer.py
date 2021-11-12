@@ -1,6 +1,6 @@
 from pathlib import Path
 
-
+import h5py
 from tqdm.auto import tqdm
 
 from hisscube.ImageWriter import ImageWriter
@@ -9,6 +9,9 @@ from hisscube.SpectrumWriter import SpectrumWriter
 
 
 class Writer(ImageWriter, SpectrumWriter):
+
+    def __init__(self, h5_file=None, h5_path=None):
+        super().__init__(h5_file, h5_path)
 
     def create_dense_cube(self):
         """
@@ -33,6 +36,17 @@ class Writer(ImageWriter, SpectrumWriter):
                                                shuffle=self.config.getboolean("Writer", "SHUFFLE"))
             ds.write_direct(spectral_cube)
 
+    def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
+        image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
+        self.open_h5_file_serial(truncate=truncate_file)
+        image_paths = list(Path(image_path).rglob(image_pattern))
+        spectra_paths = list(Path(spectra_path).rglob(spectra_pattern))
+        for image in tqdm(image_paths, desc="Images completed: "):
+            self.ingest_image(image)
+        for spectrum in tqdm(spectra_paths, desc="Spectra Progress: "):
+            self.ingest_spectrum(spectrum)
+        self.add_image_refs(self.f)
+
     def ingest_metadata(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
         self.logger.info("Writing image metadata.")
@@ -40,15 +54,6 @@ class Writer(ImageWriter, SpectrumWriter):
         self.logger.info("Writing spectra metadata.")
         self.write_spectra_metadata(spectra_path, spectra_pattern)
 
-    def ingest_data(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
-        image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
-        image_paths = list(Path(image_path).rglob(), image_pattern)
-        for image in tqdm(image_paths, desc="Images completed: "):
-            self.ingest_image(image)
-        spectra_paths = list(Path(spectra_path).rglob(), spectra_pattern)
-        for spectrum in tqdm(spectra_paths, desc="Spectra Progress: "):
-            self.ingest_spectrum(spectrum)
-        self.add_image_refs(self.f)
 
     def get_path_patterns(self, image_pattern, spectra_pattern):
         if not image_pattern:
@@ -56,6 +61,12 @@ class Writer(ImageWriter, SpectrumWriter):
         if not spectra_pattern:
             spectra_pattern = self.config.get("Writer", "SPECTRA_PATTERN")
         return image_pattern, spectra_pattern
+
+    def open_h5_file_serial(self, truncate=False):
+        if truncate:
+            self.f = h5py.File(self.h5_path, 'w')
+        else:
+            self.f = h5py.File(self.h5_path, 'r+')
 
 
 

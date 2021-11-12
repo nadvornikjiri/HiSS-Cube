@@ -6,7 +6,7 @@ import numpy as np
 from hisscube.Processor import Processor
 
 
-class SparseTreeCube():
+class SparseTreeCube:
     def __init__(self, data={}, dims={}):
         self.data = data
         self.dims = dims
@@ -195,12 +195,12 @@ class MLProcessor(Processor):
                         "Could not process region for %s, message: %s" % (spec_ds.name, str(e)))
             else:
                 break  # necessary because of how null object references are tested in h5py dataset
-            if image_cutouts:
-                for wl, arr in cutout_data.items():
-                    cutout_data[wl] = np.array(arr)
-                for wl in cutout_dims["child_dim"]:
-                    cutout_dims["child_dim"][wl]["child_dim"]["time"] = np.array(
-                        cutout_dims["child_dim"][wl]["child_dim"]["time"])
+        if image_cutouts:
+            for wl, arr in cutout_data.items():
+                cutout_data[wl] = np.array(arr)
+            for wl in cutout_dims["child_dim"]:
+                cutout_dims["child_dim"][wl]["child_dim"]["time"] = np.array(
+                    cutout_dims["child_dim"][wl]["child_dim"]["time"])
         return image_cutouts
 
     def get_spectral_cube(self, spec_datasets):

@@ -40,7 +40,7 @@ def profile(filename=None, comm=MPI.COMM_WORLD):
 
 
 class ParallelWriterMWMR(ParallelWriter):
-    def ingest_data(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
+    def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
         self.process_metadata(image_path, image_pattern, spectra_path, spectra_pattern, truncate_file)
         self.process_data()
         self.add_region_references()
@@ -54,7 +54,7 @@ class ParallelWriterMWMR(ParallelWriter):
             self.close_h5_file()
         self.barrier(self.comm)
 
-    @profile(filename="process_data_8_not_cpu")
+    @profile(filename="profile_process_data_8_not_cpu")
     def process_data(self):
         self.open_h5_file_parallel()
         start = timer()
@@ -128,7 +128,7 @@ class ParallelWriterMWMR(ParallelWriter):
     def distribute_work(self, path_list):
         status = MPI.Status()
         batches = list(chunks(path_list, self.BATCH_SIZE))
-        for i in tqdm(range(1, len(batches))):
+        for i in tqdm(range(1, len(batches) + 1)):
             if i < (self.mpi_size):
                 self.send_work(batches, dest=i)
             else:

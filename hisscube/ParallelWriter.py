@@ -3,7 +3,6 @@ import time
 import h5py
 import logging
 from os.path import abspath
-import pydevd_pycharm
 
 from hisscube.Writer import Writer
 from mpi4py import MPI
@@ -77,8 +76,8 @@ class MPIFileHandler(logging.FileHandler):
 
 class ParallelWriter(Writer):
 
-    def __init__(self, h5_path=None, h5_file=None):
-        super().__init__(h5_file)
+    def __init__(self, h5_file=None, h5_path=None):
+        super().__init__(h5_file, h5_path)
         # mpio
         self.mpio = self.config.getboolean("Handler", "MPIO")
         self.BATCH_SIZE = int(self.config["Writer"]["BATCH_SIZE"])
@@ -100,14 +99,6 @@ class ParallelWriter(Writer):
                                       datefmt='%Y-%m-%d %H:%M:%S')
         mh.setFormatter(formatter)
         self.logger.addHandler(mh)
-
-        self.h5_path = h5_path
-
-    def open_h5_file_serial(self, truncate=False):
-        if truncate:
-            self.f = h5py.File(self.h5_path, 'w')
-        else:
-            self.f = h5py.File(self.h5_path, 'r+')
 
     def open_h5_file_parallel(self, truncate=False):
         if truncate:

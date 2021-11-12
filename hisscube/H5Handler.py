@@ -15,7 +15,7 @@ from hisscube import Photometry as cu
 
 
 class H5Handler(object):
-    def __init__(self, h5_file=None):
+    def __init__(self, h5_file=None, h5_path=None):
         """
         Initialize contains configuration relevant to both HDF5 Reader and Writer.
         Parameters
@@ -38,7 +38,7 @@ class H5Handler(object):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.cube_utils = cube_utils
         self.f = h5_file
-        self.h5_path = None
+        self.h5_path = h5_path
         self.file_name = None
         self.fits_path = None
         self.data = None
@@ -187,7 +187,7 @@ class H5Handler(object):
         absolute_path = "%s/%s" % (self.config.get("Handler", "ORIG_CUBE_NAME"), heal_path)
         return absolute_path
 
-    def require_group(self, parent_grp, name, track_order=True):
+    def require_group(self, parent_grp, name, track_order=False):
         if not name in parent_grp:
             return parent_grp.create_group(name, track_order=track_order)
         grp = parent_grp[name]

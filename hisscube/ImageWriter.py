@@ -13,9 +13,8 @@ from hisscube.H5Handler import H5Handler
 
 class ImageWriter(H5Handler):
 
-    def __init__(self, h5_file=None):
-
-        super().__init__(h5_file)
+    def __init__(self, h5_file=None, h5_path=None):
+        super().__init__(h5_file, h5_path)
         self.img_cnt = 0
 
     def ingest_image(self, image_path):
@@ -85,7 +84,8 @@ class ImageWriter(H5Handler):
         return grp
 
     def require_image_spectral_grp(self, parent_grp):
-        grp = self.require_group(parent_grp, str(self.cube_utils.filter_midpoints[self.metadata["FILTER"]]))
+        grp = self.require_group(parent_grp, str(self.cube_utils.filter_midpoints[self.metadata["FILTER"]]),
+                                 track_order=True)
         grp.attrs["type"] = "spectral"
         return grp
 
