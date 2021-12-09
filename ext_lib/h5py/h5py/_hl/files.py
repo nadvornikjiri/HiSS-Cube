@@ -146,9 +146,9 @@ def make_fapl(driver, libver, rdcc_nslots, rdcc_nbytes, rdcc_w0, **kwds):
     return plist
 
 
-def make_fcpl(track_order=False, fs_strategy=None, fs_persist=False, fs_threshold=1):
+def make_fcpl(track_order=False, fs_strategy=None, fs_persist=False, fs_threshold=1, bt_ik=None, bt_lk=None):
     """ Set up a file creation property list """
-    if track_order or fs_strategy:
+    if track_order or fs_strategy or bt_ik or bt_lk:
         plist = h5p.create(h5p.FILE_CREATE)
         if track_order:
             plist.set_link_creation_order(
@@ -167,6 +167,8 @@ def make_fcpl(track_order=False, fs_strategy=None, fs_persist=False, fs_threshol
                 raise ValueError("Invalid file space strategy type")
 
             plist.set_file_space_strategy(fs_strat_num, fs_persist, fs_threshold)
+        if bt_ik and bt_lk:
+            plist.set_sym_k(bt_ik, bt_lk)
     else:
         plist = None
     return plist
@@ -319,6 +321,7 @@ class File(Group):
                  libver=None, userblock_size=None, swmr=False,
                  rdcc_nslots=None, rdcc_nbytes=None, rdcc_w0=None,
                  track_order=None, fs_strategy=None, fs_persist=False, fs_threshold=1,
+                 bt_ik=None, bt_lk=None,
                  **kwds):
         """Create a new file object.
 
@@ -441,7 +444,7 @@ class File(Group):
                 fapl = make_fapl(driver, libver, rdcc_nslots, rdcc_nbytes, rdcc_w0, **kwds)
                 fid = make_fid(name, mode, userblock_size,
                                fapl, fcpl=make_fcpl(track_order=track_order, fs_strategy=fs_strategy,
-                               fs_persist=fs_persist, fs_threshold=fs_threshold),
+                               fs_persist=fs_persist, fs_threshold=fs_threshold, bt_ik=bt_ik, bt_lk=bt_lk),
                                swmr=swmr)
 
             if isinstance(libver, tuple):
