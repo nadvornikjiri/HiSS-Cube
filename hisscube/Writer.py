@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import h5py
+from h5py._hl.files import make_fcpl
 from tqdm.auto import tqdm
 
 from hisscube.ImageWriter import ImageWriter
@@ -54,7 +55,6 @@ class Writer(ImageWriter, SpectrumWriter):
         self.logger.info("Writing spectra metadata.")
         self.write_spectra_metadata(spectra_path, spectra_pattern)
 
-
     def get_path_patterns(self, image_pattern, spectra_pattern):
         if not image_pattern:
             image_pattern = self.config.get("Writer", "IMAGE_PATTERN")
@@ -64,9 +64,8 @@ class Writer(ImageWriter, SpectrumWriter):
 
     def open_h5_file_serial(self, truncate=False):
         if truncate:
-            self.f = h5py.File(self.h5_path, 'w')
+            ik = self.config.getint("Writer", "BTREE_NODE_HALF_SIZE")
+            lk = self.config.getint("Writer", "BTREE_LEAF_HALF_SIZE")
+            self.f = h5py.File(self.h5_path, 'w', bt_ik=ik, bt_lk=lk)
         else:
             self.f = h5py.File(self.h5_path, 'r+')
-
-
-

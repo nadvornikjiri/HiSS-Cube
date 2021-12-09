@@ -7,7 +7,6 @@ rank = MPI.COMM_WORLD.Get_rank()
 port_mapping = [33469, 41495]
 pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
 
-
 import h5py
 import numpy as np
 from mpi4py import MPI
@@ -15,6 +14,7 @@ from mpi4py import MPI
 print(os.getpid())
 
 H5PATH = "../data/processed/test_parallel.h5"
+
 
 class ParallelWriter:
 
@@ -26,19 +26,19 @@ class ParallelWriter:
         self.f = None
 
     def ingest_data(self, truncate_file=None):
-        if self.mpi_rank == 0:                  # if I'm the master, write all metadata and create datasets
+        if self.mpi_rank == 0:  # if I'm the master, write all metadata and create datasets
             if truncate_file:
                 self.truncate_h5_file()
             self.open_h5_file_parallel()
             self.ingest_metadata()
-            self.close_h5_file()                # close the file opened in serial mode
-        self.open_h5_file_parallel()            # all, including master, let's open file in mpio mode
+            self.close_h5_file()  # close the file opened in serial mode
+        self.open_h5_file_parallel()  # all, including master, let's open file in mpio mode
         if self.mpi_rank == 0:
-            self.distribute_work(self.mpi_size) # master distributes the work and reads information from the file
+            self.distribute_work(self.mpi_size)  # master distributes the work and reads information from the file
             self.write_image_data()
         else:
-            self.write_image_data()             # slaves only write the data, in parallel.
-        self.close_h5_file()                    # closing the mpio opened file hangs.
+            self.write_image_data()  # slaves only write the data, in parallel.
+        self.close_h5_file()  # closing the mpio opened file hangs.
 
     def ingest_metadata(self):
         for i in range(self.mpi_size + 1):
@@ -71,9 +71,6 @@ class ParallelWriter:
         message = self.comm.recv(source=0, tag=MPI.ANY_TAG, status=status)
         print("Received message from master: %s" % message)
         return message
-
-    def close_h5_file(self):
-        self.f.close()
 
 
 writer = ParallelWriter(H5PATH)

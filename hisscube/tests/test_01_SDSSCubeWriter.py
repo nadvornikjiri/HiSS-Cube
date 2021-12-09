@@ -16,16 +16,18 @@ H5PATH = "../../results/SDSS_cube_parallel.h5"
 
 @pytest.fixture(scope="session", autouse=False)
 def truncate_test_file(request):
-    h5path = H5PATH
-    f = h5py.File(h5path, 'w')  # create + truncate file
-    f.close()
+    writer = Writer(h5_path=H5PATH)
+    writer.open_h5_file_serial(truncate=True)
+    writer.close_h5_file()
 
 
 @pytest.mark.incremental
 class TestH5Writer:
 
     def setup_method(self, test_method):
-        self.h5_file = h5py.File(H5PATH, 'r+')
+        self.writer = Writer(h5_path=H5PATH)
+        self.writer.open_h5_file_serial(truncate=False)
+        self.h5_file = self.writer.f
 
     def teardown_method(self, test_method):
         self.h5_file.close()
@@ -34,9 +36,8 @@ class TestH5Writer:
     def test_add_image(self):
         test_path = "../../data/raw/images_medium_ds/frame-u-004948-3-0199.fits.bz2"
 
-        writer = Writer(self.h5_file)
-        h5_datasets = writer.ingest_image(test_path)
-        assert len(h5_datasets) == writer.config.getint("Handler", "IMG_ZOOM_CNT")
+        h5_datasets = self.writer.ingest_image(test_path)
+        assert len(h5_datasets) == self.writer.config.getint("Handler", "IMG_ZOOM_CNT")
 
     def test_add_spectrum(self):
         test_path = "../../data/raw/galaxy_small/spectra/spec-0411-51817-0119.fits"
@@ -54,19 +55,17 @@ class TestH5Writer:
         # test_images = "../../data/images_medium_ds"
         test_images = "../../data/raw/galaxy_small/images"
         image_pattern = "frame-*-004136-*-0129.fits"
-        writer = Writer(self.h5_file)
         image_paths = list(Path(test_images).rglob(image_pattern))
         for image in tqdm(image_paths, desc="Images completed: "):
-            writer.ingest_image(image)
+            self.writer.ingest_image(image)
 
     def test_add_spec_refs(self):
         test_spectrum = "../../data/raw/galaxy_small/spectra/spec-0411-51817-0119.fits"
-        writer = Writer(self.h5_file)
-        spec_datasets = writer.ingest_spectrum(test_spectrum)
-        writer.add_image_refs_to_spectra(spec_datasets)
+        spec_datasets = self.writer.ingest_spectrum(test_spectrum)
+        self.writer.add_image_refs_to_spectra(spec_datasets)
         assert bool(spec_datasets[0].parent.parent.parent["image_cutouts_0"][0])
         for spec_dataset in spec_datasets:
-            for zoom in range(writer.config.getint("Handler", "SPEC_ZOOM_CNT")):
+            for zoom in range(self.writer.config.getint("Handler", "SPEC_ZOOM_CNT")):
                 for cutout in spec_dataset.parent.parent.parent["image_cutouts_%d" % zoom]:
                     if not cutout:
                         break
@@ -77,11 +76,10 @@ class TestH5Writer:
 
     def test_add_spec_refs2(self):
         test_spectrum = "../../data/raw/spectra_medium_ds/spec-4238-55455-0037.fits"
-        writer = Writer(self.h5_file)
-        spec_datasets = writer.ingest_spectrum(test_spectrum)
-        spec_datasets = writer.add_image_refs_to_spectra(spec_datasets)
+        spec_datasets = self.writer.ingest_spectrum(test_spectrum)
+        spec_datasets = self.writer.add_image_refs_to_spectra(spec_datasets)
         for spec_dataset in spec_datasets:
-            for zoom in range(writer.config.getint("Handler", "SPEC_ZOOM_CNT")):
+            for zoom in range(self.writer.config.getint("Handler", "SPEC_ZOOM_CNT")):
                 for cutout in spec_dataset.parent.parent.parent["image_cutouts_%d" % zoom]:
                     if not cutout:
                         break
@@ -92,10 +90,9 @@ class TestH5Writer:
 
     def test_find_images_overlapping_spectrum(self):
         test_spectrum = "../../data/raw/galaxy_small/spectra/spec-0411-51817-0119.fits"
-        writer = Writer(self.h5_file)
         with fitsio.FITS(test_spectrum) as hdul:
-            writer.metadata = hdul[0].read_header()
-        for image in writer.find_images_overlapping_spectrum():
+            self.writer.metadata = hdul[0].read_header()
+        for image in self.writer.find_images_overlapping_spectrum():
             assert True
 
     def test_is_cutout_whole(self):
@@ -125,16 +122,13 @@ class TestH5Writer:
     def test_add_spectra_multiple(self):
         spectra_folder = "../../data/raw/galaxy_small/spectra"
         spectra_pattern = "*.fits"
-        writer = Writer(self.h5_file)
         spectra_paths = list(Path(spectra_folder).rglob(spectra_pattern))
         for spectrum in tqdm(spectra_paths, desc="Spectra completed: "):
-            datasets = writer.ingest_spectrum(spectrum)
+            datasets = self.writer.ingest_spectrum(spectrum)
             assert (len(datasets) >= 1)
 
     def test_add_spec_refs_multiple(self):
-
-        writer = Writer(self.h5_file)
-        writer.add_image_refs(self.h5_file)
+        self.writer.add_image_refs(self.h5_file)
         assert True
 
 

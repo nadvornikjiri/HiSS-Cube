@@ -128,10 +128,11 @@ class ImageWriter(H5Handler):
 
     def write_images_metadata(self, image_folder, image_pattern):
         start = timer()
+        check = 100
         for fits_path in pathlib.Path(image_folder).rglob(image_pattern):
-            if self.img_cnt % 100 == 0 and self.img_cnt / 100 > 0:
+            if self.img_cnt % check == 0 and self.img_cnt / check > 0:
                 end = timer()
-                self.logger.info("100 images done in %.4fs" % (end - start))
+                self.logger.info("Number of images/s: %.2f" % (check / (end - start)))
                 start = end
                 self.logger.info("Image cnt: %05d" % self.img_cnt)
             self.write_image_metadata(fits_path)
