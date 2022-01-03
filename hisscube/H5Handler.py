@@ -1,4 +1,5 @@
 import configparser
+import csv
 import logging
 import pathlib
 from ast import literal_eval as make_tuple
@@ -35,7 +36,7 @@ class H5Handler(object):
         self.spectrum_length = None
         self.image_path_list = []
         self.spectra_path_list = []
-        self.logger = logging.getLogger(self.__class__.__name__)
+
         self.cube_utils = cube_utils
         self.f = h5_file
         self.h5_path = h5_path
@@ -43,6 +44,13 @@ class H5Handler(object):
         self.fits_path = None
         self.data = None
         self.metadata = None
+
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.csv_file = open("image_timings.csv", "w", newline='')
+        self.timings_logger = csv.writer(self.csv_file, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        self.timings_logger.writerow(["Image count", "Group count", "Time"])
+        self.grp_cnt = 0
+
 
     def close_h5_file(self):
         self.f.flush()
@@ -154,7 +162,7 @@ class H5Handler(object):
             else:
                 for key, value in dict(self.metadata).items():
                     if key == "COMMENT":
-                        continue    # TODO debug thing
+                        continue  # TODO debug thing
                         to_print = 'COMMENT\n--------\n'
                         for item in value:
                             to_print += item + '\n'
@@ -189,6 +197,7 @@ class H5Handler(object):
 
     def require_group(self, parent_grp, name, track_order=False):
         if not name in parent_grp:
+            self.grp_cnt += 1
             return parent_grp.create_group(name, track_order=track_order)
         grp = parent_grp[name]
         return grp
@@ -252,7 +261,6 @@ class H5Handler(object):
         except KeyError:
             time = spec_header["MJD"]
         return time
-
 
     def get_property_list(self, dataset_shape):
         """

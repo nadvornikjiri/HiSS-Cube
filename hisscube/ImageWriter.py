@@ -10,6 +10,7 @@ import numpy as np
 
 from hisscube.H5Handler import H5Handler
 from timeit import default_timer as timer
+import csv
 
 
 class ImageWriter(H5Handler):
@@ -133,11 +134,12 @@ class ImageWriter(H5Handler):
             if self.img_cnt % check == 0 and self.img_cnt / check > 0:
                 end = timer()
                 self.logger.info("100 images done in %.4fs" % (end - start))
+                self.log_csv_timing(end - start)
                 start = end
                 self.logger.info("Image cnt: %05d" % self.img_cnt)
-
             self.write_image_metadata(fits_path)
             self.img_cnt += 1
+        self.csv_file.close()
         self.f.attrs["image_count"] = self.img_cnt
 
     def write_image_metadata(self, fits_path):
@@ -173,3 +175,6 @@ class ImageWriter(H5Handler):
         spectral_grp = self.f[path]
         for res_grp in spectral_grp:
             yield spectral_grp[res_grp]
+
+    def log_csv_timing(self, time):
+        self.timings_logger.writerow([self.img_cnt, self.grp_cnt, time])
