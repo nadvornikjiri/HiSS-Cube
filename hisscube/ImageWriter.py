@@ -130,7 +130,8 @@ class ImageWriter(H5Handler):
     def write_images_metadata(self, image_folder, image_pattern):
         start = timer()
         check = 100
-        for fits_path in pathlib.Path(image_folder).rglob(image_pattern):
+        for fits_path in pathlib.Path(image_folder).rglob(
+                image_pattern) and self.img_cnt < 50000:  # TODO remove test number
             if self.img_cnt % check == 0 and self.img_cnt / check > 0:
                 end = timer()
                 self.logger.info("100 images done in %.4fs" % (end - start))
