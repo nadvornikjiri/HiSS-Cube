@@ -105,28 +105,6 @@ class ImageWriter(H5Handler):
             img_datasets.append(ds)
         return img_datasets
 
-    def write_lower_res_wcs(self, ds, res_idx=0):
-        """
-        Modifies the FITS WCS parameters for lower resolutions of the image so it is still correct.
-        Parameters
-        ----------
-        ds      HDF5 dataset
-        res_idx int
-
-        Returns
-        -------
-
-        """
-        w = astrometry.get_optimized_wcs(self.metadata)
-        w.wcs.crpix /= 2 ** res_idx  # shift center of the image
-        w.wcs.cd *= 2 ** res_idx  # change the pixel scale
-        image_fits_header = ds.attrs
-        image_fits_header["CRPIX1"], image_fits_header["CRPIX2"] = w.wcs.crpix
-        [[image_fits_header["CD1_1"], image_fits_header["CD1_2"]],
-         [image_fits_header["CD2_1"], image_fits_header["CD2_2"]]] = w.wcs.cd
-        image_fits_header["CRVAL1"], image_fits_header["CRVAL2"] = w.wcs.crval
-        image_fits_header["CTYPE1"], image_fits_header["CTYPE2"] = w.wcs.ctype
-
     def write_images_metadata(self, image_folder, image_pattern):
         start = timer()
         check = 100

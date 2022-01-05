@@ -2,16 +2,16 @@ import configparser
 import csv
 import logging
 import pathlib
-from ast import literal_eval as make_tuple
 from datetime import datetime
 from math import log
 
 import h5py
 import healpy as hp
 import numpy as np
+import ujson
 from astropy.time import Time
 
-from hisscube.astrometry import NoCoverageFoundError, get_cutout_bounds, is_cutout_whole
+from hisscube.astrometry import NoCoverageFoundError, get_cutout_bounds, is_cutout_whole, get_optimized_wcs
 from hisscube import Photometry as cu
 
 
@@ -51,7 +51,6 @@ class H5Handler(object):
         self.timings_logger.writerow(["Image count", "Group count", "Time"])
         self.grp_cnt = 0
 
-
     def close_h5_file(self):
         self.f.flush()
         self.f.close()
@@ -69,7 +68,8 @@ class H5Handler(object):
         -------
 
         """
-        cutout_bounds = get_cutout_bounds(image_ds, res_idx, self.metadata,
+        image_fits_header = read_serialized_fits_header(image_ds)
+        cutout_bounds = get_cutout_bounds(image_fits_header, res_idx, self.metadata,
                                           self.config.getint("Handler", "IMAGE_CUTOUT_SIZE"))
         if not is_cutout_whole(cutout_bounds, image_ds):
             raise NoCoverageFoundError("Cutout not whole.")
@@ -154,31 +154,39 @@ class H5Handler(object):
         """
         unicode_dt = h5py.special_dtype(vlen=str)
         orig_ds_link = datasets[0].ref
+        fits_header = dict(self.metadata)
         for res_idx, ds in enumerate(datasets):
             if res_idx > 0:
                 ds.attrs["orig_res_link"] = orig_ds_link
                 if ds.attrs["mime-type"] == "image":
-                    self.write_lower_res_wcs(ds, res_idx)
-            else:
-                for key, value in dict(self.metadata).items():
-                    if key == "COMMENT":
-                        continue  # TODO debug thing
-                        to_print = 'COMMENT\n--------\n'
-                        for item in value:
-                            to_print += item + '\n'
-                        ds.parent.create_dataset("COMMENT", data=np.string_(to_print), dtype=unicode_dt)
-                    elif key == "HISTORY":
-                        continue
-                        to_print = 'HISTORY\n--------\n'
-                        for item in value:
-                            to_print += item + '\n'
-                        ds.parent.create_dataset("HISTORY", data=np.string_(to_print), dtype=unicode_dt)
-                    else:
-                        ds.attrs[key] = value
+                    fits_header = self.write_image_lower_res_wcs(fits_header, res_idx)
             naxis = len(ds.shape)
-            ds.attrs["NAXIS"] = naxis
+            fits_header["NAXIS"] = naxis
             for axis in range(naxis):
-                ds.attrs["NAXIS%d" % (axis)] = ds.shape[axis]
+                fits_header["NAXIS%d" % (axis)] = ds.shape[axis]
+            write_serialized_fits_header(ds, fits_header)
+
+    def write_image_lower_res_wcs(self, image_fits_header, res_idx=0):
+        """
+        Modifies the FITS WCS parameters for lower resolutions of the image so it is still correct.
+        Parameters
+        ----------
+        ds      HDF5 dataset
+        res_idx int
+
+        Returns
+        -------
+
+        """
+        w = get_optimized_wcs(self.metadata)
+        w.wcs.crpix /= 2 ** res_idx  # shift center of the image
+        w.wcs.cd *= 2 ** res_idx  # change the pixel scale
+        image_fits_header["CRPIX1"], image_fits_header["CRPIX2"] = w.wcs.crpix
+        [[image_fits_header["CD1_1"], image_fits_header["CD1_2"]],
+         [image_fits_header["CD2_1"], image_fits_header["CD2_2"]]] = w.wcs.cd
+        image_fits_header["CRVAL1"], image_fits_header["CRVAL2"] = w.wcs.crval
+        image_fits_header["CTYPE1"], image_fits_header["CTYPE2"] = w.wcs.ctype
+        return image_fits_header
 
     def get_heal_path_from_coords(self, ra=None, dec=None, order=None):
         if ra is None and dec is None:
@@ -284,3 +292,11 @@ class H5Handler(object):
         if self.config.getboolean("Writer", "SHUFFLE"):
             dcpl.set_shuffle()
         return dcpl, space, dataset_type
+
+
+def write_serialized_fits_header(ds, attrs_dict):
+    ds.attrs["serialized_header"] = ujson.dumps(attrs_dict)
+
+
+def read_serialized_fits_header(ds):
+    return ujson.loads(ds.attrs["serialized_header"])

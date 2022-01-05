@@ -5,7 +5,7 @@ import fitsio
 import h5py
 import numpy as np
 
-from hisscube.H5Handler import H5Handler
+from hisscube.H5Handler import H5Handler, read_serialized_fits_header
 from hisscube.astrometry import NoCoverageFoundError
 
 
@@ -131,7 +131,7 @@ class SpectrumWriter(H5Handler):
 
         image_refs = {}
         image_min_zoom_idx = 0
-        self.metadata = spec_datasets[0].attrs
+        self.metadata = read_serialized_fits_header(spec_datasets[0])
         for image_res_idx, image_ds in self.find_images_overlapping_spectrum():
             if not image_res_idx in image_refs:
                 image_refs[image_res_idx] = []

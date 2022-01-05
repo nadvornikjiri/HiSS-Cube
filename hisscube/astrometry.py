@@ -1,4 +1,3 @@
-import numpy
 from astropy import wcs
 import numpy as np
 from astropy.coordinates import SkyCoord
@@ -51,7 +50,7 @@ class NoCoverageFoundError(Exception):
     pass
 
 
-def get_cutout_bounds(image_ds, res_idx, spectrum_fits_header, cutout_size):
+def get_cutout_bounds(image_fits_header, res_idx, spectrum_fits_header, cutout_size):
     """
     Gets cutout bounds for an image dataset for a given resolution index (zoom) and a spectrum_fits_header where we get the location of that cutout.
 
@@ -65,8 +64,8 @@ def get_cutout_bounds(image_ds, res_idx, spectrum_fits_header, cutout_size):
     -------
 
     """
-    w = get_optimized_wcs(image_ds.attrs)
-    image_size = np.array((image_ds.attrs["NAXIS0"], image_ds.attrs["NAXIS1"]))
+    w = get_optimized_wcs(image_fits_header)
+    image_size = np.array((image_fits_header["NAXIS0"], image_fits_header["NAXIS1"]))
     return process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, res_idx)
 
 
