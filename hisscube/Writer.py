@@ -11,8 +11,8 @@ from hisscube.SpectrumWriter import SpectrumWriter
 
 class Writer(ImageWriter, SpectrumWriter):
 
-    def __init__(self, h5_file=None, h5_path=None):
-        super().__init__(h5_file, h5_path)
+    def __init__(self, h5_file=None, h5_path=None, timings_log="image_timings.csv"):
+        super().__init__(h5_file, h5_path, timings_log)
 
     def create_dense_cube(self):
         """
@@ -40,8 +40,8 @@ class Writer(ImageWriter, SpectrumWriter):
     def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
         self.open_h5_file_serial(truncate=truncate_file)
-        image_paths = list(Path(image_path).rglob(image_pattern))[:100000]      #TODO remove testing numbers
-        spectra_paths = list(Path(spectra_path).rglob(spectra_pattern))[:500000] #TODO remove testing numbers
+        image_paths = list(Path(image_path).rglob(image_pattern))[:50000]      #TODO remove testing numbers
+        spectra_paths = list(Path(spectra_path).rglob(spectra_pattern))[:50000] #TODO remove testing numbers
         for image in tqdm(image_paths, desc="Images completed: "):
             self.ingest_image(image)
         for spectrum in tqdm(spectra_paths, desc="Spectra Progress: "):
@@ -55,7 +55,7 @@ class Writer(ImageWriter, SpectrumWriter):
         self.logger.info("Writing spectra metadata.")
         self.write_spectra_metadata(spectra_path, spectra_pattern)
 
-    def get_path_patterns(self, image_pattern, spectra_pattern):
+    def get_path_patterns(self, image_pattern=None, spectra_pattern=None):
         if not image_pattern:
             image_pattern = self.config.get("Writer", "IMAGE_PATTERN")
         if not spectra_pattern:

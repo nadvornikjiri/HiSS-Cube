@@ -16,7 +16,7 @@ from hisscube import Photometry as cu
 
 
 class H5Handler(object):
-    def __init__(self, h5_file=None, h5_path=None):
+    def __init__(self, h5_file=None, h5_path=None, image_timings="image_timings.csv"):
         """
         Initialize contains configuration relevant to both HDF5 Reader and Writer.
         Parameters
@@ -46,8 +46,8 @@ class H5Handler(object):
         self.metadata = None
 
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.csv_file = open("image_timings.csv", "w", newline='')
-        self.timings_logger = csv.writer(self.csv_file, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        self.timings_log_csv_file = open(image_timings, "w", newline='')
+        self.timings_logger = csv.writer(self.timings_log_csv_file, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         self.timings_logger.writerow(["Image count", "Group count", "Time"])
         self.grp_cnt = 0
 

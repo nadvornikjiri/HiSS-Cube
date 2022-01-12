@@ -15,8 +15,8 @@ import csv
 
 class ImageWriter(H5Handler):
 
-    def __init__(self, h5_file=None, h5_path=None):
-        super().__init__(h5_file, h5_path)
+    def __init__(self, h5_file=None, h5_path=None, image_timings="image_timings.csv"):
+        super().__init__(h5_file, h5_path, image_timings)
         self.img_cnt = 0
 
     def ingest_image(self, image_path):
@@ -105,7 +105,7 @@ class ImageWriter(H5Handler):
             img_datasets.append(ds)
         return img_datasets
 
-    def write_images_metadata(self, image_folder, image_pattern):
+    def write_images_metadata(self, image_folder, image_pattern, no_attrs=False, no_datasets=False):
         start = timer()
         check = 100
         for fits_path in pathlib.Path(image_folder).rglob(
@@ -116,23 +116,25 @@ class ImageWriter(H5Handler):
                 self.log_csv_timing(end - start)
                 start = end
                 self.logger.info("Image cnt: %05d" % self.img_cnt)
-            self.write_image_metadata(fits_path)
+            self.write_image_metadata(fits_path, no_attrs, no_datasets)
             self.img_cnt += 1
-            if self.img_cnt >= 50000:
+            if self.img_cnt >= 50000: #TODO debug limits
                 break
-        self.csv_file.close()
+        self.timings_log_csv_file.close()
         self.f.attrs["image_count"] = self.img_cnt
 
-    def write_image_metadata(self, fits_path):
+    def write_image_metadata(self, fits_path, no_attrs=False, no_datasets=False):
         self.ingest_type = "image"
         self.image_path_list.append(str(fits_path))
         self.metadata = fitsio.read_header(fits_path)
         self.file_name = os.path.basename(fits_path)
         res_grps = self.create_image_index_tree()
-        img_datasets = self.create_img_datasets(res_grps)
-        self.add_metadata(img_datasets)
+        if not no_datasets:
+            img_datasets = self.create_img_datasets(res_grps)
+        if not no_attrs:
+            self.add_metadata(img_datasets)
 
-    def write_img_datasets(self):
+    def write_img_datasets(self, no_attrs=False, no_datasets=False):
         res_grp_list = self.get_image_resolution_groups()
         img_datasets = []
         for group in res_grp_list:

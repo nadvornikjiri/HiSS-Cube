@@ -11,8 +11,8 @@ from hisscube.astrometry import NoCoverageFoundError
 
 class SpectrumWriter(H5Handler):
 
-    def __init__(self, h5_file=None, h5_path=None):
-        super().__init__(h5_file, h5_path)
+    def __init__(self, h5_file=None, h5_path=None, timings_log="image_timings.csv"):
+        super().__init__(h5_file, h5_path, timings_log)
         self.spec_cnt = 0
 
     def ingest_spectrum(self, spec_path):
