@@ -10,7 +10,7 @@ from hisscube.Writer import Writer
 
 H5PATH = "../results/SDSS_cube_parallel.h5"
 FITS_IMAGE_PATH = "../data/raw/galaxy_small/images"
-ITERATIONS = 3
+ITERATIONS = 1
 
 
 def run_test(i, no_attrs, no_datasets, log_name):
@@ -26,6 +26,7 @@ for i in range(ITERATIONS):
     run_test(i, no_attrs=True, no_datasets=True, log_name="groups_only")
     run_test(i, no_attrs=True, no_datasets=False, log_name="groups_datasets")
     run_test(i, no_attrs=False, no_datasets=False, log_name="groups_attrs_datasets")
+
 
 
 

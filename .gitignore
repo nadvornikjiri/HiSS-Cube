@@ -22,6 +22,7 @@ venv*
 *.nc
 *.h5
 *.xml
+*.txt
 
 #profiling
 profile*
@@ -52,6 +53,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+*.o
 
 
 .idea
