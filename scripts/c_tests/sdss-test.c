@@ -52,7 +52,7 @@ int main()
   fclose(fp);
 
   // create the HDF5 file and loop invariants
-  hid_t hfile = H5Fcreate(H5_PATH, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  hid_t hfile = H5Fcreate(H5PATH, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
   hid_t lcpl = H5Pcreate(H5P_LINK_CREATE);
   H5Pset_create_intermediate_group(lcpl, 1);
   hid_t dcpl = H5Pcreate(H5P_DATASET_CREATE);
