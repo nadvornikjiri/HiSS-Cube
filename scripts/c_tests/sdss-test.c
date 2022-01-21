@@ -6,6 +6,7 @@
 #include <string.h>
 #include <time.h>
 
+#define H5PATH "../../results/sdss.h5"
 #define FILE_NAME "sdss.txt"  // the input file (contains 200,000 lines)
 #define LOG_FILE_NAME "timings.csv"
 #define MAX_COUNT 200000         // the max. number of datasets to create
@@ -51,7 +52,7 @@ int main()
   fclose(fp);
 
   // create the HDF5 file and loop invariants
-  hid_t hfile = H5Fcreate("sdss.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  hid_t hfile = H5Fcreate(H5_PATH, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
   hid_t lcpl = H5Pcreate(H5P_LINK_CREATE);
   H5Pset_create_intermediate_group(lcpl, 1);
   hid_t dcpl = H5Pcreate(H5P_DATASET_CREATE);
