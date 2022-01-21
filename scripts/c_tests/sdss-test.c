@@ -4,10 +4,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define FILE_NAME "sdss.txt"  // the input file (contains 200,000 lines)
+#define LOG_FILE_NAME "timings.csv"
 #define MAX_COUNT 200000         // the max. number of datasets to create
 #define MAX_LINE_LENGTH 512   // assumption about the line length
+#define CHUNKED_LAYOUT  1     // use chunked layout
+#define LOG_CHUNK 100
 
 // convenience structure for dataset creation
 struct descr_t {
@@ -19,6 +23,9 @@ int main()
 {
   // parse the input file
   FILE *fp = fopen(FILE_NAME, "r");
+  FILE *logfp = fopen(LOG_FILE_NAME, "w+");
+  clock_t start, end;
+  double elapsed_time;
 
   if (fp == NULL) {
     printf("Error: could not open file %s", FILE_NAME);
@@ -50,11 +57,15 @@ int main()
   hid_t dcpl = H5Pcreate(H5P_DATASET_CREATE);
   H5Pset_alloc_time(dcpl, H5D_ALLOC_TIME_EARLY);
   H5Pset_fill_time(dcpl, H5D_FILL_TIME_NEVER);
-
-  // TODO Support chunked datasets (What was the chunk size?)
+#ifdef CHUNKED_LAYOUT
+  H5Pset_chunk(dcpl, 3, (hsize_t[]) {128, 128, 2});
+#endif
 
   hid_t fspace;
 
+
+  fprintf(logfp,"Dataset count, Time\n");
+  start = clock();
   for (size_t ii = 0; ii < i; ++ii) {
     fspace = H5Screate_simple(3, (hsize_t[]) {doit[ii].dims[0],
                                               doit[ii].dims[1],
@@ -62,11 +73,20 @@ int main()
     H5Dclose(H5Dcreate(hfile, doit[ii].path, H5T_NATIVE_FLOAT, fspace,
                        lcpl, dcpl, H5P_DEFAULT));
     H5Sclose(fspace);
+
+    //timing logging
+    if (ii % LOG_CHUNK == 0 && ii > 0){
+    	end = clock();
+    	elapsed_time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    	fprintf(logfp, "%zu, %f\n", ii, elapsed_time);
+    	start = end;
+    }
   }
 
   H5Pclose(dcpl);
   H5Pclose(lcpl);
 
+  fclose(logfp);
   H5Fclose(hfile);
 
   free(doit);

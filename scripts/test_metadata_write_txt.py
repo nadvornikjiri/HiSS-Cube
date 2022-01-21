@@ -21,20 +21,20 @@ with open(FILE_NAME) as f:
     # timing and logging related stuff
     timings_log_csv_file = open("image_timings.csv", "w", newline='')
     timings_logger = csv.writer(timings_log_csv_file, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-    timings_logger.writerow(["Image count", "Time"])
+    timings_logger.writerow(["Dataset count", "Time"])
     start = timer()
     check = 100
-    img_cnt = 0
+    dst_cnt = 0
 
     h5f = h5py.File(H5_PATH, 'w')
     lines = f.readlines()
     for line in lines:
-        if img_cnt % check == 0 and img_cnt / check > 0:  # timing and loggin related stuff
+        if dst_cnt % check == 0 and dst_cnt / check > 0:  # timing and loggin related stuff
             end = timer()
-            print("Image cnt: %05d, 100 images done in %.4fs" % (end - start))
-            timings_logger.writerow([img_cnt, (end - start)])
+            print("Dataset cnt: %05d, 100 images done in %.4fs" % (dst_cnt, (end - start)))
+            timings_logger.writerow([dst_cnt, (end - start)])
             start = end
-        img_cnt += 1
+        dst_cnt += 1
         # line parsing
         path, ds_dims = line.split(" @ ")
         path.replace("\\ ", "")
@@ -42,8 +42,11 @@ with open(FILE_NAME) as f:
 
         # dataset creation
         dcpl, space, img_data_dtype = get_property_list(img_data_shape)
+        lcpl = h5py.h5p.create(h5py.h5p.LINK_CREATE)
+        lcpl.set_create_intermediate_group(True)
         if CHUNK_SIZE:
             dcpl.set_chunk(CHUNK_SIZE)
-        dsid = h5py.h5d.create(h5f.id, path.encode(), img_data_dtype, space, dcpl=dcpl)
+        dsid = h5py.h5d.create(h5f.id, path.encode(), img_data_dtype, space, dcpl=dcpl, lcpl=lcpl)
 
+    timings_log_csv_file.close()
     h5f.close()
