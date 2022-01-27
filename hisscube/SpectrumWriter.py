@@ -183,10 +183,10 @@ class SpectrumWriter(H5Handler):
 
     def write_spectra_metadata(self, spectra_folder, spectra_pattern):
         for fits_path in pathlib.Path(spectra_folder).rglob(
-                spectra_pattern):  # TODO Remove test numbers
+                spectra_pattern):
             self.write_spectrum_metadata(fits_path)
             self.spec_cnt += 1
-            if self.spec_cnt >= 50000:
+            if self.spec_cnt >= self.config.getint("Writer", "LIMIT_SPECTRA_COUNT"):
                 break
         self.f.attrs["spectrum_count"] = self.spec_cnt
 

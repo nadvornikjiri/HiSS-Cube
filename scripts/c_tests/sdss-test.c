@@ -65,7 +65,7 @@ int main()
   hid_t fspace;
 
 
-  fprintf(logfp,"Dataset count, Time\n");
+  fprintf(logfp,"Dataset count,Time\n");
   start = clock();
   for (size_t ii = 0; ii < i; ++ii) {
     fspace = H5Screate_simple(3, (hsize_t[]) {doit[ii].dims[0],
@@ -79,7 +79,7 @@ int main()
     if (ii % LOG_CHUNK == 0 && ii > 0){
     	end = clock();
     	elapsed_time = ((double) (end - start)) / CLOCKS_PER_SEC;
-    	fprintf(logfp, "%zu, %f\n", ii, elapsed_time);
+    	fprintf(logfp, "%zu,%f\n", ii, elapsed_time);
     	start = end;
     }
   }

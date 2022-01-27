@@ -118,7 +118,7 @@ class ImageWriter(H5Handler):
                 self.logger.info("Image cnt: %05d" % self.img_cnt)
             self.write_image_metadata(fits_path, no_attrs, no_datasets)
             self.img_cnt += 1
-            if self.img_cnt >= 50000: #TODO debug limits
+            if self.img_cnt >= self.config.getint("Writer", "LIMIT_IMAGE_COUNT"):
                 break
         self.timings_log_csv_file.close()
         self.f.attrs["image_count"] = self.img_cnt
