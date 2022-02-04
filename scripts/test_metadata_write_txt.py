@@ -26,7 +26,7 @@ with open(FILE_NAME) as f:
     check = 100
     dst_cnt = 0
 
-    h5f = h5py.File(H5_PATH, 'w', libver="latest")
+    h5f = h5py.File(H5_PATH, 'w', libver="latest", fs_strategy="page")
     lines = f.readlines()
     for line in lines:
         if dst_cnt % check == 0 and dst_cnt / check > 0:  # timing and loggin related stuff

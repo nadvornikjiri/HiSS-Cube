@@ -9,7 +9,7 @@
 #define H5PATH "../../results/sdss.h5"
 #define FILE_NAME "sdss.txt"  // the input file (contains 200,000 lines)
 #define LOG_FILE_NAME "timings.csv"
-#define MAX_COUNT 200000         // the max. number of datasets to create
+#define MAX_COUNT 1200000         // the max. number of datasets to create
 #define MAX_LINE_LENGTH 512   // assumption about the line length
 #define CHUNKED_LAYOUT  1     // use chunked layout
 #define LOG_CHUNK 100
@@ -51,8 +51,14 @@ int main()
 
   fclose(fp);
 
-  // create the HDF5 file and loop invariants
-  hid_t hfile = H5Fcreate(H5PATH, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  // libver latest
+  hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+  H5Pset_libver_bounds(fapl, H5F_LIBVER_LATEST, H5F_LIBVER_LATEST);
+
+  //page buffering
+  hid_t fcpl = H5Pcreate(H5P_FILE_CREATE);
+  H5Pset_file_space_strategy(fcpl, H5F_FSPACE_STRATEGY_PAGE, 0, 1);
+  hid_t hfile = H5Fcreate(H5PATH, H5F_ACC_TRUNC, fcpl, fapl);
   hid_t lcpl = H5Pcreate(H5P_LINK_CREATE);
   H5Pset_create_intermediate_group(lcpl, 1);
   hid_t dcpl = H5Pcreate(H5P_DATASET_CREATE);
