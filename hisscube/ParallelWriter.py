@@ -71,8 +71,8 @@ class MPIFileHandler(logging.FileHandler):
 
 class ParallelWriter(Writer):
 
-    def __init__(self, h5_file=None, h5_path=None):
-        super().__init__(h5_file, h5_path)
+    def __init__(self, h5_file=None, h5_path=None, timings_log="image_timings.csv"):
+        super().__init__(h5_file, h5_path, timings_log)
         # mpio
         self.mpio = self.config.getboolean("Handler", "MPIO")
         self.BATCH_SIZE = int(self.config["Writer"]["BATCH_SIZE"])
@@ -96,19 +96,20 @@ class ParallelWriter(Writer):
         self.logger.addHandler(mh)
 
     def open_h5_file_parallel(self, truncate=False):
-        if truncate:
+        use_c_booster = self.config.getboolean("Writer", "C_BOOSTER")
+        if truncate and not use_c_booster:
             if self.mpio:
-                self.f = h5py.File(self.h5_path, 'w', driver='mpio', comm=self.comm)
+                self.f = h5py.File(self.h5_path, 'w', driver='mpio', comm=self.comm, libver="latest")
             else:
-                self.f = h5py.File(self.h5_path, 'w')
+                self.f = h5py.File(self.h5_path, 'w', libver="latest")
         else:
             if self.mpio:
-                self.f = h5py.File(self.h5_path, 'r+', driver='mpio', comm=self.comm)
+                self.f = h5py.File(self.h5_path, 'r+', driver='mpio', comm=self.comm, libver="latest")
             else:
-                self.f = h5py.File(self.h5_path, 'r+')
+                self.f = h5py.File(self.h5_path, 'r+', libver="latest")
 
     def truncate_h5_file(self):
-        self.f = h5py.File(self.h5_path, 'w')
+        self.f = h5py.File(self.h5_path, 'w', libver="latest")
         self.f.close()
 
     def receive_work(self, status):

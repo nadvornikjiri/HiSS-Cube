@@ -9,10 +9,10 @@
 #define H5PATH "../../results/sdss.h5"
 #define FILE_NAME "sdss.txt"  // the input file (contains 200,000 lines)
 #define LOG_FILE_NAME "timings.csv"
-#define MAX_COUNT 1200000         // the max. number of datasets to create
+#define MAX_COUNT 1100         // the max. number of datasets to create
 #define MAX_LINE_LENGTH 512   // assumption about the line length
 #define CHUNKED_LAYOUT  1     // use chunked layout
-#define LOG_CHUNK 100
+#define LOG_CHUNK 1099
 
 // convenience structure for dataset creation
 struct descr_t {
@@ -41,7 +41,7 @@ int main()
     strcpy(doit[i].path, strtok(buffer, "@"));
     sscanf(strtok(NULL, "@"), " {%d, %d, %d}",
            doit[i].dims, doit[i].dims+1, doit[i].dims+2);
-    ++i;
+    ++i;    
 
     if (i == MAX_COUNT)
       break;
@@ -53,11 +53,11 @@ int main()
 
   // libver latest
   hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
-  H5Pset_libver_bounds(fapl, H5F_LIBVER_LATEST, H5F_LIBVER_LATEST);
-
+  //H5Pset_libver_bounds(fapl, H5F_LIBVER_LATEST, H5F_LIBVER_LATEST);
+  H5Pset_fapl_core(fapl, 18000000000, 0);
   //page buffering
   hid_t fcpl = H5Pcreate(H5P_FILE_CREATE);
-  H5Pset_file_space_strategy(fcpl, H5F_FSPACE_STRATEGY_PAGE, 0, 1);
+  //H5Pset_file_space_strategy(fcpl, H5F_FSPACE_STRATEGY_PAGE, 0, 1);
   hid_t hfile = H5Fcreate(H5PATH, H5F_ACC_TRUNC, fcpl, fapl);
   hid_t lcpl = H5Pcreate(H5P_LINK_CREATE);
   H5Pset_create_intermediate_group(lcpl, 1);
@@ -79,6 +79,8 @@ int main()
                                               doit[ii].dims[2]}, NULL);
     H5Dclose(H5Dcreate(hfile, doit[ii].path, H5T_NATIVE_FLOAT, fspace,
                        lcpl, dcpl, H5P_DEFAULT));
+    printf ("Dataset count %7ld\n", ii);
+    printf ("Dataset path: %s", doit[ii].path);
     H5Sclose(fspace);
 
     //timing logging

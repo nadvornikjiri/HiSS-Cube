@@ -18,7 +18,7 @@ size = MPI.COMM_WORLD.Get_size()
 rank = MPI.COMM_WORLD.Get_rank()
 
 # import pydevd_pycharm
-# port_mapping = [41213, 42135, 36723, 40693]
+# port_mapping = [46257, 34673]
 # pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
 
 parser = argparse.ArgumentParser(description='Import images and spectra in parallel')

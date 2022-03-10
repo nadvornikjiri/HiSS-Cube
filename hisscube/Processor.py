@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from hisscube.H5Handler import H5Handler, read_serialized_fits_header
+from hisscube.H5Handler import H5Handler
 from hisscube.astrometry import get_optimized_wcs, get_cutout_bounds
 
 
@@ -25,8 +25,8 @@ class Processor(H5Handler):
         orig_spectrum_header = self.get_header(spectrum_ds)
         time = self.get_time_from_image(orig_image_header)
         wl = image_ds.name.split('/')[-3]
-        w = get_optimized_wcs(read_serialized_fits_header(image_ds))
-        image_fits_header = read_serialized_fits_header(image_ds)
+        w = get_optimized_wcs(self.read_serialized_fits_header(image_ds))
+        image_fits_header = self.read_serialized_fits_header(image_ds)
         cutout_bounds = get_cutout_bounds(image_fits_header, res_idx, orig_spectrum_header,
                                           self.config.getint("Handler", "IMAGE_CUTOUT_SIZE"))
         return cutout_bounds, time, w, wl
@@ -34,11 +34,11 @@ class Processor(H5Handler):
     def get_header(self, image_ds):
         try:
             if image_ds.attrs["orig_res_link"]:
-                orig_image_header = read_serialized_fits_header(self.f[image_ds.attrs["orig_res_link"]])
+                orig_image_header = self.read_serialized_fits_header(self.f[image_ds.attrs["orig_res_link"]])
             else:
-                orig_image_header = read_serialized_fits_header(image_ds)
+                orig_image_header = self.read_serialized_fits_header(image_ds)
         except KeyError:
-            orig_image_header = read_serialized_fits_header(image_ds)
+            orig_image_header = self.read_serialized_fits_header(image_ds)
         return orig_image_header
 
     def get_cutout_pixel_coords(self, cutout_bounds, w):

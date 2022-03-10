@@ -74,6 +74,6 @@ class Writer(ImageWriter, SpectrumWriter):
         if truncate:
             ik = self.config.getint("Writer", "BTREE_NODE_HALF_SIZE")
             lk = self.config.getint("Writer", "BTREE_LEAF_HALF_SIZE")
-            self.f = h5py.File(self.h5_path, 'w', bt_ik=ik, bt_lk=lk)
+            self.f = h5py.File(self.h5_path, 'w', bt_ik=ik, bt_lk=lk, libver="latest")
         else:
-            self.f = h5py.File(self.h5_path, 'r+')
+            self.f = h5py.File(self.h5_path, 'r+', libver="latest")

@@ -1,6 +1,7 @@
 import configparser
 import pathlib
 
+from hisscube.CWriter import CWriter
 from hisscube.Writer import Writer
 from hisscube.ParallelWriterMWMR import ParallelWriterMWMR
 from hisscube.ParallelWriterSWMR import ParallelWriterSWMR
@@ -21,6 +22,9 @@ class WriterFactory:
             if writer_mode == "SWMR":
                 return ParallelWriterSWMR(h5_path=h5_path)
             elif writer_mode == "MWMR":
-                return ParallelWriterMWMR(h5_path=h5_path)
+                if self.config.getboolean("Writer", "C_BOOSTER"):
+                    return CWriter(h5_path=h5_path)
+                else:
+                    return ParallelWriterMWMR(h5_path=h5_path)
             else:
                 raise Exception("Unsupported parallel writer mode.")

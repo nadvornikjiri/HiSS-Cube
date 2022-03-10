@@ -47,7 +47,8 @@ class H5Handler(object):
 
         self.logger = logging.getLogger(self.__class__.__name__)
         self.timings_log_csv_file = open(image_timings, "w", newline='')
-        self.timings_logger = csv.writer(self.timings_log_csv_file, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        self.timings_logger = csv.writer(self.timings_log_csv_file, delimiter=',', quotechar='|',
+                                         quoting=csv.QUOTE_MINIMAL)
         self.timings_logger.writerow(["Image count", "Group count", "Time"])
         self.grp_cnt = 0
 
@@ -68,7 +69,7 @@ class H5Handler(object):
         -------
 
         """
-        image_fits_header = read_serialized_fits_header(image_ds)
+        image_fits_header = self.read_serialized_fits_header(image_ds)
         cutout_bounds = get_cutout_bounds(image_fits_header, res_idx, self.metadata,
                                           self.config.getint("Handler", "IMAGE_CUTOUT_SIZE"))
         if not is_cutout_whole(cutout_bounds, image_ds):
@@ -104,7 +105,7 @@ class H5Handler(object):
         nside = 2 ** order
         healID = hp.ang2pix(nside, coord[0], coord[1], lonlat=True, nest=True)
         grp = self.require_group(prev, str(healID))  # TODO optimize to 8-byte string?
-        grp.attrs["type"] = "spatial"
+        self.set_attr(grp, "type", "spatial")
         return grp
 
     @staticmethod
@@ -122,19 +123,18 @@ class H5Handler(object):
             for res_zoom in range(self.config.getint("Handler", "IMG_ZOOM_CNT")):
                 res_grp_name = str((x_lower_res, y_lower_res))
                 grp = self.require_group(parent_grp, res_grp_name)
-                grp.attrs["type"] = "resolution"
-                grp.attrs["res_zoom"] = res_zoom
+                self.set_attr(grp, "type", "resolution")
+                self.set_attr(grp, "res_zoom", res_zoom)
                 res_grps.append(grp)
                 x_lower_res = int(x_lower_res / 2)
                 y_lower_res = int(y_lower_res / 2)
         else:
             x_lower_res = int(self.spectrum_length)
-            res_zoom = 0
             for res_zoom in range(self.config.getint("Handler", "SPEC_ZOOM_CNT")):
                 res_grp_name = str(x_lower_res)
                 grp = self.require_group(parent_grp, res_grp_name)
-                grp.attrs["type"] = "resolution"
-                grp.attrs["res_zoom"] = res_zoom
+                self.set_attr(grp, "type", "resolution")
+                self.set_attr(grp, "res_zoom", res_zoom)
                 res_grps.append(grp)
                 x_lower_res = int(x_lower_res / 2)
         return res_grps
@@ -153,18 +153,17 @@ class H5Handler(object):
 
         """
         unicode_dt = h5py.special_dtype(vlen=str)
-        orig_ds_link = datasets[0].ref
         fits_header = dict(self.metadata)
         for res_idx, ds in enumerate(datasets):
             if res_idx > 0:
-                ds.attrs["orig_res_link"] = orig_ds_link
-                if ds.attrs["mime-type"] == "image":
+                self.set_attr_ref(ds, "orig_res_link", datasets[0])
+                if self.get_attr(ds, "mime-type") == "image":
                     fits_header = self.write_image_lower_res_wcs(fits_header, res_idx)
-            naxis = len(ds.shape)
+            naxis = len(self.get_shape(ds))
             fits_header["NAXIS"] = naxis
             for axis in range(naxis):
-                fits_header["NAXIS%d" % (axis)] = ds.shape[axis]
-            write_serialized_fits_header(ds, fits_header)
+                fits_header["NAXIS%d" % (axis)] = self.get_shape(ds)[axis]
+            self.write_serialized_fits_header(ds, fits_header)
 
     def write_image_lower_res_wcs(self, image_fits_header, res_idx=0):
         """
@@ -293,10 +292,33 @@ class H5Handler(object):
             dcpl.set_shuffle()
         return dcpl, space, dataset_type
 
+    @staticmethod
+    def set_attr(obj, key, val):
+        obj.attrs[key] = val
 
-def write_serialized_fits_header(ds, attrs_dict):
-    ds.attrs["serialized_header"] = ujson.dumps(attrs_dict)
+    @staticmethod
+    def set_attr_ref(obj, key, obj2):
+        obj.attrs[key] = obj2.ref
+
+    @staticmethod
+    def get_attr(ds, key):
+        return ds.attrs[key]
+
+    @staticmethod
+    def write_serialized_fits_header(ds, attrs_dict):
+        ds.attrs["serialized_header"] = ujson.dumps(attrs_dict)
+
+    @staticmethod
+    def read_serialized_fits_header(ds):
+        return ujson.loads(ds.attrs["serialized_header"])
+
+    @staticmethod
+    def require_dataset(grp, name, shape, dtype):
+        grp.require_dataset(name, shape, dtype)
+
+    @staticmethod
+    def get_shape(ds):
+        return ds.shape
 
 
-def read_serialized_fits_header(ds):
-    return ujson.loads(ds.attrs["serialized_header"])
+

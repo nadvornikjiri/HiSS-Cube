@@ -16,7 +16,7 @@ H5PATH = "../../results/SDSS_cube_parallel.h5"
 class TestH5Reader:
 
     def setup_method(self, test_method):
-        self.h5_file = h5py.File(H5PATH, 'r', track_order=True)
+        self.h5_file = h5py.File(H5PATH, 'r', track_order=True, libver="latest")
         self.resolution = 0
 
     def teardown_method(self, test_method):

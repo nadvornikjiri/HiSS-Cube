@@ -5,7 +5,7 @@ import fitsio
 import h5py
 import numpy as np
 
-from hisscube.H5Handler import H5Handler, read_serialized_fits_header
+from hisscube.H5Handler import H5Handler
 from hisscube.astrometry import NoCoverageFoundError
 
 
@@ -67,33 +67,37 @@ class SpectrumWriter(H5Handler):
             child_grp = self.require_spatial_grp(order, child_grp, spectrum_coord)
 
         for img_zoom in range(self.config.getint("Handler", "IMG_ZOOM_CNT")):
-            ds = child_grp.require_dataset("image_cutouts_%d" % img_zoom,
-                                           (self.config.getint("Writer", "MAX_CUTOUT_REFS"),),
-                                           dtype=h5py.regionref_dtype)
-            # ds[0] = None
+            self.require_dataset(child_grp, "image_cutouts_%d" % img_zoom,
+                                 (self.config.getint("Writer", "MAX_CUTOUT_REFS"),),
+                                 dtype=h5py.regionref_dtype)
+
         return child_grp
 
     def require_spectrum_time_grp(self, parent_grp):
         time = self.get_time_from_spectrum(self.metadata)
         grp = self.require_group(parent_grp, str(time), track_order=True)
-        grp.attrs["type"] = "time"
+        self.set_attr(grp, "type", "time")
         return grp
 
     def create_spec_datasets(self, parent_grp_list):
         spec_datasets = []
         for group in parent_grp_list:
-            res = int(group.name.split('/')[-1])
+            res = int(self.get_name(group).split('/')[-1])
             spec_data_shape = (res,) + (3,)
-            dcpl, space, spec_data_dtype = self.get_property_list(spec_data_shape)
-            ds_name = self.file_name.encode()
-            if not ds_name in group:
-                dsid = h5py.h5d.create(group.id, ds_name, spec_data_dtype, space, dcpl=dcpl)
-                ds = h5py.Dataset(dsid)
-            else:
-                ds = group[ds_name]
-            ds.attrs["mime-type"] = "spectrum"
+            ds = self.create_spectrum_h5_dataset(group, spec_data_shape)
+            self.set_attr(ds, "mime-type", "spectrum")
             spec_datasets.append(ds)
         return spec_datasets
+
+    def create_spectrum_h5_dataset(self, group, spec_data_shape):
+        dcpl, space, spec_data_dtype = self.get_property_list(spec_data_shape)
+        ds_name = self.file_name.encode()
+        if not ds_name in group:
+            dsid = h5py.h5d.create(group.id, ds_name, spec_data_dtype, space, dcpl=dcpl)
+            ds = h5py.Dataset(dsid)
+        else:
+            ds = group[ds_name]
+        return ds
 
     def add_image_refs(self, h5_grp, depth=-1):
         if "type" in h5_grp.attrs and \
@@ -131,7 +135,7 @@ class SpectrumWriter(H5Handler):
 
         image_refs = {}
         image_min_zoom_idx = 0
-        self.metadata = read_serialized_fits_header(spec_datasets[0])
+        self.metadata = self.read_serialized_fits_header(spec_datasets[0])
         for image_res_idx, image_ds in self.find_images_overlapping_spectrum():
             if not image_res_idx in image_refs:
                 image_refs[image_res_idx] = []
@@ -188,7 +192,7 @@ class SpectrumWriter(H5Handler):
             self.spec_cnt += 1
             if self.spec_cnt >= self.config.getint("Writer", "LIMIT_SPECTRA_COUNT"):
                 break
-        self.f.attrs["spectrum_count"] = self.spec_cnt
+        self.set_attr(self.f, "spectrum_count", self.spec_cnt)
 
     def write_spectrum_metadata(self, fits_path):
         self.ingest_type = "spectrum"

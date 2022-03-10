@@ -82,7 +82,7 @@ class ParallelWriterMWMR(ParallelWriter):
             self.close_h5_file()
 
     def open_and_truncate(self):
-        self.f = h5py.File(self.h5_path, 'w')
+        self.f = h5py.File(self.h5_path, 'w', libver="latest")
 
     def write_spectrum_data(self, spec_path):
         return super().ingest_spectrum(spec_path)
@@ -93,7 +93,7 @@ class ParallelWriterMWMR(ParallelWriter):
 
         while status.Get_tag() != self.KILL_TAG:
             for image_path in image_path_list:
-                # self.logger.info("Rank %02d: Processing image %s." % (self.mpi_rank, image_path))
+                # self.logger.debug("Rank %02d: Processing image %s." % (self.mpi_rank, image_path))
                 self.metadata, self.data = self.cube_utils.get_multiple_resolution_image(image_path,
                                                                                          self.config.getint(
                                                                                              "Handler", "IMG_ZOOM_CNT"))
@@ -107,7 +107,7 @@ class ParallelWriterMWMR(ParallelWriter):
         spectra_path_list = self.receive_work(status)
         while status.Get_tag() != self.KILL_TAG:
             for spec_path in spectra_path_list:
-                # self.logger.info("Rank %02d: Processing spectrum %s." % (self.mpi_rank, spec_path))
+                # self.logger.debug("Rank %02d: Processing spectrum %s." % (self.mpi_rank, spec_path))
                 self.metadata, self.data = self.cube_utils.get_multiple_resolution_spectrum(
                     spec_path, self.config.getint("Handler", "SPEC_ZOOM_CNT"),
                     apply_rebin=self.config.getboolean("Preprocessing", "APPLY_REBIN"),

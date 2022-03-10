@@ -4,7 +4,6 @@ import numpy as np
 from astropy.io.votable import from_table, writeto
 from astropy.table import QTable
 
-from hisscube.H5Handler import read_serialized_fits_header
 from hisscube.Processor import Processor
 
 
@@ -86,11 +85,11 @@ class VisualizationProcessor(Processor):
         """
         try:
             if spectrum_ds.attrs["orig_res_link"]:
-                self.metadata = read_serialized_fits_header(self.f[spectrum_ds.attrs["orig_res_link"]])
+                self.metadata = self.read_serialized_fits_header(self.f[spectrum_ds.attrs["orig_res_link"]])
             else:
-                self.metadata = read_serialized_fits_header(spectrum_ds)
+                self.metadata = self.read_serialized_fits_header(spectrum_ds)
         except KeyError:
-            self.metadata = read_serialized_fits_header(spectrum_ds)
+            self.metadata = self.read_serialized_fits_header(spectrum_ds)
         spectrum_5d = self.get_table_pixels_from_spectrum(spectrum_ds.name, spectrum_ds)
         self.resize_output_if_necessary(spectrum_5d)
         self.spectral_cube[self.output_counter:self.output_counter + spectrum_5d.shape[0]] = spectrum_5d

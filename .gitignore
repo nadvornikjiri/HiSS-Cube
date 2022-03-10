@@ -12,6 +12,8 @@ zenodo/
 qso/
 results
 results/
+cmake-build-debug/
+gtest/
 
 
 photoop/
@@ -34,6 +36,7 @@ profile*
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 
 # Distribution / packaging
 .Python

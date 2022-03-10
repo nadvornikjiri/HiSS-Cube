@@ -3,7 +3,7 @@ from mpi4py import MPI
 import numpy as np
 
 H5PATH = "../results/SDSS_cube_parallel.h5"
-f = h5py.File(H5PATH, 'r+', driver='mpio', comm=MPI.COMM_WORLD)
+f = h5py.File(H5PATH, 'r+', driver='mpio', comm=MPI.COMM_WORLD, libver="latest")
 
 rank = MPI.COMM_WORLD.Get_rank()
 

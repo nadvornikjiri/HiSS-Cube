@@ -26,7 +26,7 @@ with open(FILE_NAME) as f:
     check = 100
     dst_cnt = 0
 
-    h5f = h5py.File(H5_PATH, 'w', libver="latest", driver="core", block_size=100000000)
+    h5f = h5py.File(H5_PATH, 'w', driver="core", block_size=18000000000)
     lines = f.readlines()
     for line in lines:
         if dst_cnt % check == 0 and dst_cnt / check > 0:  # timing and loggin related stuff
@@ -35,6 +35,8 @@ with open(FILE_NAME) as f:
             timings_logger.writerow([dst_cnt, (end - start)])
             start = end
         dst_cnt += 1
+        if dst_cnt == 1100:
+            break
         # line parsing
         path, ds_dims = line.split(" @ ")
         path.replace("\\ ", "")

@@ -75,35 +75,39 @@ class ImageWriter(H5Handler):
                 if order == self.config.getint("Handler", "IMG_SPAT_INDEX_ORDER") - 1:
                     # only return each leaf group once.
                     if len(leaf_grp_set) == 0 or \
-                            not (any(grp.name == parent_grp.name for grp in leaf_grp_set)):
+                            not (any(self.get_name(grp) == self.get_name(parent_grp) for grp in leaf_grp_set)):
                         leaf_grp_set.append(parent_grp)
         return leaf_grp_set
 
     def require_image_time_grp(self, parent_grp):
         tai_time = self.metadata["TAI"]
         grp = self.require_group(parent_grp, str(tai_time))
-        grp.attrs["type"] = "time"
+        self.set_attr(grp, "type", "time")
         return grp
 
     def require_image_spectral_grp(self, parent_grp):
         grp = self.require_group(parent_grp, str(self.cube_utils.filter_midpoints[self.metadata["FILTER"]]),
                                  track_order=True)
-        grp.attrs["type"] = "spectral"
+        self.set_attr(grp, "type", "spectral")
         return grp
 
     def create_img_datasets(self, parent_grp_list):
         img_datasets = []
         for group in parent_grp_list:
-            res_tuple = group.name.split('/')[-1]
+            res_tuple = self.get_name(group).split('/')[-1]
             img_data_shape = tuple(reversed(make_tuple(res_tuple))) + (2,)
-            dcpl, space, img_data_dtype = self.get_property_list(img_data_shape)
-            if self.config.get("Handler", "CHUNK_SIZE"):
-                dcpl.set_chunk(make_tuple(self.config.get("Handler", "CHUNK_SIZE")))
-            dsid = h5py.h5d.create(group.id, self.file_name.encode(), img_data_dtype, space, dcpl=dcpl)
-            ds = h5py.Dataset(dsid)
-            ds.attrs["mime-type"] = "image"
+            ds = self.create_image_h5_dataset(group, img_data_shape)
+            self.set_attr(ds, "mime-type", "image")
             img_datasets.append(ds)
         return img_datasets
+
+    def create_image_h5_dataset(self, group, img_data_shape):
+        dcpl, space, img_data_dtype = self.get_property_list(img_data_shape)
+        if self.config.get("Handler", "CHUNK_SIZE"):
+            dcpl.set_chunk(make_tuple(self.config.get("Handler", "CHUNK_SIZE")))
+        dsid = h5py.h5d.create(group.id, self.file_name.encode(), img_data_dtype, space, dcpl=dcpl)
+        ds = h5py.Dataset(dsid)
+        return ds
 
     def write_images_metadata(self, image_folder, image_pattern, no_attrs=False, no_datasets=False):
         start = timer()
@@ -121,7 +125,7 @@ class ImageWriter(H5Handler):
             if self.img_cnt >= self.config.getint("Writer", "LIMIT_IMAGE_COUNT"):
                 break
         self.timings_log_csv_file.close()
-        self.f.attrs["image_count"] = self.img_cnt
+        self.set_attr(self.f, "image_count", self.img_cnt)
 
     def write_image_metadata(self, fits_path, no_attrs=False, no_datasets=False):
         self.ingest_type = "image"
@@ -161,3 +165,6 @@ class ImageWriter(H5Handler):
 
     def log_csv_timing(self, time):
         self.timings_logger.writerow([self.img_cnt, self.grp_cnt, time])
+
+    def get_name(self, grp):
+        return grp.name
