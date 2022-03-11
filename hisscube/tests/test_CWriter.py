@@ -35,7 +35,7 @@ class TestCWriter:
         assert True
 
     def test_process_metadata(self):
-        writer = CWriter(h5_path=H5_PATH)
+        writer = CWriter(h5_path=H5_PATH, timings_log="logs/test_log.csv")
         image_pattern, spectra_pattern = writer.get_path_patterns()
         writer.process_metadata(FITS_IMAGE_PATH, image_pattern, FITS_SPECTRA_PATH, spectra_pattern, truncate_file=False)
 
@@ -50,9 +50,9 @@ class TestCWriter:
         assert (orig_res_ds_name == test_ds_name)
 
     def test_image_ingest_serial(self):
-        writer = CWriter(h5_path=H5_PATH)
+        writer = CWriter(h5_path=H5_PATH, timings_log="logs/test_log.csv")
         image_pattern, spectra_pattern = writer.get_path_patterns()
-        writer.process_metadata(FITS_IMAGE_PATH, image_pattern, FITS_SPECTRA_PATH, spectra_pattern, truncate_file=False)
+        writer.process_metadata(FITS_IMAGE_PATH, image_pattern, FITS_SPECTRA_PATH, spectra_pattern, truncate_file=True)
         writer.open_h5_file_serial()
         for image_path in tqdm(writer.image_path_list, desc="Images completed: "):
             # self.logger.info("Rank %02d: Processing image %s." % (self.mpi_rank, image_path))

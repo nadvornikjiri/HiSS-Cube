@@ -1,6 +1,7 @@
 import h5py
 import ujson
 from h5writer import write_hdf5_metadata
+import re
 
 
 from hisscube.ParallelWriterMWMR import ParallelWriterMWMR
@@ -10,6 +11,9 @@ class CWriter(ParallelWriterMWMR):
 
     def __init__(self, h5_file=None, h5_path=None, timings_log="image_timings.csv"):
         super().__init__(h5_file, h5_path, timings_log)
+        c_timing_file_name = timings_log.split('/')[-1]
+        c_timing_path = "/".join(timings_log.split('/')[:-1]) + "/"
+        self.c_timing_log = c_timing_path + "c_" + c_timing_file_name
         self.h5_file_structure = {"name": ""}
 
     def require_raw_cube_grp(self):
@@ -96,4 +100,5 @@ class CWriter(ParallelWriterMWMR):
         self.barrier(self.comm)
 
     def c_write_hdf5_metadata(self):
-        write_hdf5_metadata(self.h5_file_structure, self.h5_path)
+        self.logger.info("Initiating C booster for metadata write.")
+        write_hdf5_metadata(self.h5_file_structure, self.h5_path, self.c_timing_log)

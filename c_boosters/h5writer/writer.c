@@ -1,24 +1,40 @@
 //
 // Created by caucau on 2/28/22.
 //
+#define DEBUG 1
+
+#define LOG_CHUNK 100
 
 #include <stdio.h>
 #include <Python.h>
 #include "hdf5.h"
 #include "writer.h"
 
+long image_cnt;
+clock_t start, end;
+double elapsed_time;
+FILE *logfp;
+
+void log_timing();
+
 void process_h5_dict(PyObject *self, PyObject *args) {
 
     PyObject *pyDict;
     char *h5_path;
+    char *timing_log_path;
     hid_t orig_res_ds = 0;
+    image_cnt = 0;
 
-    if (!PyArg_ParseTuple(args, "O!s", &PyDict_Type, &pyDict, &h5_path)) {
+    if (!PyArg_ParseTuple(args, "O!ss", &PyDict_Type, &pyDict, &h5_path, &timing_log_path)) {
         return;
     }
 
-    hid_t h5_file = create_h5_file(h5_path);
 
+    logfp = fopen(timing_log_path, "w+");
+
+    fprintf(logfp, "Dataset count,Time\n");
+    hid_t h5_file = create_h5_file(h5_path);
+    start = clock();
     PyObject *key, *value;
     Py_ssize_t pos = 0;
     while (PyDict_Next(pyDict, &pos, &key, &value)) {
@@ -33,9 +49,105 @@ void process_h5_dict(PyObject *self, PyObject *args) {
             write_attrs(h5_file, value, 0);
         }
     }
-
+    H5Fflush(h5_file, H5F_SCOPE_GLOBAL);
     H5Fclose(h5_file);
+    fclose(logfp);
 }
+
+hid_t create_h5_file(const char *path) {
+    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_fapl_sec2(fapl); //just to be sure
+    H5Pset_libver_bounds(fapl, H5F_LIBVER_LATEST, H5F_LIBVER_LATEST);
+    hid_t fcpl = H5Pcreate(H5P_FILE_CREATE);
+    // H5Pset_file_space_strategy(fcpl, H5F_FSPACE_STRATEGY_PAGE, 0, 1);
+    hid_t hfile = H5Fcreate(path, H5F_ACC_TRUNC, fcpl, fapl);
+    if (hfile == H5I_INVALID_HID) {
+        H5Eprint(H5E_DEFAULT, stderr);
+        exit(1);
+    }
+    return hfile;
+}
+
+void process_tree(PyObject *node, hid_t h5_parent_grp, const char *child_grp_name, long res_zoom, hid_t *orig_res_ds) {
+    hid_t ds;
+    if (child_grp_name != NULL) {
+        hid_t gcpl = H5Pcreate(H5P_GROUP_CREATE);
+        if (should_track_order(node)) {
+            H5Pset_link_creation_order(gcpl, H5P_CRT_ORDER_TRACKED);
+        }
+#ifdef DEBUG
+        {
+            size_t len = H5Iget_name(h5_parent_grp, NULL, 0) + 1;
+            char *buffer;
+            buffer = (char *) malloc(len * sizeof(char));
+            H5Iget_name(h5_parent_grp, buffer, len);
+            printf("Created group %s in parent group %s\n", child_grp_name, buffer);
+            free(buffer);
+        }
+#endif
+
+        hid_t h5_child_grp = H5Gcreate(h5_parent_grp, child_grp_name, H5P_DEFAULT, gcpl, H5P_DEFAULT);
+        if (h5_child_grp < 0) {
+            H5Eprint(H5E_DEFAULT, stderr);
+        }
+        H5Pclose(gcpl);
+        PyObject *attr_node = get_attr_node(node);
+        write_attrs(h5_child_grp, attr_node, 0);
+        h5_parent_grp = h5_child_grp;
+    }
+    PyObject *key, *value;
+    Py_ssize_t pos = 0;
+    while (PyDict_Next(node, &pos, &key, &value)) {
+        if (!equals_str(key, "name") &&
+            !equals_str(key, "attrs") &&
+            !equals_str(key, "track_order")) {  //these are handled beneath ds or grp creation itself
+            if (equals_str(key, "image_dataset")) {
+                ds = create_image_ds(h5_parent_grp, value);
+                process_attributes(ds, value, res_zoom, orig_res_ds);
+                log_timing();
+            } else if (equals_str(key, "spectrum_dataset")) {
+                ds = create_spectrum_ds(h5_parent_grp, value);
+                process_attributes(ds, value, res_zoom, orig_res_ds);
+                log_timing();
+            } else if (equals_str(key, "dataset")) { //TODO check for dataset dtype, now it's hard-coded
+                ds = create_regref_ds(h5_parent_grp, value);
+                H5Dclose(ds);
+                log_timing();
+            } else {
+                PyObject *grp_repr, *grp_str;
+                child_grp_name = get_bytes(key, &grp_repr, &grp_str);
+                PyObject *attr_node = get_attr_node(value);
+                long res_zoom = get_res_zoom(attr_node);
+                process_tree(value, h5_parent_grp, child_grp_name, res_zoom, orig_res_ds);
+                free_bytes(grp_repr, grp_str);
+            }
+        }
+    }
+}
+
+void log_timing() {
+    if (++image_cnt % LOG_CHUNK == 0) {
+        end = clock();
+        elapsed_time = ((double) (end - start)) / CLOCKS_PER_SEC;
+        fprintf(logfp, "%zu,%f\n", image_cnt, elapsed_time);
+        start = end;
+    }
+}
+
+void process_attributes(hid_t ds, PyObject *value, long res_zoom, hid_t *orig_res_ds) {
+    if (res_zoom == 0) {
+        if (*orig_res_ds != 0) {  //first image, nothing to close
+            H5Dclose(*orig_res_ds); //close the previous original dataset link
+        }
+        *orig_res_ds = ds;
+    }
+    PyObject *attr_node = get_attr_node(value);
+    write_attrs(ds, attr_node, orig_res_ds);
+    if (res_zoom > 0) { //higher zooms don't need to be kept in memory
+        H5Dclose(ds);
+    }
+}
+
 
 void write_attrs(hid_t h5_obj, PyObject *attrs, hid_t *orig_res_ds) {
     PyObject *key, *value;
@@ -102,83 +214,6 @@ void write_attr(PyObject *val, PyObject *key, hid_t h5_obj, hid_t *orig_res_ds) 
     free_bytes(repr, str);
 }
 
-void process_tree(PyObject *node, hid_t h5_parent_grp, const char *child_grp_name, long res_zoom, hid_t *orig_res_ds) {
-    hid_t ds;
-    if (child_grp_name != NULL) {
-        hid_t gcpl = H5Pcreate(H5P_GROUP_CREATE);
-        if (should_track_order(node)) {
-            H5Pset_link_creation_order(gcpl, H5P_CRT_ORDER_TRACKED);
-        }
-
-        size_t len = H5Iget_name(h5_parent_grp, NULL, 0) + 1;
-        char *buffer;
-        buffer = (char *) malloc(len * sizeof(char));
-        H5Iget_name(h5_parent_grp, buffer, len);
-        printf("Created group %s in parent group %s\n", child_grp_name, buffer);
-        free(buffer);
-
-        hid_t h5_child_grp = H5Gcreate(h5_parent_grp, child_grp_name, H5P_DEFAULT, gcpl, H5P_DEFAULT);
-        if (h5_child_grp < 0) {
-            H5Eprint(H5E_DEFAULT, stderr);
-        }
-        H5Pclose(gcpl);
-        PyObject *attr_node = get_attr_node(node);
-        write_attrs(h5_child_grp, attr_node, 0);
-        h5_parent_grp = h5_child_grp;
-    }
-    PyObject *key, *value;
-    Py_ssize_t pos = 0;
-    while (PyDict_Next(node, &pos, &key, &value)) {
-        if (!equals_str(key, "name") &&
-            !equals_str(key, "attrs") &&
-            !equals_str(key, "track_order")) {  //these are handled beneath ds or grp creation itself
-            if (equals_str(key, "image_dataset")) {
-                ds = create_image_ds(h5_parent_grp, value);
-                process_attributes(ds, value, res_zoom, orig_res_ds);
-            } else if (equals_str(key, "spectrum_dataset")) {
-                ds = create_spectrum_ds(h5_parent_grp, value);
-                process_attributes(ds, value, res_zoom, orig_res_ds);
-            } else if (equals_str(key, "dataset")) { //TODO check for dataset dtype, now it's hard-coded
-                ds = create_regref_ds(h5_parent_grp, value);
-                H5Dclose(ds);
-            } else {
-                PyObject *grp_repr, *grp_str;
-                child_grp_name = get_bytes(key, &grp_repr, &grp_str);
-                PyObject *attr_node = get_attr_node(value);
-                long res_zoom = get_res_zoom(attr_node);
-                process_tree(value, h5_parent_grp, child_grp_name, res_zoom, orig_res_ds);
-                free_bytes(grp_repr, grp_str);
-            }
-        }
-    }
-}
-
-void process_attributes(hid_t ds, PyObject *value, long res_zoom, hid_t *orig_res_ds) {
-    if (res_zoom == 0) {
-        if (*orig_res_ds != 0) {  //first image, nothing to close
-            H5Dclose(*orig_res_ds); //close the previous original dataset link
-        }
-        *orig_res_ds = ds;
-    }
-    PyObject *attr_node = get_attr_node(value);
-    write_attrs(ds, attr_node, orig_res_ds);
-    if (res_zoom > 0) { //higher zooms don't need to be kept in memory
-        H5Dclose(ds);
-    }
-}
-
-long get_res_zoom(PyObject *attr_node) {
-    PyObject *key, *value;
-    Py_ssize_t pos = 0;
-    while (PyDict_Next(attr_node, &pos, &key, &value)) {
-        if (equals_str(key, "res_zoom")) {
-            return PyLong_AsLong(value);
-        }
-    }
-    return -1;
-}
-
-
 hid_t create_image_ds(hid_t grp, PyObject *image_node) {
     PyObject *repr, *str;
     hid_t dcpl = H5Pcreate(H5P_DATASET_CREATE);
@@ -196,14 +231,15 @@ hid_t create_image_ds(hid_t grp, PyObject *image_node) {
     if (image_ds < 0) {
         H5Eprint(H5E_DEFAULT, stderr);
     }
+#ifdef DEBUG
     size_t len = H5Iget_name(grp, NULL, 0) + 1;
     char *buffer;
     buffer = (char *) malloc(len * sizeof(char));
     H5Iget_name(grp, buffer, len);
     printf("Created image dataset: %s in group %s\n", get_ds_name(image_node, &repr, &str), buffer);
     free_bytes(repr, str);
-
     free(buffer);
+#endif
     H5Sclose(fspace);
     H5Pclose(dcpl);
     return image_ds;
@@ -224,8 +260,10 @@ hid_t create_spectrum_ds(hid_t grp, PyObject *spectrum_node) {
     if (ds < 0) {
         H5Eprint(H5E_DEFAULT, stderr);
     }
+#ifdef DEBUG
     printf("Created spectral dataset: %s\n", get_ds_name(spectrum_node, &repr, &str));
     free_bytes(repr, str);
+#endif
 
     H5Sclose(fspace);
     H5Pclose(dcpl);
@@ -247,8 +285,10 @@ hid_t create_regref_ds(hid_t grp, PyObject *node) {
     if (regref_ds < 0) {
         H5Eprint(H5E_DEFAULT, stderr);
     }
+#ifdef DEBUG
     printf("Created regref dataset: %s\n", get_ds_name(node, &repr, &str));
     free_bytes(repr, str);
+#endif
     H5Sclose(fspace);
     H5Pclose(dcpl);
     return regref_ds;
@@ -310,19 +350,6 @@ PyObject *get_attr_node(PyObject *node) {
     return NULL;
 }
 
-const char *get_bytes(PyObject *pyObj, PyObject **repr, PyObject **str) {
-    *repr = PyObject_Str(pyObj);
-    *str = PyUnicode_AsEncodedString(*repr, "utf-8", "~E~");
-    const char *bytes = PyBytes_AS_STRING(*str);
-    
-    return bytes;
-}
-
-void free_bytes(PyObject *repr, PyObject *str) {
-    Py_XDECREF(repr);
-    Py_DECREF(str);
-}
-
 
 bool should_track_order(PyObject *node) {
     PyObject *key, *value;
@@ -335,18 +362,17 @@ bool should_track_order(PyObject *node) {
     return 0;
 }
 
-hid_t create_h5_file(const char *path) {
-    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
-    H5Pset_libver_bounds(fapl, H5F_LIBVER_LATEST, H5F_LIBVER_LATEST);
-    hid_t fcpl = H5Pcreate(H5P_FILE_CREATE);
-    // H5Pset_file_space_strategy(fcpl, H5F_FSPACE_STRATEGY_PAGE, 0, 1);
-    hid_t hfile = H5Fcreate(path, H5F_ACC_TRUNC, fcpl, fapl);
-    if (hfile == H5I_INVALID_HID) {
-        H5Eprint(H5E_DEFAULT, stderr);
-        exit(1);
+long get_res_zoom(PyObject *attr_node) {
+    PyObject *key, *value;
+    Py_ssize_t pos = 0;
+    while (PyDict_Next(attr_node, &pos, &key, &value)) {
+        if (equals_str(key, "res_zoom")) {
+            return PyLong_AsLong(value);
+        }
     }
-    return hfile;
+    return -1;
 }
+
 
 bool equals_str(PyObject *key, char *test_str) {
     PyObject *repr, *str;
@@ -358,3 +384,17 @@ bool equals_str(PyObject *key, char *test_str) {
     free_bytes(repr, str);
     return res;
 }
+
+const char *get_bytes(PyObject *pyObj, PyObject **repr, PyObject **str) {
+    *repr = PyObject_Str(pyObj);
+    *str = PyUnicode_AsEncodedString(*repr, "utf-8", "~E~");
+    const char *bytes = PyBytes_AS_STRING(*str);
+
+    return bytes;
+}
+
+void free_bytes(PyObject *repr, PyObject *str) {
+    Py_XDECREF(repr);
+    Py_DECREF(str);
+}
+
