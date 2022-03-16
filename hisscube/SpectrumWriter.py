@@ -7,13 +7,13 @@ import numpy as np
 
 from hisscube.H5Handler import H5Handler
 from hisscube.astrometry import NoCoverageFoundError
+from timeit import default_timer as timer
 
 
 class SpectrumWriter(H5Handler):
 
     def __init__(self, h5_file=None, h5_path=None, timings_log="image_timings.csv"):
         super().__init__(h5_file, h5_path, timings_log)
-        self.spec_cnt = 0
 
     def ingest_spectrum(self, spec_path):
         """
@@ -186,8 +186,16 @@ class SpectrumWriter(H5Handler):
                                     pass
 
     def write_spectra_metadata(self, spectra_folder, spectra_pattern, no_attrs=False, no_datasets=False):
+        start = timer()
+        check = 100
         for fits_path in pathlib.Path(spectra_folder).rglob(
                 spectra_pattern):
+            if self.spec_cnt % check == 0 and self.spec_cnt / check > 0:
+                end = timer()
+                self.logger.info("100 spectra done in %.4fs" % (end - start))
+                self.log_csv_timing(end - start)
+                start = end
+                self.logger.info("Spectra cnt: %05d" % self.spec_cnt)
             self.write_spectrum_metadata(fits_path, no_attrs, no_datasets)
             self.spec_cnt += 1
             if self.spec_cnt >= self.config.getint("Writer", "LIMIT_SPECTRA_COUNT"):

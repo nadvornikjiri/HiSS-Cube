@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.INFO)
 
 H5PATH = "../results/SDSS_cube_parallel.h5"
 FITS_IMAGE_PATH = "../data/raw/galaxy_small/images"
-FITS_SPECTRA_PATH = ""
+FITS_SPECTRA_PATH = "../data/raw/galaxy_small/spectra"
 ITERATIONS = 3
 
 

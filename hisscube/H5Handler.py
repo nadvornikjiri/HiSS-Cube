@@ -24,6 +24,8 @@ class H5Handler(object):
         h5_file     Opened HDF5 file object
         cube_utils  Loaded cube_utils, containing mainly photometry-related constants needed for preprocessing.
         """
+        self.spec_cnt = 0
+        self.img_cnt = 0
         lib_path = pathlib.Path(__file__).parent.absolute()
         self.config = configparser.ConfigParser(allow_no_value=True)
         self.config.read("%s/config.ini" % lib_path)
@@ -49,7 +51,7 @@ class H5Handler(object):
         self.timings_log_csv_file = open(image_timings, "w", newline='')
         self.timings_logger = csv.writer(self.timings_log_csv_file, delimiter=',', quotechar='|',
                                          quoting=csv.QUOTE_MINIMAL)
-        self.timings_logger.writerow(["Image count", "Group count", "Time"])
+        self.timings_logger.writerow(["Image/Spectrum count", "Group count", "Time"])
         self.grp_cnt = 0
 
     def close_h5_file(self):
@@ -319,6 +321,9 @@ class H5Handler(object):
     @staticmethod
     def get_shape(ds):
         return ds.shape
+
+    def log_csv_timing(self, time):
+        self.timings_logger.writerow([self.img_cnt+self.spec_cnt, self.grp_cnt, time])
 
 
 

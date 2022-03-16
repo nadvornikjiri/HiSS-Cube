@@ -100,6 +100,7 @@ class CWriter(ParallelWriterMWMR):
             self.logger.info("Writing metadata.")
             self.ingest_metadata(image_path, spectra_path, image_pattern, spectra_pattern, no_attrs=False,
                                  no_datasets=False)
+            self.timings_log_csv_file.close()
             self.barrier(self.comm)
 
     def c_write_hdf5_metadata(self):
