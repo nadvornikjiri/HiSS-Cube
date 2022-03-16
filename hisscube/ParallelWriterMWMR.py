@@ -45,7 +45,8 @@ class ParallelWriterMWMR(ParallelWriter):
         self.process_data()
         self.add_region_references()
 
-    def process_metadata(self, image_path, image_pattern, spectra_path, spectra_pattern, truncate_file):
+    def process_metadata(self, image_path, image_pattern, spectra_path, spectra_pattern, truncate_file, no_attrs=False,
+                         no_datasets=False):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
         if self.mpi_rank == 0:
             self.logger.info("Writing metadata.")

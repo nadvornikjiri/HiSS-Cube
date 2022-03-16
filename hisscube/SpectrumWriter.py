@@ -185,16 +185,16 @@ class SpectrumWriter(H5Handler):
                                 except KeyError:
                                     pass
 
-    def write_spectra_metadata(self, spectra_folder, spectra_pattern):
+    def write_spectra_metadata(self, spectra_folder, spectra_pattern, no_attrs=False, no_datasets=False):
         for fits_path in pathlib.Path(spectra_folder).rglob(
                 spectra_pattern):
-            self.write_spectrum_metadata(fits_path)
+            self.write_spectrum_metadata(fits_path, no_attrs, no_datasets)
             self.spec_cnt += 1
             if self.spec_cnt >= self.config.getint("Writer", "LIMIT_SPECTRA_COUNT"):
                 break
         self.set_attr(self.f, "spectrum_count", self.spec_cnt)
 
-    def write_spectrum_metadata(self, fits_path):
+    def write_spectrum_metadata(self, fits_path, no_attrs=False, no_datasets=False):
         self.ingest_type = "spectrum"
         self.spectra_path_list.append(str(fits_path))
         self.metadata = fitsio.read_header(fits_path)
@@ -204,8 +204,10 @@ class SpectrumWriter(H5Handler):
             self.spectrum_length = self.config.getint("Preprocessing", "REBIN_SAMPLES")
         self.file_name = os.path.basename(fits_path)
         res_grps = self.create_spectrum_index_tree()
-        spec_datasets = self.create_spec_datasets(res_grps)
-        self.add_metadata(spec_datasets)
+        if not no_datasets:
+            spec_datasets = self.create_spec_datasets(res_grps)
+        if not no_attrs:
+            self.add_metadata(spec_datasets)
 
     def write_spec_datasets(self):
         res_grp_list = self.get_spectral_resolution_groups()

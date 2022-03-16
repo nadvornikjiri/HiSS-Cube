@@ -56,12 +56,13 @@ class Writer(ImageWriter, SpectrumWriter):
             self.ingest_spectrum(spectrum)
         self.add_image_refs(self.f)
 
-    def ingest_metadata(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None):
+    def ingest_metadata(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, no_attrs=False,
+                        no_datasets=False):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
         self.logger.info("Writing image metadata.")
-        self.write_images_metadata(image_path, image_pattern)
+        self.write_images_metadata(image_path, image_pattern, no_attrs=False, no_datasets=False)
         self.logger.info("Writing spectra metadata.")
-        self.write_spectra_metadata(spectra_path, spectra_pattern)
+        self.write_spectra_metadata(spectra_path, spectra_pattern, no_attrs=False, no_datasets=False)
 
     def get_path_patterns(self, image_pattern=None, spectra_pattern=None):
         if not image_pattern:

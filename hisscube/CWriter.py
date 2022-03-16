@@ -3,7 +3,6 @@ import ujson
 from h5writer import write_hdf5_metadata
 import re
 
-
 from hisscube.ParallelWriterMWMR import ParallelWriterMWMR
 
 
@@ -88,16 +87,20 @@ class CWriter(ParallelWriterMWMR):
     def set_attr_ref(obj, key, obj2):
         obj["attrs"][key] = obj2["path"]
 
-    def ingest_metadata(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None):
-        super().ingest_metadata(image_path, spectra_path, image_pattern, spectra_pattern)
+    def ingest_metadata(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, no_attrs=False,
+                        no_datasets=False):
+        super().ingest_metadata(image_path, spectra_path, image_pattern, spectra_pattern, no_attrs=False,
+                                no_datasets=False)
         self.c_write_hdf5_metadata()
 
-    def process_metadata(self, image_path, image_pattern, spectra_path, spectra_pattern, truncate_file):
-        image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
+    def process_metadata(self, image_path, image_pattern, spectra_path, spectra_pattern, truncate_file, no_attrs=False,
+                         no_datasets=False):
         if self.mpi_rank == 0:
+            image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
             self.logger.info("Writing metadata.")
-            self.ingest_metadata(image_path, spectra_path, image_pattern, spectra_pattern)
-        self.barrier(self.comm)
+            self.ingest_metadata(image_path, spectra_path, image_pattern, spectra_pattern, no_attrs=False,
+                                 no_datasets=False)
+            self.barrier(self.comm)
 
     def c_write_hdf5_metadata(self):
         self.logger.info("Initiating C booster for metadata write.")

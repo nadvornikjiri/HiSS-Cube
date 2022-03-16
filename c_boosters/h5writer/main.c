@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 int write_hdf5_metadata(PyObject *self, PyObject *args){
-    printf("Test!\n");
+    printf("Writing HDF5 file.\n");
     process_h5_dict(self, args);
     return 0;
 }
@@ -22,7 +22,8 @@ PyMethodDef methods[] = {
                 (PyCFunction) py_write_hdf5_metadata,
                 METH_VARARGS,
                 "Say Import HDF5!",
-        }
+        },
+        {NULL}
 };
 
 PyDoc_STRVAR(write_hdf5_metadata_doc, "Provides API for writing HDF5 file");

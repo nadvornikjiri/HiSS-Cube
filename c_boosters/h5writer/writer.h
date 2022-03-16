@@ -13,7 +13,7 @@ bool equals_str(PyObject *key, char *test_str);
 
 hid_t create_h5_file(const char *path);
 
-void process_tree(PyObject *node, hid_t h5_parent_grp, const char *child_grp_name, long res_zoom, hid_t *orig_res_ds);
+hid_t process_tree(PyObject *node, hid_t parent_grp, const char *child_grp_name, long res_zoom, hid_t *orig_res_ds);
 
 void write_attrs(hid_t h5_obj, PyObject *attrs, hid_t *orig_res_ds);
 
