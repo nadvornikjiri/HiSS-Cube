@@ -60,9 +60,9 @@ class Writer(ImageWriter, SpectrumWriter):
                         no_datasets=False):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
         self.logger.info("Writing image metadata.")
-        self.write_images_metadata(image_path, image_pattern, no_attrs=False, no_datasets=False)
+        self.write_images_metadata(image_path, image_pattern, no_attrs, no_datasets)
         self.logger.info("Writing spectra metadata.")
-        self.write_spectra_metadata(spectra_path, spectra_pattern, no_attrs=False, no_datasets=False)
+        self.write_spectra_metadata(spectra_path, spectra_pattern, no_attrs, no_datasets)
 
     def get_path_patterns(self, image_pattern=None, spectra_pattern=None):
         if not image_pattern:

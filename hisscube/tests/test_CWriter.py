@@ -19,13 +19,11 @@ FITS_SPECTRA_PATH = "../../data/raw/galaxy_small/spectra"
 H5_PATH = "../../results/SDSS_cube_c.h5"
 
 
-
-
 class TestCWriter:
     def test_write_images_metadata(self):
         writer = CWriter()
         image_pattern, spectra_pattern = writer.get_path_patterns()
-        writer.write_images_metadata(FITS_IMAGE_PATH, image_pattern)
+        writer.write_images_metadata(FITS_IMAGE_PATH, image_pattern, no_attrs=False, no_datasets=False)
         assert True
 
     def test_write_spectra_metadata(self):
@@ -37,7 +35,8 @@ class TestCWriter:
     def test_process_metadata(self):
         writer = CWriter(h5_path=H5_PATH, timings_log="logs/test_log.csv")
         image_pattern, spectra_pattern = writer.get_path_patterns()
-        writer.process_metadata(FITS_IMAGE_PATH, image_pattern, FITS_SPECTRA_PATH, spectra_pattern, truncate_file=False)
+        writer.process_metadata(FITS_IMAGE_PATH, image_pattern, FITS_SPECTRA_PATH, spectra_pattern, truncate_file=True,
+                                no_datasets=False, no_attrs=False)
 
         h5_file = h5py.File(H5_PATH, libver="latest")
         test_ds = h5_file[

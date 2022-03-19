@@ -27,9 +27,7 @@ class ParallelWriter:
 
     def ingest_data(self, truncate_file=None):
         if self.mpi_rank == 0:  # if I'm the master, write all metadata and create datasets
-            if truncate_file:
-                self.truncate_h5_file()
-            self.open_h5_file_parallel()
+            self.open_h5_file_serial()
             self.ingest_metadata()
             self.close_h5_file()  # close the file opened in serial mode
         self.open_h5_file_parallel()  # all, including master, let's open file in mpio mode
