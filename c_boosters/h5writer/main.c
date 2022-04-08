@@ -5,7 +5,6 @@
 #include <stdio.h>
 
 int write_hdf5_metadata(PyObject *self, PyObject *args){
-    printf("Writing HDF5 file.\n");
     process_h5_dict(self, args);
     return 0;
 }

@@ -16,7 +16,7 @@ from hisscube.CWriter import CWriter
 
 FITS_IMAGE_PATH = "../../data/raw/galaxy_small/images"
 FITS_SPECTRA_PATH = "../../data/raw/galaxy_small/spectra"
-H5_PATH = "../../results/SDSS_cube_c.h5"
+H5_PATH = "../../results/SDSS_cube_c_par.h5"
 
 
 class TestCWriter:
@@ -48,31 +48,9 @@ class TestCWriter:
         test_ds_name = h5_file[orig_res_link].name.split('/')[-1]
         assert (orig_res_ds_name == test_ds_name)
 
-    def test_image_ingest_serial(self):
+    def test_add_spec_refs_multiple(self):
         writer = CWriter(h5_path=H5_PATH, timings_log="logs/test_log.csv")
-        image_pattern, spectra_pattern = writer.get_path_patterns()
-        writer.process_metadata(FITS_IMAGE_PATH, image_pattern, FITS_SPECTRA_PATH, spectra_pattern, truncate_file=True)
-        writer.open_h5_file_serial()
-        for image_path in tqdm(writer.image_path_list, desc="Images completed: "):
-            # self.logger.info("Rank %02d: Processing image %s." % (self.mpi_rank, image_path))
-            writer.metadata, writer.data = writer.cube_utils.get_multiple_resolution_image(image_path,
-                                                                                           writer.config.getint(
-                                                                                               "Handler",
-                                                                                               "IMG_ZOOM_CNT"))
-            writer.file_name = image_path.split('/')[-1]
-            writer.write_img_datasets()
-        for spec_path in tqdm(writer.spectra_path_list, desc="Spectra completed"):
-            # self.logger.info("Rank %02d: Processing spectrum %s." % (self.mpi_rank, spec_path))
-            writer.metadata, writer.data = writer.cube_utils.get_multiple_resolution_spectrum(
-                spec_path, writer.config.getint("Handler", "SPEC_ZOOM_CNT"),
-                apply_rebin=writer.config.getboolean("Preprocessing", "APPLY_REBIN"),
-                rebin_min=writer.config.getfloat("Preprocessing", "REBIN_MIN"),
-                rebin_max=writer.config.getfloat("Preprocessing", "REBIN_MAX"),
-                rebin_samples=writer.config.getint("Preprocessing", "REBIN_SAMPLES"),
-                apply_transmission=writer.config.getboolean("Preprocessing", "APPLY_TRANSMISSION_CURVE"))
-            writer.file_name = spec_path.split('/')[-1]
-            writer.write_spec_datasets()
-        writer.close_h5_file()
+        writer.add_region_references()
         assert True
 
 

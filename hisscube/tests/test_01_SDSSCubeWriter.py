@@ -11,7 +11,7 @@ from hisscube.Photometry import Photometry
 from hisscube.Writer import Writer
 from hisscube.astrometry import is_cutout_whole
 
-H5PATH = "../../results/SDSS_cube_parallel.h5"
+H5PATH = "../../data/processed/galaxy_small.h5"
 
 
 @pytest.fixture(scope="session", autouse=False)
@@ -130,6 +130,7 @@ class TestH5Writer:
     def test_add_spec_refs_multiple(self):
         self.writer.add_image_refs(self.h5_file)
         assert True
+
 
 
     def test_rebin(self):

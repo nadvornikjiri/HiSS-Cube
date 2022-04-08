@@ -39,7 +39,6 @@ class Writer(ImageWriter, SpectrumWriter):
 
     def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
-        self.open_h5_file_serial(truncate=truncate_file)
         if self.config.get("Writer", "LIMIT_IMAGE_COUNT"):
             image_paths = list(Path(image_path).rglob(image_pattern))[
                           :self.config.getint("Writer", "LIMIT_IMAGE_COUNT")]

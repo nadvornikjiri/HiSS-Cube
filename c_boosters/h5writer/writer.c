@@ -1,7 +1,7 @@
 //
 // Created by caucau on 2/28/22.
 //
-#define DEBUG 0
+#define DEBUG 1
 
 #define LOG_DS_CHUNK 100
 #define LOG_GRP_CHUNK 100
@@ -22,6 +22,8 @@ void log_timing();
 
 void write_to_csv();
 
+bool contains_str(PyObject *key, char *test_string);
+
 void process_h5_dict(PyObject *self, PyObject *args) {
 
     PyObject *pyDict;
@@ -36,10 +38,12 @@ void process_h5_dict(PyObject *self, PyObject *args) {
         return;
     }
 
-
+    printf("Creating the csv logging file: %s\n", timing_log_path);
     logfp = fopen(timing_log_path, "w+");
 
     fprintf(logfp, "Dataset count,Group count,Time\n");
+
+    printf("Writing HDF5 file %s.\n", h5_path);
     hid_t h5_file = create_h5_file(h5_path);
     start = clock();
     PyObject *key, *value;
@@ -57,7 +61,7 @@ void process_h5_dict(PyObject *self, PyObject *args) {
             open_grp_cnt --;
             H5Dclose(orig_res_ds);  //closing last original resolution ds kept in memory
             open_ds_cnt --;
-#ifndef DEBUG
+#ifdef DEBUG
             printf("Grp cnt: %d\n", open_grp_cnt);
             printf("DS cnt: %d\n", open_ds_cnt);
 #endif
@@ -90,9 +94,11 @@ hid_t process_tree(PyObject *node, hid_t parent_grp, const char *child_grp_name,
     if (child_grp_name != NULL) {
         hid_t gcpl = H5Pcreate(H5P_GROUP_CREATE);
         if (should_track_order(node)) {
-            H5Pset_link_creation_order(gcpl, H5P_CRT_ORDER_TRACKED);
+
+            H5Pset_link_creation_order(gcpl, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED);
+            H5Pset_attr_creation_order(gcpl, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED);
         }
-#ifndef DEBUG
+#ifdef DEBUG
         {
             size_t len = H5Iget_name(parent_grp, NULL, 0) + 1;
             char *buffer;
@@ -129,7 +135,7 @@ hid_t process_tree(PyObject *node, hid_t parent_grp, const char *child_grp_name,
                 ds = create_spectrum_ds(parent_grp, value);
                 process_attributes(ds, value, res_zoom, orig_res_ds);
                 log_timing();
-            } else if (equals_str(key, "dataset")) { //TODO check for dataset dtype, now it's hard-coded
+            } else if (contains_str(key, "image_cutouts")) { //TODO check for dataset dtype, now it's hard-coded
                 ds = create_regref_ds(parent_grp, value);
                 H5Dclose(ds);
                 open_ds_cnt --;
@@ -228,15 +234,14 @@ void write_attr(PyObject *val, PyObject *key, hid_t h5_obj, hid_t *orig_res_ds) 
         PyObject *val_repr, *val_str;
         const char *val_bytes = get_bytes(val, &val_repr, &val_str);
         acpl = H5Pcreate(H5P_ATTRIBUTE_CREATE);
-        atype = H5Tcopy(H5T_C_S1);
+        atype = H5Tcopy (H5T_C_S1);
+        H5Tset_size (atype, H5T_VARIABLE);
         H5Tset_cset(atype, H5T_CSET_UTF8);
-        H5Tset_size(atype, strlen(val_bytes));
-        H5Tset_strpad(atype, H5T_STR_NULLTERM);
         attr = H5Acreate(h5_obj, key_bytes, atype, aspace, H5P_DEFAULT, H5P_DEFAULT);
         if (attr < 0) {
             H5Eprint(H5E_DEFAULT, stderr);
         }
-        H5Awrite(attr, atype, val_bytes);
+        H5Awrite(attr, atype, &val_bytes);
         free_bytes(val_repr, val_str);
         H5Pclose(acpl);
         H5Tclose(atype);
@@ -264,7 +269,7 @@ hid_t create_image_ds(hid_t grp, PyObject *image_node) {
     if (image_ds < 0) {
         H5Eprint(H5E_DEFAULT, stderr);
     }
-#ifndef DEBUG
+#ifdef DEBUG
     size_t len = H5Iget_name(grp, NULL, 0) + 1;
     char *buffer;
     buffer = (char *) malloc(len * sizeof(char));
@@ -294,7 +299,7 @@ hid_t create_spectrum_ds(hid_t grp, PyObject *spectrum_node) {
     if (ds < 0) {
         H5Eprint(H5E_DEFAULT, stderr);
     }
-#ifndef DEBUG
+#ifdef DEBUG
     printf("Created spectral dataset: %s\n", get_ds_name(spectrum_node, &repr, &str));
     free_bytes(repr, str);
 #endif
@@ -320,7 +325,7 @@ hid_t create_regref_ds(hid_t grp, PyObject *node) {
     if (regref_ds < 0) {
         H5Eprint(H5E_DEFAULT, stderr);
     }
-#ifndef DEBUG
+#ifdef DEBUG
     printf("Created regref dataset: %s\n", get_ds_name(node, &repr, &str));
     free_bytes(repr, str);
 #endif
@@ -416,6 +421,17 @@ bool equals_str(PyObject *key, char *test_str) {
     }
     const char *bytes = get_bytes(key, &repr, &str);
     int res = (!strcmp(bytes, test_str));
+    free_bytes(repr, str);
+    return res;
+}
+
+bool contains_str(PyObject *key, char *test_str) {
+    PyObject *repr, *str;
+    if (key == NULL) {
+        return 0;
+    }
+    const char *bytes = get_bytes(key, &repr, &str);
+    int res = strstr(bytes, test_str);
     free_bytes(repr, str);
     return res;
 }

@@ -6,6 +6,7 @@ from itertools import chain
 from collections import deque
 
 from hisscube.ParallelWriterMWMR import ParallelWriterMWMR
+from hisscube.Writer import Writer
 
 
 def total_size(o, handlers={}, verbose=False):
@@ -54,7 +55,9 @@ class CWriter(ParallelWriterMWMR):
     def __init__(self, h5_file=None, h5_path=None, timings_log="image_timings.csv"):
         super().__init__(h5_file, h5_path, timings_log)
         c_timing_file_name = timings_log.split('/')[-1]
-        c_timing_path = "/".join(timings_log.split('/')[:-1]) + "/"
+        c_timing_path = "/".join(timings_log.split('/')[:-1])
+        if c_timing_path != "":
+            c_timing_path += "/"
         self.c_timing_log = c_timing_path + "c_" + c_timing_file_name
         self.h5_file_structure = {"name": ""}
 
@@ -110,9 +113,9 @@ class CWriter(ParallelWriterMWMR):
 
     @staticmethod
     def require_dataset(grp, name, shape, dtype):
-        if not "dataset" in grp:
-            grp["dataset"] = {}
-            ds = grp["dataset"]
+        if not name in grp:
+            grp[name] = {}
+            ds = grp[name]
             ds["name"] = name
             ds["shape"] = shape
             if dtype == h5py.regionref_dtype:
@@ -140,13 +143,41 @@ class CWriter(ParallelWriterMWMR):
     def process_metadata(self, image_path, image_pattern, spectra_path, spectra_pattern, truncate_file, no_attrs=False,
                          no_datasets=False):
         if self.mpi_rank == 0:
+            h5_file = self.open_h5_file_serial(truncate_file)
+            h5_file.close()
             image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
             self.logger.info("Writing metadata.")
             self.ingest_metadata(image_path, spectra_path, image_pattern, spectra_pattern, no_attrs,
                                  no_datasets)
             self.timings_log_csv_file.close()
-            self.barrier(self.comm)
+        self.barrier(self.comm)
+
 
     def c_write_hdf5_metadata(self):
         self.logger.info("Initiating C booster for metadata write.")
         write_hdf5_metadata(self.h5_file_structure, self.h5_path, self.c_timing_log)
+
+    def open_h5_file_serial(self, truncate=False):
+        if truncate:
+            ik = self.config.getint("Writer", "BTREE_NODE_HALF_SIZE")
+            lk = self.config.getint("Writer", "BTREE_LEAF_HALF_SIZE")
+            return h5py.File(self.h5_path, 'w', bt_ik=ik, bt_lk=lk, libver="latest")
+        else:
+            return h5py.File(self.h5_path, 'r+', libver="latest")
+
+    def add_region_references(self):
+        if self.mpi_rank == 0:
+            writer = Writer(h5_path=self.h5_path)
+            writer.open_h5_file_serial()
+            self.logger.info("Adding image region references.")
+            writer.add_image_refs(writer.f)
+            writer.close_h5_file()
+
+    def create_dense_cube(self):
+        if self.mpi_rank == 0:
+            writer = Writer(h5_path=self.h5_path)
+            writer.open_h5_file_serial()
+            self.logger.info("Creating dense cube.")
+            writer.create_dense_cube()
+            writer.close_h5_file()
+

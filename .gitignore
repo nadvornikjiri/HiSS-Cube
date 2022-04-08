@@ -15,6 +15,7 @@ results
 results/
 cmake-build-debug/
 gtest/
+Timing benchmarks.ipynb
 
 
 photoop/

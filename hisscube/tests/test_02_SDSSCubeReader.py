@@ -9,7 +9,7 @@ import pytest
 from hisscube import VisualizationProcessor as h5r
 from hisscube import Photometry as cu
 
-H5PATH = "../../results/SDSS_cube_parallel.h5"
+H5PATH = "../../results/SDSS_cube_c_par.h5"
 
 
 @pytest.mark.incremental
@@ -45,7 +45,7 @@ class TestH5Reader:
         self.output_path = "../../results/output.fits"
         self.reader.construct_spectral_cube_table(self.resolution)
         self.reader.write_FITS(self.output_path)
-        # self.send_samp("table.load.fits")
+        self.send_samp("table.load.fits")
         assert self.reader.spectral_cube.shape == (280720,)
 
     def test_write_FITS_zoomed(self):
