@@ -36,7 +36,7 @@ class TestH5Writer:
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image(self):
-        test_path = "../../data/raw/images/301/2820/3/frame-g-002820-3-0122.fits.bz2"
+        test_path = "../../data/raw/images/301/4797/1/frame-g-004797-1-0019.fits.bz2"
 
         h5_datasets = self.writer.ingest_image(test_path)
         assert len(h5_datasets) == self.writer.config.getint("Handler", "IMG_ZOOM_CNT")
