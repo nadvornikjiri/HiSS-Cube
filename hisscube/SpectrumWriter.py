@@ -193,7 +193,7 @@ class SpectrumWriter(H5Handler):
             if self.spec_cnt % check == 0 and self.spec_cnt / check > 0:
                 end = timer()
                 self.logger.info("100 spectra done in %.4fs" % (end - start))
-                self.log_csv_timing(end - start)
+                self.log_metadata_csv_timing(end - start)
                 start = end
                 self.logger.info("Spectra cnt: %05d" % self.spec_cnt)
             self.write_spectrum_metadata(fits_path, no_attrs, no_datasets)

@@ -52,7 +52,7 @@ def total_size(o, handlers={}, verbose=False):
 
 class CWriter(ParallelWriterMWMR):
 
-    def __init__(self, h5_file=None, h5_path=None, timings_log="image_timings.csv"):
+    def __init__(self, h5_file=None, h5_path=None, timings_log="timings.csv"):
         super().__init__(h5_file, h5_path, timings_log)
         c_timing_file_name = timings_log.split('/')[-1]
         c_timing_path = "/".join(timings_log.split('/')[:-1])
@@ -149,7 +149,7 @@ class CWriter(ParallelWriterMWMR):
             self.logger.info("Writing metadata.")
             self.ingest_metadata(image_path, spectra_path, image_pattern, spectra_pattern, no_attrs,
                                  no_datasets)
-            self.timings_log_csv_file.close()
+            self.metadata_timings_log_csv_file.close()
         self.barrier(self.comm)
 
 

@@ -1,15 +1,17 @@
 import os
+import warnings
 from pathlib import Path
 
 import fitsio
-import h5py
-import numpy as np
 import pytest
 from tqdm.auto import tqdm
 
-from hisscube.Photometry import Photometry
 from hisscube.Writer import Writer
 from hisscube.astrometry import is_cutout_whole
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    import numpy as np
 
 H5PATH = "../../data/processed/galaxy_small.h5"
 
@@ -21,20 +23,20 @@ def truncate_test_file(request):
     writer.close_h5_file()
 
 
-@pytest.mark.incremental
 class TestH5Writer:
 
     def setup_method(self, test_method):
         self.writer = Writer(h5_path=H5PATH)
         self.writer.open_h5_file_serial(truncate=False)
         self.h5_file = self.writer.f
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
 
     def teardown_method(self, test_method):
         self.h5_file.close()
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image(self):
-        test_path = "../../data/raw/images_medium_ds/frame-u-004948-3-0199.fits.bz2"
+        test_path = "../../data/raw/problematic/images/frame-u-004858-2-0497.fits"
 
         h5_datasets = self.writer.ingest_image(test_path)
         assert len(h5_datasets) == self.writer.config.getint("Handler", "IMG_ZOOM_CNT")
@@ -47,11 +49,9 @@ class TestH5Writer:
         h5_datasets = writer.ingest_spectrum(test_path)
         assert len(h5_datasets) == writer.config.getint("Handler", "SPEC_ZOOM_CNT")
 
-
-
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image_multiple(self):
-        #test_images = "../../data/images/301/2820/3"
+        # test_images = "../../data/images/301/2820/3"
         # test_images = "../../data/images_medium_ds"
         test_images = "../../data/raw/galaxy_small/images"
         image_pattern = "frame-*-004136-*-0129.fits"
@@ -130,8 +130,6 @@ class TestH5Writer:
     def test_add_spec_refs_multiple(self):
         self.writer.add_image_refs(self.h5_file)
         assert True
-
-
 
     def test_rebin(self):
         spectra_folder = "../../data/raw/galaxy_small/spectra"

@@ -112,7 +112,6 @@ hid_t process_tree(PyObject *node, hid_t parent_grp, const char *child_grp_name,
         child_grp = H5Gcreate(parent_grp, child_grp_name, H5P_DEFAULT, gcpl, H5P_DEFAULT);
         open_grp_cnt ++;
         grp_cnt ++;
-        log_timing();
         if (child_grp < 0) {
             H5Eprint(H5E_DEFAULT, stderr);
         }

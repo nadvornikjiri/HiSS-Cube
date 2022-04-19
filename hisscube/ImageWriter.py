@@ -14,8 +14,8 @@ from timeit import default_timer as timer
 
 class ImageWriter(H5Handler):
 
-    def __init__(self, h5_file=None, h5_path=None, image_timings="image_timings.csv"):
-        super().__init__(h5_file, h5_path, image_timings)
+    def __init__(self, h5_file=None, h5_path=None, timings_csv="timings.csv"):
+        super().__init__(h5_file, h5_path, timings_csv)
 
     def ingest_image(self, image_path):
         """
@@ -115,7 +115,7 @@ class ImageWriter(H5Handler):
             if self.img_cnt % check == 0 and self.img_cnt / check > 0:
                 end = timer()
                 self.logger.info("100 images done in %.4fs" % (end - start))
-                self.log_csv_timing(end - start)
+                self.log_metadata_csv_timing(end - start)
                 start = end
                 self.logger.info("Image cnt: %05d" % self.img_cnt)
             self.write_image_metadata(fits_path, no_attrs, no_datasets)

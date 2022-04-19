@@ -1,3 +1,4 @@
+import csv
 import time
 
 import h5py
@@ -8,6 +9,7 @@ from hisscube.Writer import Writer
 from mpi4py import MPI
 import msgpack
 import msgpack_numpy as m
+from timeit import default_timer as timer
 
 m.patch()
 
@@ -71,8 +73,8 @@ class MPIFileHandler(logging.FileHandler):
 
 class ParallelWriter(Writer):
 
-    def __init__(self, h5_file=None, h5_path=None, timings_log="image_timings.csv"):
-        super().__init__(h5_file, h5_path, timings_log)
+    def __init__(self, h5_file=None, h5_path=None, timings_csv="timings.csv"):
+        super().__init__(h5_file, h5_path, timings_csv)
         # mpio
         self.mpio = self.config.getboolean("Handler", "MPIO")
         self.BATCH_SIZE = int(self.config["Writer"]["BATCH_SIZE"])
@@ -87,13 +89,33 @@ class ParallelWriter(Writer):
         self.received_result_cnt = 0
 
         logging.basicConfig()
-        logging.root.setLevel(logging.DEBUG)
+        logging.root.setLevel(self.config.get("Handler", "LOG_LEVEL"))
         self.logger = logging.getLogger("rank[%i]" % self.comm.rank)
         mh = MPIFileHandler("logfile.log")
         formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s',
                                       datefmt='%Y-%m-%d %H:%M:%S')
         mh.setFormatter(formatter)
         self.logger.addHandler(mh)
+        self.start_timers = [0] * self.mpi_size
+        self.image_batch_cnt = 0
+        self.spectrum_batch_cnt = 0
+        self.active_workers = 0
+
+        if self.mpi_rank == 0:
+            timing_file_name = timings_csv.split('/')[-1]
+            timing_path = "/".join(timings_csv.split('/')[:-1])
+            if timing_path != "":
+                timing_path += "/"
+            metadata_timing_log = timing_path + "metadata_" + timing_file_name
+            data_timing_log = timing_path + "data_" + timing_file_name
+            self.metadata_timings_log_csv_file = open(metadata_timing_log, "w", newline='')
+            self.metadata_timings_logger = csv.writer(self.metadata_timings_log_csv_file, delimiter=',', quotechar='|',
+                                                      quoting=csv.QUOTE_MINIMAL)
+            self.metadata_timings_logger.writerow(["Image/Spectrum count", "Group count", "Time"])
+            self.data_timings_log_csv_file = open(data_timing_log, "w", newline='')
+            self.data_timings_logger = csv.writer(self.data_timings_log_csv_file, delimiter=',', quotechar='|',
+                                                  quoting=csv.QUOTE_MINIMAL)
+            self.data_timings_logger.writerow(["Image batch count", "Spectra batch count", "Time"])
 
     def open_h5_file_parallel(self, truncate=False):
         use_c_booster = self.config.getboolean("Writer", "C_BOOSTER")
@@ -128,11 +150,18 @@ class ParallelWriter(Writer):
                 "Send work batch no. %02d to dest %02d: %d " % (self.sent_work_cnt, dest, hash(str(batch))))
             self.comm.send(obj=batch, dest=dest, tag=tag)
             self.sent_work_cnt += 1
+            self.start_timers[dest] = timer()
 
     def wait_for_message(self, source, tag, status):
         while not self.comm.Iprobe(source, tag, status):
             time.sleep(self.config.getfloat("Writer", "POLL_INTERVAL"))
         return
+
+    def log_metadata_csv_timing(self, time):
+        self.metadata_timings_logger.writerow([self.img_cnt + self.spec_cnt, self.grp_cnt, time])
+
+    def log_data_csv_timing(self, time, image_batch_cnt, spectrum_batch_cnt):
+        self.data_timings_logger.writerow([image_batch_cnt, spectrum_batch_cnt, time])
 
 
 def chunks(lst, n):

@@ -43,7 +43,10 @@ class ParallelWriterMWMR(ParallelWriter):
     def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
         self.process_metadata(image_path, image_pattern, spectra_path, spectra_pattern, truncate_file)
         self.process_data()
-        self.add_region_references()
+        if self.config.getboolean("Writer", "CREATE_REFERENCES"):
+            self.add_region_references()
+        if self.config.getboolean("Writer", "CREATE_DENSE_CUBE"):
+            self.create_dense_cube()
 
     def process_metadata(self, image_path, image_pattern, spectra_path, spectra_pattern, truncate_file, no_attrs=False,
                          no_datasets=False):
@@ -53,6 +56,7 @@ class ParallelWriterMWMR(ParallelWriter):
             self.open_h5_file_serial(truncate=truncate_file)
             self.ingest_metadata(image_path, spectra_path, image_pattern, spectra_pattern)
             self.close_h5_file()
+            self.metadata_timings_log_csv_file.close()
         self.barrier(self.comm)
 
     @profile(filename="profile_process_data_8_not_cpu")
@@ -61,13 +65,14 @@ class ParallelWriterMWMR(ParallelWriter):
         start = timer()
         if self.mpi_rank == 0:
             self.logger.info("Processing images.")
-            self.distribute_work(self.image_path_list)
+            self.distribute_work(self.image_path_list, "image")
         else:
             self.write_image_data()
         self.barrier(self.comm)
         if self.mpi_rank == 0:
             self.logger.info("Processing spectra.")
-            self.distribute_work(self.spectra_path_list)
+            self.distribute_work(self.spectra_path_list, "spectrum")
+            self.data_timings_log_csv_file.close()
         else:
             self.write_spectra_data()
         self.barrier(self.comm)
@@ -126,19 +131,33 @@ class ParallelWriterMWMR(ParallelWriter):
         self.logger.info("Terminating worker: %0d" % dest)
         self.comm.send(obj=None, dest=dest, tag=tag)
 
-    def distribute_work(self, path_list):
+    def distribute_work(self, path_list, batch_type):
         status = MPI.Status()
         batches = list(chunks(path_list, self.BATCH_SIZE))
         for i in tqdm(range(1, len(batches) + 1)):
             if i < (self.mpi_size):
                 self.send_work(batches, dest=i)
+                self.active_workers += 1
             else:
                 self.wait_for_message(source=MPI.ANY_SOURCE, tag=self.FINISHED_TAG, status=status)
-                self.comm.recv(source=MPI.ANY_SOURCE, tag=self.FINISHED_TAG, status=status)
-                self.logger.info("Received response from. dest %02d: %d " % (status.Get_source(), self.sent_work_cnt))
+                self.process_response(batch_type, status)
                 self.send_work(batches, status.Get_source())
         for i in range(1, self.mpi_size):
             self.send_work_finished(dest=i)
+        for i in range(1, self.active_workers):
+            self.process_response(batch_type, status)
+        self.active_workers = 0
+
+    def process_response(self, batch_type, status):
+        self.comm.recv(source=MPI.ANY_SOURCE, tag=self.FINISHED_TAG, status=status)
+        end = timer()
+        if batch_type == "image":
+            self.image_batch_cnt += 1
+        if batch_type == "spectrum":
+            self.spectrum_batch_cnt += 1
+        self.log_data_csv_timing(
+            end - self.start_timers[status.Get_source()], self.image_batch_cnt, self.spectrum_batch_cnt)
+        self.logger.debug("Received response from. dest %02d: %d " % (status.Get_source(), self.sent_work_cnt))
 
     def barrier(self, comm, tag=0):
         sleep = self.config.getfloat("Writer", "POLL_INTERVAL")

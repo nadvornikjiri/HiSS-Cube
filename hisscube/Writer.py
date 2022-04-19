@@ -11,7 +11,7 @@ from hisscube.SpectrumWriter import SpectrumWriter
 
 class Writer(ImageWriter, SpectrumWriter):
 
-    def __init__(self, h5_file=None, h5_path=None, timings_log="image_timings.csv"):
+    def __init__(self, h5_file=None, h5_path=None, timings_log="timings.csv"):
         super().__init__(h5_file, h5_path, timings_log)
 
     def create_dense_cube(self):
@@ -53,7 +53,9 @@ class Writer(ImageWriter, SpectrumWriter):
             self.ingest_image(image)
         for spectrum in tqdm(spectra_paths, desc="Spectra Progress: "):
             self.ingest_spectrum(spectrum)
-        self.add_image_refs(self.f)
+        if self.config.getboolean("Writer", "CREATE_REFERENCES"):
+            self.add_image_refs(self.f)
+        self.close_loggers
 
     def ingest_metadata(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, no_attrs=False,
                         no_datasets=False):

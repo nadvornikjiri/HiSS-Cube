@@ -11,6 +11,8 @@ from hisscube.Writer import Writer
 from hisscube.MLProcessor import MLProcessor
 import h5py
 from timeit import default_timer as timer
+import subprocess
+import os
 
 H5PATH = "../data/processed/galaxy_small.h5"
 image_folder = "../data/raw/galaxy_small/images"
@@ -50,3 +52,6 @@ with h5py.File(H5PATH, 'w') as h5_file:  # truncate file
     start1 = start2
     start2 = timer()
     print("Created 3d cube: %.2fs" % (start2 - start1))
+
+process = subprocess.Popen("cat /proc/%s/io" % os.getpid(), shell=True)
+process.wait()

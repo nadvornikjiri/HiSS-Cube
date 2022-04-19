@@ -18,7 +18,7 @@ size = MPI.COMM_WORLD.Get_size()
 rank = MPI.COMM_WORLD.Get_rank()
 
 # import pydevd_pycharm
-# port_mapping = [40555, 46397, 33053, 43427]
+# port_mapping = [32917, 33703]
 # pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
 
 parser = argparse.ArgumentParser(description='Import images and spectra in parallel')
@@ -35,4 +35,3 @@ fits_spectra_path = "%s/spectra" % args.input_path
 
 writer = WriterFactory().get_writer(args.output_path)
 writer.ingest(fits_image_path, fits_spectra_path, truncate_file=args.truncate)
-writer.create_dense_cube()
