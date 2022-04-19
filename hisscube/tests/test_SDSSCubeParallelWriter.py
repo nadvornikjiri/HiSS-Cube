@@ -3,7 +3,7 @@ import pytest
 
 from hisscube.ParallelWriterMWMR import ParallelWriterMWMR
 
-H5PATH = "../../results/SDSS_cube_parallel.h5"
+H5PATH = "../../data/processed/SDSS_cube_parallel.h5"
 
 
 @pytest.fixture(scope="session", autouse=False)
