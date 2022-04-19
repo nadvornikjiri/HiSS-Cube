@@ -4,7 +4,7 @@ import h5py
 
 from hisscube.ParallelWriterMWMR import ParallelWriterMWMR
 
-H5PATH = "../../data/processed/SDSS_cube_parallel.h5"
+H5PATH = "../../results/SDSS_cube_parallel.h5"
 INPUT_PATH = "../../data/raw/galaxy_small"
 
 @pytest.fixture(scope="session", autouse=False)

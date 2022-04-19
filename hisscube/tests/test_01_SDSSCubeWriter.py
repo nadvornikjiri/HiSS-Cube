@@ -13,7 +13,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import numpy as np
 
-H5PATH = "../../data/processed/SDSS_cube.h5"
+H5PATH = "../../results/SDSS_cube.h5"
 
 
 @pytest.fixture(scope="session", autouse=False)

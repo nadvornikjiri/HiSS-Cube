@@ -9,7 +9,7 @@ import pytest
 from hisscube import VisualizationProcessor as h5r
 from hisscube import Photometry as cu
 
-H5PATH = "../../data/processed/SDSS_cube.h5"
+H5PATH = "../../results/SDSS_cube.h5"
 
 
 @pytest.mark.incremental

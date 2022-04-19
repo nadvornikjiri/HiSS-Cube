@@ -3,7 +3,7 @@ import h5py
 from hisscube.Photometry import Photometry
 from hisscube.MLProcessor import MLProcessor
 
-H5PATH = "../../data/processed/SDSS_cube.h5"
+H5PATH = "../../results/SDSS_cube.h5"
 
 
 class TestMLProcessor:
