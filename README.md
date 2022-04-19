@@ -10,24 +10,13 @@ sudo apt-get install python3-pip
 sudo apt-get install libbz2-dev
 sudo apt-get install -y libsm6
 sudo apt-get install libfontconfig1 libxrender1
+sudo apt-get install libopenmpi-dev
+sudo apt-get install ffmpeg libsm6 libxext6  -y
 ```
 
-2. Download code
-```bash
-git clone git@github.com:nadvornikjiri/HiSS-Cube.git
-cd SDSSCube
-```
-4.Create virtual environment
-```bash
-pip3 install virtualenv
-python3 -m virtualenv venv
-source venv/bin/activate
-pip3 install -r requirements.txt
-```
-
-## Development version - parallel implementation with MPIO
+### Development version - parallel implementation with MPIO
 1. Download h5py and hdf5 into ext_lib folder within the SDSSCube git folder. 
-  1. https://github.com/h5py/h5py.git
+  1. ```mkdir h5py && cd h5py && git clone https://github.com/h5py/h5py.git . ```
   2. Latest tar release of HDF5 from here: https://www.hdfgroup.org/downloads/hdf5/source-code/.
 2. Build & Install HDF5 parallel
 ```
@@ -40,10 +29,27 @@ make install
 export CC=mpicc
 export HDF5_MPI="ON"
 export HDF5_DIR=~/SDSSCube/ext_lib/hdf5-1.12.1/
+export LD_LIBRARY_PATH=~/SDSSCube/ext_lib/hdf5-1.12.1/hdf5/lib:$LD_LIBRARY_PATH
 python setup_configure.py --mpi
 pip uninstall h5py
 python setup.py install
 ```
+
+2. Download code
+```bash
+mkdir SDSSCube
+cd SDSSCube
+git clone https://github.com/nadvornikjiri/HiSS-Cube.git .
+```
+4.Create virtual environment
+```bash
+pip3 install virtualenv
+python3 -m virtualenv venv
+source venv/bin/activate
+pip3 install -r requirements.txt
+```
+
+
 
 
 ## Download data from Zenodo
