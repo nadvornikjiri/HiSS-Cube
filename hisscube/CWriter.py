@@ -159,9 +159,7 @@ class CWriter(ParallelWriterMWMR):
 
     def open_h5_file_serial(self, truncate=False):
         if truncate:
-            ik = self.config.getint("Writer", "BTREE_NODE_HALF_SIZE")
-            lk = self.config.getint("Writer", "BTREE_LEAF_HALF_SIZE")
-            return h5py.File(self.h5_path, 'w', bt_ik=ik, bt_lk=lk, libver="latest")
+            return h5py.File(self.h5_path, 'w', libver="latest")
         else:
             return h5py.File(self.h5_path, 'r+', libver="latest")
 
