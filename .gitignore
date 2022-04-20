@@ -28,6 +28,9 @@ venv*
 *.xml
 *.txt
 
+#logging
+logfile*
+
 #profiling
 profile*
 *.slog2
