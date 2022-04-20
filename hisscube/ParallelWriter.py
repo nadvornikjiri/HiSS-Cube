@@ -162,6 +162,7 @@ class ParallelWriter(Writer):
 
     def log_data_csv_timing(self, time, image_batch_cnt, spectrum_batch_cnt):
         self.data_timings_logger.writerow([image_batch_cnt, spectrum_batch_cnt, time])
+        self.data_timings_log_csv_file.flush()
 
 
 def chunks(lst, n):
