@@ -5,13 +5,8 @@ Software package for handling multi-dimensional multi-resolution data within HDF
 
 1. Installing dependencies
 ```bash
-sudo apt-get update
-sudo apt-get install python3-pip
-sudo apt-get install libbz2-dev
-sudo apt-get install -y libsm6
-sudo apt-get install libfontconfig1 libxrender1
-sudo apt-get install libopenmpi-dev
-sudo apt-get install ffmpeg libsm6 libxext6  -y
+apt-get update
+apt-get install -y python3-pip libbz2-dev libsm6 libfontconfig1 libxrender1 libopenmpi-dev ffmpeg libsm6 libxext6
 ```
 
 ### Development version - parallel implementation with MPIO
