@@ -11,7 +11,7 @@ void process_h5_dict(PyObject *self, PyObject *args);
 
 bool equals_str(PyObject *key, char *test_str);
 
-hid_t create_h5_file(const char *path);
+hid_t open_h5_file(const char *path);
 
 hid_t process_tree(PyObject *node, hid_t parent_grp, const char *child_grp_name, long res_zoom, hid_t *orig_res_ds);
 

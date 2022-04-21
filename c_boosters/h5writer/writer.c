@@ -44,7 +44,7 @@ void process_h5_dict(PyObject *self, PyObject *args) {
     fprintf(logfp, "Dataset count,Group count,Time\n");
 
     printf("Writing HDF5 file %s.\n", h5_path);
-    hid_t h5_file = create_h5_file(h5_path);
+    hid_t h5_file = open_h5_file(h5_path);
     start = clock();
     PyObject *key, *value;
     Py_ssize_t pos = 0;
@@ -74,13 +74,11 @@ void process_h5_dict(PyObject *self, PyObject *args) {
     fclose(logfp);
 }
 
-hid_t create_h5_file(const char *path) {
+hid_t open_h5_file(const char *path) {
     hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
-    H5Pset_fapl_sec2(fapl); //just to be sure
     H5Pset_libver_bounds(fapl, H5F_LIBVER_LATEST, H5F_LIBVER_LATEST);
-    hid_t fcpl = H5Pcreate(H5P_FILE_CREATE);
-    H5Pset_file_space_strategy(fcpl, H5F_FSPACE_STRATEGY_PAGE, 0, 1);
-    hid_t hfile = H5Fcreate(path, H5F_ACC_TRUNC, fcpl, fapl);
+    H5Pset_page_buffer_size(fapl, 32*1024*1024, 50, 50);
+    hid_t hfile = H5Fopen(path, H5F_ACC_RDWR, H5P_DEFAULT);
     if (hfile == H5I_INVALID_HID) {
         H5Eprint(H5E_DEFAULT, stderr);
         exit(1);

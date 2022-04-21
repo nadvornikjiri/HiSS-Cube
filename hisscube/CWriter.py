@@ -152,14 +152,13 @@ class CWriter(ParallelWriterMWMR):
             self.metadata_timings_log_csv_file.close()
         self.barrier(self.comm)
 
-
     def c_write_hdf5_metadata(self):
         self.logger.info("Initiating C booster for metadata write.")
         write_hdf5_metadata(self.h5_file_structure, self.h5_path, self.c_timing_log)
 
     def open_h5_file_serial(self, truncate=False):
         if truncate:
-            return h5py.File(self.h5_path, 'w', libver="latest")
+            return h5py.File(self.h5_path, 'w', fs_strategy="page", fs_page_size=4096, libver="latest")
         else:
             return h5py.File(self.h5_path, 'r+', libver="latest")
 
@@ -178,4 +177,3 @@ class CWriter(ParallelWriterMWMR):
             self.logger.info("Creating dense cube.")
             writer.create_dense_cube()
             writer.close_h5_file()
-

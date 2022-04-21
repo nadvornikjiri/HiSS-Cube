@@ -1,4 +1,5 @@
 import csv
+import os
 import time
 
 import h5py
@@ -102,6 +103,7 @@ class ParallelWriter(Writer):
         self.active_workers = 0
 
         if self.mpi_rank == 0:
+            self.logger.info("Rank 0 pid: %d", os.getpid())
             timing_file_name = timings_csv.split('/')[-1]
             timing_path = "/".join(timings_csv.split('/')[:-1])
             if timing_path != "":

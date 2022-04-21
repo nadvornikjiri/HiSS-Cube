@@ -2,12 +2,12 @@ from distutils.core import setup, Extension
 import sysconfig
 
 
-include_dirs = ['/gpfs/raid/SDSSCube/ext_lib/hdf5-1.12.0/hdf5/include',
+include_dirs = ['/home/caucau/SDSSCube/ext_lib/hdf5-1.12.0/hdf5/include',
                 '/usr/lib/x86_64-linux-gnu/openmpi/include',
                 '/usr/lib/x86_64-linux-gnu/openmpi/include/openmpi/opal/mca/event/libevent2022/libevent',
                 '/usr/lib/x86_64-linux-gnu/openmpi/include/openmpi/opal/mca/event/libevent2022/libevent/include']
 
-library_dirs = ['/gpfs/raid/SDSSCube/ext_lib/hdf5-1.12.0/hdf5/lib']
+library_dirs = ['/home/caucau/SDSSCube/ext_lib/hdf5-1.12.0/hdf5/lib']
 libraries = ['hdf5', 'hdf5_hl']
 h5writer_module = Extension('h5writer',
                             include_dirs=include_dirs,
