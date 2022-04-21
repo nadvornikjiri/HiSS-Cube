@@ -129,10 +129,10 @@ class ParallelWriter(Writer):
                 self.f = h5py.File(self.h5_path, 'w', fs_strategy="page", fs_page_size=4096, libver="latest")
         else:
             if self.mpio:
-                self.f = h5py.File(self.h5_path, 'r+', fs_strategy="page", fs_page_size=4096, driver='mpio',
+                self.f = h5py.File(self.h5_path, 'r+', driver='mpio',
                                    comm=self.comm, libver="latest")
             else:
-                self.f = h5py.File(self.h5_path, 'r+', fs_strategy="page", fs_page_size=4096, libver="latest")
+                self.f = h5py.File(self.h5_path, 'r+', libver="latest")
 
     def truncate_h5_file(self):
         self.f = h5py.File(self.h5_path, 'w', libver="latest")
