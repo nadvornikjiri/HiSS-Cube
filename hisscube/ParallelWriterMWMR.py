@@ -82,7 +82,7 @@ class ParallelWriterMWMR(ParallelWriter):
 
     def add_region_references(self):
         if self.mpi_rank == 0:
-            self.logger.info("Adding image region references.")
+            self.logger.debug("Adding image region references.")
             self.open_h5_file_serial()
             self.add_image_refs(self.f)
             self.close_h5_file()
@@ -128,7 +128,7 @@ class ParallelWriterMWMR(ParallelWriter):
 
     def send_work_finished(self, dest):
         tag = self.KILL_TAG
-        self.logger.info("Terminating worker: %0d" % dest)
+        self.logger.debug("Terminating worker: %0d" % dest)
         self.comm.send(obj=None, dest=dest, tag=tag)
 
     def distribute_work(self, path_list, batch_type):
