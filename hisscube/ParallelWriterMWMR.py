@@ -13,15 +13,16 @@ import cProfile, pstats
 import os
 
 
-def not_cpu_time():
+def measured_time():
     times = os.times()
-    return times.elapsed - (times.system + times.user)
+    # return times.elapsed - (times.system + times.user)
+    return times()
 
 
 def profile(filename=None, comm=MPI.COMM_WORLD):
     def prof_decorator(f):
         def wrap_f(*args, **kwargs):
-            pr = cProfile.Profile(not_cpu_time)
+            pr = cProfile.Profile(measured_time)
             pr.enable()
             result = f(*args, **kwargs)
             pr.disable()
@@ -48,6 +49,7 @@ class ParallelWriterMWMR(ParallelWriter):
         if self.config.getboolean("Writer", "CREATE_DENSE_CUBE"):
             self.create_dense_cube()
 
+    @profile(filename="profile_process_metadata")
     def process_metadata(self, image_path, image_pattern, spectra_path, spectra_pattern, truncate_file, no_attrs=False,
                          no_datasets=False):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
@@ -59,7 +61,7 @@ class ParallelWriterMWMR(ParallelWriter):
             self.metadata_timings_log_csv_file.close()
         self.barrier(self.comm)
 
-    @profile(filename="profile_process_data_8_not_cpu")
+    @profile(filename="profile_process_data")
     def process_data(self):
         self.open_h5_file_parallel()
         start = timer()
@@ -144,7 +146,7 @@ class ParallelWriterMWMR(ParallelWriter):
                 self.send_work(batches, status.Get_source())
         for i in range(1, self.mpi_size):
             self.send_work_finished(dest=i)
-        for i in range(1, self.active_workers):
+        for i in range(0, self.active_workers):
             self.process_response(batch_type, status)
         self.active_workers = 0
 
