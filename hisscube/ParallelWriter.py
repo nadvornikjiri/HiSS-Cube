@@ -141,8 +141,8 @@ class ParallelWriter(Writer):
     def receive_work(self, status):
         self.wait_for_message(source=0, tag=MPI.ANY_TAG, status=status)
         data = self.comm.recv(source=0, tag=MPI.ANY_TAG, status=status)
-        # self.logger.info(
-        #     "Rank %02d: Received work no. %02d from master: %d" % (self.mpi_rank, self.sent_work_cnt, hash(str(data))))
+        self.logger.debug(
+            "Rank %02d: Received work no. %02d from master: %d" % (self.mpi_rank, self.sent_work_cnt, hash(str(data))))
         self.received_work_cnt += 1
         return data
 
