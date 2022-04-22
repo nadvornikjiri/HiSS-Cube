@@ -2,8 +2,9 @@
 import csv
 import os
 import re
+from time import sleep
 
-import numpy
+import numpy as np
 
 os.environ['MPE_LOGFILE_PREFIX'] = 'ring'
 import mpi4py
@@ -24,16 +25,17 @@ rank = MPI.COMM_WORLD.Get_rank()
 # pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
 
 def write_proc_stats():
-    pids = []
-    pids.append(os.getpid())
+    buf = np.zeros(8, np.int64)  # 7 stat values + rank
     if rank == 0:
+        stats = list()
+        stats.append(get_stats(os.getpid()))  # get rank 0 stats
         for i in range(1, size):
-            pid = MPI.COMM_WORLD.recv(source=i, tag=123)
-            pids.append(pid)
+            MPI.COMM_WORLD.Recv(buf, source=i, tag=123)
+            stats.append(buf.copy())
     if rank != 0:
-        pid = int(os.getpid())
-        MPI.COMM_WORLD.send(pid, dest=0, tag=123)  # sending my worker tag
-    MPI.COMM_WORLD.barrier()
+        pid = os.getpid()
+        buf = np.asarray(get_stats(pid), np.int64)
+        MPI.COMM_WORLD.Send((buf, 8), dest=0, tag=123)  # sending my worker stats
     if rank == 0:
         with open("proc_stats.txt", "w", newline='') as proc_stat_file:
             proc_stat_writer = csv.writer(proc_stat_file, delimiter=',', quotechar='|',
@@ -41,15 +43,19 @@ def write_proc_stats():
             proc_stat_writer.writerow(
                 ["Rank", "rchar", "wchar", "syscr", "syscw", "read_bytes", "write_bytes", "cancelled_write_bytes"])
 
-            for i, pid in enumerate(pids):
-                with open("/proc/%s/io" % pid, "r") as stats:
-                    lines = stats.readlines()
-                    stat_vals = list()
-                    stat_vals.append(i)
-                    for line in lines:
-                        stat_val = re.findall(r'\b\d+\b', line)[0]
-                        stat_vals.append(stat_val)
-                    proc_stat_writer.writerow(stat_vals)
+            for stat_line in stats:
+                proc_stat_writer.writerow(stat_line)
+
+
+def get_stats(pid):
+    stat_vals = list()
+    with open("/proc/%s/io" % pid, "r") as stats:
+        lines = stats.readlines()
+        stat_vals.append(rank)
+        for line in lines:
+            stat_val = int(re.findall(r'\b\d+\b', line)[0])
+            stat_vals.append(stat_val)
+    return stat_vals
 
 
 parser = argparse.ArgumentParser(description='Import images and spectra in parallel')
@@ -68,3 +74,4 @@ writer = WriterFactory().get_writer(args.output_path)
 writer.ingest(fits_image_path, fits_spectra_path, truncate_file=args.truncate)
 
 write_proc_stats()
+MPI.COMM_WORLD.barrier()
