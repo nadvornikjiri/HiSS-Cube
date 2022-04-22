@@ -7,6 +7,8 @@ from tqdm.auto import tqdm
 
 import h5py
 
+from hisscube.Writer import Writer
+
 try:
     from reprlib import repr
 except ImportError:
@@ -19,19 +21,29 @@ FITS_SPECTRA_PATH = "../../data/raw/galaxy_small/spectra"
 H5_PATH = "../../results/SDSS_cube_c_par.h5"
 
 
+@pytest.fixture(scope="session", autouse=False)
+def truncate_test_file(request):
+    writer = Writer(h5_path=H5_PATH)
+    writer.open_h5_file_serial(truncate=True)
+    writer.close_h5_file()
+
+
 class TestCWriter:
+    @pytest.mark.usefixtures("truncate_test_file")
     def test_write_images_metadata(self):
         writer = CWriter()
         image_pattern, spectra_pattern = writer.get_path_patterns()
         writer.write_images_metadata(FITS_IMAGE_PATH, image_pattern, no_attrs=False, no_datasets=False)
         assert True
 
+    @pytest.mark.usefixtures("truncate_test_file")
     def test_write_spectra_metadata(self):
         writer = CWriter()
         image_pattern, spectra_pattern = writer.get_path_patterns()
         writer.write_spectra_metadata(FITS_SPECTRA_PATH, spectra_pattern)
         assert True
 
+    @pytest.mark.usefixtures("truncate_test_file")
     def test_process_metadata(self):
         writer = CWriter(h5_path=H5_PATH, timings_log="logs/test_log.csv")
         image_pattern, spectra_pattern = writer.get_path_patterns()

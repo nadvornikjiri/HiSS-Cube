@@ -13,7 +13,8 @@ bool equals_str(PyObject *key, char *test_str);
 
 hid_t open_h5_file(const char *path);
 
-hid_t process_tree(PyObject *node, hid_t parent_grp, const char *child_grp_name, long res_zoom, hid_t *orig_res_ds);
+hid_t process_tree(PyObject *node, hid_t parent_grp, const char *child_grp_name, long res_zoom, hid_t *orig_res_ds,
+                   bool is_image_ds_chunked, hsize_t chunk_sizes[]);
 
 void write_attrs(hid_t h5_obj, PyObject *attrs, hid_t *orig_res_ds);
 
@@ -28,7 +29,7 @@ void free_bytes(PyObject *repr, PyObject *str);
 
 PyObject *get_attr_node(PyObject *node);
 
-hid_t create_image_ds(hid_t grp, PyObject *image_node);
+hid_t create_image_ds(hid_t grp, PyObject *image_node, bool is_image_ds_chunked, hsize_t chunk_sizes[]);
 
 void get_image_dims(PyObject *image_node, hsize_t *x, hsize_t *y, hsize_t *z);
 
