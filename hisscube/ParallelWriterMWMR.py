@@ -16,7 +16,7 @@ import os
 def measured_time():
     times = os.times()
     # return times.elapsed - (times.system + times.user)
-    return times()
+    return times.elapsed
 
 
 def profile(filename=None, comm=MPI.COMM_WORLD):
@@ -162,7 +162,7 @@ class ParallelWriterMWMR(ParallelWriter):
         self.logger.debug("Received response from. dest %02d: %d " % (status.Get_source(), self.sent_work_cnt))
 
     def barrier(self, comm, tag=0):
-        sleep = self.config.getfloat("Writer", "POLL_INTERVAL")
+        sleep_time = self.config.getfloat("Writer", "POLL_INTERVAL")
         size = comm.Get_size()
         if size == 1:
             return
@@ -173,7 +173,7 @@ class ParallelWriterMWMR(ParallelWriter):
             src = (rank - mask + size) % size
             req = comm.isend(None, dst, tag)
             while not comm.Iprobe(src, tag):
-                time.sleep(sleep)
+                time.sleep(sleep_time)
             comm.recv(None, src, tag)
             req.Wait()
             mask <<= 1

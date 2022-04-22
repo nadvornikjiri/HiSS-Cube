@@ -1,6 +1,7 @@
 import h5py
 import ujson
 from h5writer import write_hdf5_metadata
+from ast import literal_eval as make_tuple
 from sys import getsizeof, stderr
 from itertools import chain
 from collections import deque
@@ -154,7 +155,13 @@ class CWriter(ParallelWriterMWMR):
 
     def c_write_hdf5_metadata(self):
         self.logger.info("Initiating C booster for metadata write.")
-        write_hdf5_metadata(self.h5_file_structure, self.h5_path, self.c_timing_log)
+        chunk_size = self.config.get("Handler", "CHUNK_SIZE")
+        if chunk_size:
+            chunk_size = make_tuple(chunk_size)
+            write_hdf5_metadata(self.h5_file_structure, self.h5_path, self.c_timing_log, 1, chunk_size[0],
+                                chunk_size[1], chunk_size[2])
+        else:
+            write_hdf5_metadata(self.h5_file_structure, self.h5_path, self.c_timing_log, 0, 0, 0, 0)
 
     def open_h5_file_serial(self, truncate=False):
         if truncate:

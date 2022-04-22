@@ -74,6 +74,6 @@ class Writer(ImageWriter, SpectrumWriter):
 
     def open_h5_file_serial(self, truncate=False):
         if truncate:
-            self.f = h5py.File(self.h5_path, 'w', fs_strategy="page", fs_page_size=4096, page_buf_size=33554432, libver="latest")
+            self.f = h5py.File(self.h5_path, 'w', fs_strategy="page", fs_page_size=4096, libver="latest")
         else:
             self.f = h5py.File(self.h5_path, 'r+', libver="latest")

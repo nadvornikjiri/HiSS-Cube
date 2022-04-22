@@ -1,7 +1,7 @@
 //
 // Created by caucau on 2/28/22.
 //
-//#define DEBUG 1
+#define DEBUG 1
 
 #define LOG_DS_CHUNK 100
 #define LOG_GRP_CHUNK 100
@@ -29,13 +29,27 @@ void process_h5_dict(PyObject *self, PyObject *args) {
     PyObject *pyDict;
     char *h5_path;
     char *timing_log_path;
+    bool is_image_ds_chunked = 0;
+    int chunk_dim_0, chunk_dim_1, chunk_dim_2;
+    hsize_t chunk_sizes[3];
     hid_t orig_res_ds = 0;
     hid_t parent_grp, child_grp;
     ds_cnt = 0;
     grp_cnt = 0;
 
-    if (!PyArg_ParseTuple(args, "O!ss", &PyDict_Type, &pyDict, &h5_path, &timing_log_path)) {
-        return;
+    if (!PyArg_ParseTuple(args, "O!ssbiii", &PyDict_Type, &pyDict, &h5_path, &timing_log_path, &is_image_ds_chunked,
+                          &chunk_dim_0,
+                          &chunk_dim_1, &chunk_dim_2)) {
+
+        printf("Failed to parse args.\n");
+        exit(1);
+
+    }
+
+    if (is_image_ds_chunked) {
+        chunk_sizes[0] = chunk_dim_0;
+        chunk_sizes[1] = chunk_dim_1;
+        chunk_sizes[2] = chunk_dim_2;
     }
 
     printf("Creating the csv logging file: %s\n", timing_log_path);
@@ -51,16 +65,16 @@ void process_h5_dict(PyObject *self, PyObject *args) {
     while (PyDict_Next(pyDict, &pos, &key, &value)) {
         if (equals_str(key, "semi_sparse_cube")) {
             parent_grp = H5Gcreate(h5_file, "semi_sparse_cube", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-            open_grp_cnt ++;
-            grp_cnt ++;
+            open_grp_cnt++;
+            grp_cnt++;
             if (parent_grp < 0) {
                 H5Eprint(H5E_DEFAULT, stderr);
             }
-            child_grp = process_tree(value, parent_grp, NULL, -1, &orig_res_ds);
+            child_grp = process_tree(value, parent_grp, NULL, -1, &orig_res_ds, is_image_ds_chunked, chunk_sizes);
             H5Gclose(child_grp);
-            open_grp_cnt --;
+            open_grp_cnt--;
             H5Dclose(orig_res_ds);  //closing last original resolution ds kept in memory
-            open_ds_cnt --;
+            open_ds_cnt--;
 #ifdef DEBUG
             printf("Grp cnt: %d\n", open_grp_cnt);
             printf("DS cnt: %d\n", open_ds_cnt);
@@ -77,7 +91,7 @@ void process_h5_dict(PyObject *self, PyObject *args) {
 hid_t open_h5_file(const char *path) {
     hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
     H5Pset_libver_bounds(fapl, H5F_LIBVER_LATEST, H5F_LIBVER_LATEST);
-    H5Pset_page_buffer_size(fapl, 32*1024*1024, 50, 50);
+    H5Pset_page_buffer_size(fapl, 32 * 1024 * 1024, 50, 50);
     hid_t hfile = H5Fopen(path, H5F_ACC_RDWR, H5P_DEFAULT);
     if (hfile == H5I_INVALID_HID) {
         H5Eprint(H5E_DEFAULT, stderr);
@@ -86,7 +100,8 @@ hid_t open_h5_file(const char *path) {
     return hfile;
 }
 
-hid_t process_tree(PyObject *node, hid_t parent_grp, const char *child_grp_name, long res_zoom, hid_t *orig_res_ds) {
+hid_t process_tree(PyObject *node, hid_t parent_grp, const char *child_grp_name, long res_zoom, hid_t *orig_res_ds,
+                   bool is_image_ds_chunked, hsize_t chunk_sizes[]) {
     hid_t ds;
     hid_t child_grp;
     if (child_grp_name != NULL) {
@@ -108,8 +123,8 @@ hid_t process_tree(PyObject *node, hid_t parent_grp, const char *child_grp_name,
 #endif
 
         child_grp = H5Gcreate(parent_grp, child_grp_name, H5P_DEFAULT, gcpl, H5P_DEFAULT);
-        open_grp_cnt ++;
-        grp_cnt ++;
+        open_grp_cnt++;
+        grp_cnt++;
         if (child_grp < 0) {
             H5Eprint(H5E_DEFAULT, stderr);
         }
@@ -125,7 +140,7 @@ hid_t process_tree(PyObject *node, hid_t parent_grp, const char *child_grp_name,
             !equals_str(key, "attrs") &&
             !equals_str(key, "track_order")) {  //these are handled beneath ds or grp creation itself
             if (equals_str(key, "image_dataset")) {
-                ds = create_image_ds(parent_grp, value);
+                ds = create_image_ds(parent_grp, value, is_image_ds_chunked, chunk_sizes);
                 process_attributes(ds, value, res_zoom, orig_res_ds);
                 log_timing();
             } else if (equals_str(key, "spectrum_dataset")) {
@@ -135,16 +150,17 @@ hid_t process_tree(PyObject *node, hid_t parent_grp, const char *child_grp_name,
             } else if (contains_str(key, "image_cutouts")) { //TODO check for dataset dtype, now it's hard-coded
                 ds = create_regref_ds(parent_grp, value);
                 H5Dclose(ds);
-                open_ds_cnt --;
+                open_ds_cnt--;
                 log_timing();
             } else {
                 PyObject *grp_repr, *grp_str;
                 child_grp_name = get_bytes(key, &grp_repr, &grp_str);
                 PyObject *attr_node = get_attr_node(value);
                 long res_zoom = get_res_zoom(attr_node);
-                child_grp = process_tree(value, parent_grp, child_grp_name, res_zoom, orig_res_ds);
+                child_grp = process_tree(value, parent_grp, child_grp_name, res_zoom, orig_res_ds, is_image_ds_chunked,
+                                         chunk_sizes);
                 H5Gclose(child_grp);
-                open_grp_cnt --;
+                open_grp_cnt--;
                 free_bytes(grp_repr, grp_str);
             }
         }
@@ -155,7 +171,8 @@ hid_t process_tree(PyObject *node, hid_t parent_grp, const char *child_grp_name,
 void log_timing() {
     if (ds_cnt % LOG_DS_CHUNK == 0) {
         write_to_csv();
-    } else if (ds_cnt == 0 && (grp_cnt % LOG_GRP_CHUNK == 0)) { //if there are not datasets to write, we log based on grp
+    } else if (ds_cnt == 0 &&
+               (grp_cnt % LOG_GRP_CHUNK == 0)) { //if there are not datasets to write, we log based on grp
         write_to_csv();
     }
 }
@@ -171,7 +188,7 @@ void process_attributes(hid_t ds, PyObject *value, long res_zoom, hid_t *orig_re
     if (res_zoom == 0) {
         if (*orig_res_ds != 0) {  //first image, nothing to close
             H5Dclose(*orig_res_ds); //close the previous original dataset link
-            open_ds_cnt --;
+            open_ds_cnt--;
         }
         *orig_res_ds = ds;
     }
@@ -179,7 +196,7 @@ void process_attributes(hid_t ds, PyObject *value, long res_zoom, hid_t *orig_re
     write_attrs(ds, attr_node, orig_res_ds);
     if (res_zoom > 0) { //higher zooms don't need to be kept in memory
         H5Dclose(ds);
-        open_ds_cnt --;
+        open_ds_cnt--;
     }
 }
 
@@ -231,8 +248,8 @@ void write_attr(PyObject *val, PyObject *key, hid_t h5_obj, hid_t *orig_res_ds) 
         PyObject *val_repr, *val_str;
         const char *val_bytes = get_bytes(val, &val_repr, &val_str);
         acpl = H5Pcreate(H5P_ATTRIBUTE_CREATE);
-        atype = H5Tcopy (H5T_C_S1);
-        H5Tset_size (atype, H5T_VARIABLE);
+        atype = H5Tcopy(H5T_C_S1);
+        H5Tset_size(atype, H5T_VARIABLE);
         H5Tset_cset(atype, H5T_CSET_UTF8);
         attr = H5Acreate(h5_obj, key_bytes, atype, aspace, H5P_DEFAULT, H5P_DEFAULT);
         if (attr < 0) {
@@ -248,19 +265,22 @@ void write_attr(PyObject *val, PyObject *key, hid_t h5_obj, hid_t *orig_res_ds) 
     free_bytes(repr, str);
 }
 
-hid_t create_image_ds(hid_t grp, PyObject *image_node) {
+hid_t create_image_ds(hid_t grp, PyObject *image_node, bool is_image_ds_chunked, hsize_t chunk_sizes[]) {
     PyObject *repr, *str;
     hid_t dcpl = H5Pcreate(H5P_DATASET_CREATE);
     H5Pset_alloc_time(dcpl, H5D_ALLOC_TIME_EARLY);
     H5Pset_fill_time(dcpl, H5D_FILL_TIME_NEVER);
-    H5Pset_chunk(dcpl, 3, (hsize_t[]) {128, 128, 2});   //TODO pass this as parameter
+    if (is_image_ds_chunked) {
+        H5Pset_chunk(dcpl, 3, chunk_sizes);
+    }
     hid_t fspace;
     hsize_t x = 0, y = 0, z = 0;
     get_image_dims(image_node, &x, &y, &z);
     fspace = H5Screate_simple(3, (hsize_t[]) {x, y, z}, NULL);
     hid_t image_ds = H5Dcreate(grp, get_ds_name(image_node, &repr, &str), H5T_NATIVE_FLOAT, fspace,
                                H5P_DEFAULT, dcpl, H5P_DEFAULT);
-    open_ds_cnt ++; ds_cnt ++;
+    open_ds_cnt++;
+    ds_cnt++;
     free_bytes(repr, str);\
 
     if (image_ds < 0) {
@@ -291,7 +311,8 @@ hid_t create_spectrum_ds(hid_t grp, PyObject *spectrum_node) {
     fspace = H5Screate_simple(2, (hsize_t[]) {x, y}, NULL);
     hid_t ds = H5Dcreate(grp, get_ds_name(spectrum_node, &repr, &str), H5T_NATIVE_FLOAT, fspace,
                          H5P_DEFAULT, dcpl, H5P_DEFAULT);
-    open_ds_cnt ++; ds_cnt ++;
+    open_ds_cnt++;
+    ds_cnt++;
     free_bytes(repr, str);
     if (ds < 0) {
         H5Eprint(H5E_DEFAULT, stderr);
@@ -317,7 +338,8 @@ hid_t create_regref_ds(hid_t grp, PyObject *node) {
     fspace = H5Screate_simple(1, (hsize_t[]) {x}, NULL);
     hid_t regref_ds = H5Dcreate(grp, get_ds_name(node, &repr, &str), H5T_STD_REF_DSETREG, fspace,
                                 H5P_DEFAULT, dcpl, H5P_DEFAULT);
-    open_ds_cnt ++; ds_cnt ++;
+    open_ds_cnt++;
+    ds_cnt++;
     free_bytes(repr, str);
     if (regref_ds < 0) {
         H5Eprint(H5E_DEFAULT, stderr);
