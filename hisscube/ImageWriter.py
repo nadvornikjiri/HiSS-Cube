@@ -92,6 +92,10 @@ class ImageWriter(H5Handler):
     def create_img_datasets(self, parent_grp_list):
         img_datasets = []
         for group in parent_grp_list:
+            if len(group) > 0:
+                raise ValueError(
+                    "There is already an image dataset %s within this resolution group. Trying to insert image %s." % (
+                    list(group), self.file_name))
             res_tuple = self.get_name(group).split('/')[-1]
             img_data_shape = tuple(reversed(make_tuple(res_tuple))) + (2,)
             ds = self.create_image_h5_dataset(group, img_data_shape)

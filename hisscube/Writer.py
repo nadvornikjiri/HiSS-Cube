@@ -7,6 +7,7 @@ from tqdm.auto import tqdm
 from hisscube.ImageWriter import ImageWriter
 from hisscube.VisualizationProcessor import VisualizationProcessor
 from hisscube.SpectrumWriter import SpectrumWriter
+from timeit import default_timer as timer
 
 
 class Writer(ImageWriter, SpectrumWriter):
@@ -22,6 +23,7 @@ class Writer(ImageWriter, SpectrumWriter):
         -------
 
         """
+        start = timer()
         reader = VisualizationProcessor(self.f)
         dense_cube_grp = self.f.require_group(self.config.get("Handler", "DENSE_CUBE_NAME"))
         for zoom in range(
@@ -36,6 +38,8 @@ class Writer(ImageWriter, SpectrumWriter):
                                                compression_opts=self.config.get("Writer", "COMPRESSION_OPTS"),
                                                shuffle=self.config.getboolean("Writer", "SHUFFLE"))
             ds.write_direct(spectral_cube)
+        end = timer()
+        self.logger.info("Region references added in: %s", end - start)
 
     def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)

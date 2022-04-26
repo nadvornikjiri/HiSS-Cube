@@ -82,6 +82,10 @@ class SpectrumWriter(H5Handler):
     def create_spec_datasets(self, parent_grp_list):
         spec_datasets = []
         for group in parent_grp_list:
+            if len(group) > 0:
+                raise ValueError(
+                    "There is already a spectrum dataset %s within this resolution group. Trying to insert spectrum %s." % (
+                    list(group), self.file_name))
             res = int(self.get_name(group).split('/')[-1])
             spec_data_shape = (res,) + (3,)
             ds = self.create_spectrum_h5_dataset(group, spec_data_shape)

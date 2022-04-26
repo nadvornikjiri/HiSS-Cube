@@ -84,10 +84,14 @@ class ParallelWriterMWMR(ParallelWriter):
 
     def add_region_references(self):
         if self.mpi_rank == 0:
+            start = timer()
             self.logger.debug("Adding image region references.")
             self.open_h5_file_serial()
             self.add_image_refs(self.f)
             self.close_h5_file()
+            end = timer()
+            self.logger.info("Region references added in: %s", end - start)
+
 
     def open_and_truncate(self):
         self.f = h5py.File(self.h5_path, 'w', libver="latest")
