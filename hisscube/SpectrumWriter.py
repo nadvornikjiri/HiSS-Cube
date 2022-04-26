@@ -29,12 +29,12 @@ class SpectrumWriter(H5Handler):
         """
         self.write_spectrum_metadata(spec_path)
         self.metadata, self.data = self.cube_utils.get_multiple_resolution_spectrum(
-            spec_path, self.config.getint("Handler", "SPEC_ZOOM_CNT"),
-            apply_rebin=self.config.getboolean("Preprocessing", "APPLY_REBIN"),
-            rebin_min=self.config.getfloat("Preprocessing", "REBIN_MIN"),
-            rebin_max=self.config.getfloat("Preprocessing", "REBIN_MAX"),
-            rebin_samples=self.config.getint("Preprocessing", "REBIN_SAMPLES"),
-            apply_transmission=self.config.getboolean("Preprocessing", "APPLY_TRANSMISSION_CURVE"))
+            spec_path, self.SPEC_ZOOM_CNT,
+            apply_rebin=self.APPLY_REBIN,
+            rebin_min=self.REBIN_MIN,
+            rebin_max=self.REBIN_MAX,
+            rebin_samples=self.REBIN_SAMPLES,
+            apply_transmission=self.APPLY_TRANSMISSION_CURVE)
         spec_datasets = self.write_spec_datasets()
         return spec_datasets
 
@@ -63,12 +63,12 @@ class SpectrumWriter(H5Handler):
 
         """
         spectrum_coord = (self.metadata['PLUG_RA'], self.metadata['PLUG_DEC'])
-        for order in range(self.config.getint("Handler", "SPEC_SPAT_INDEX_ORDER")):
+        for order in range(self.SPEC_SPAT_INDEX_ORDER):
             child_grp = self.require_spatial_grp(order, child_grp, spectrum_coord)
 
-        for img_zoom in range(self.config.getint("Handler", "IMG_ZOOM_CNT")):
+        for img_zoom in range(self.IMG_ZOOM_CNT):
             self.require_dataset(child_grp, "image_cutouts_%d" % img_zoom,
-                                 (self.config.getint("Writer", "MAX_CUTOUT_REFS"),),
+                                 (self.MAX_CUTOUT_REFS,),
                                  dtype=h5py.regionref_dtype)
 
         return child_grp
@@ -82,7 +82,7 @@ class SpectrumWriter(H5Handler):
     def create_spec_datasets(self, parent_grp_list):
         spec_datasets = []
         for group in parent_grp_list:
-            if self.config.getboolean("Writer", "C_BOOSTER"):
+            if self.C_BOOSTER:
                 if "spectrum_dataset" in group:
                     raise ValueError(
                         "There is already an image dataset %s within this resolution group. Trying to insert image %s." % (
@@ -111,7 +111,7 @@ class SpectrumWriter(H5Handler):
     def add_image_refs(self, h5_grp, depth=-1):
         if "type" in h5_grp.attrs and \
                 h5_grp.attrs["type"] == "spatial" and \
-                depth == self.config.getint("Handler", "SPEC_SPAT_INDEX_ORDER"):
+                depth == self.SPEC_SPAT_INDEX_ORDER:
             spec_datasets = []
             for child_grp in h5_grp.values():
                 if isinstance(child_grp, h5py.Group) and child_grp.attrs["type"] == "time":
@@ -207,7 +207,7 @@ class SpectrumWriter(H5Handler):
                 self.logger.info("Spectra cnt: %05d" % self.spec_cnt)
             self.write_spectrum_metadata(fits_path, no_attrs, no_datasets)
             self.spec_cnt += 1
-            if self.spec_cnt >= self.config.getint("Writer", "LIMIT_SPECTRA_COUNT"):
+            if self.spec_cnt >= self.LIMIT_SPECTRA_COUNT:
                 break
         self.set_attr(self.f, "spectrum_count", self.spec_cnt)
 
@@ -215,10 +215,10 @@ class SpectrumWriter(H5Handler):
         self.ingest_type = "spectrum"
         self.spectra_path_list.append(str(fits_path))
         self.metadata = fitsio.read_header(fits_path)
-        if self.config.getboolean("Preprocessing", "APPLY_REBIN") is False:
+        if self.APPLY_REBIN is False:
             self.spectrum_length = fitsio.read_header(fits_path, 1)["NAXIS2"]
         else:
-            self.spectrum_length = self.config.getint("Preprocessing", "REBIN_SAMPLES")
+            self.spectrum_length = self.REBIN_SAMPLES
         self.file_name = os.path.basename(fits_path)
         res_grps = self.create_spectrum_index_tree()
         if not no_datasets:
@@ -234,7 +234,7 @@ class SpectrumWriter(H5Handler):
             wanted_res = next(spec for spec in self.data if str(spec["res"]) == res)
             spec_data = np.column_stack((wanted_res["wl"], wanted_res["flux_mean"], wanted_res["flux_sigma"]))
             spec_data[spec_data == np.inf] = np.nan
-            if self.config.get("Writer", "COMPRESSION"):
+            if self.FLOAT_COMPRESS:
                 spec_data = self.float_compress(spec_data)
             ds = group[self.file_name]
             ds.write_direct(spec_data)
@@ -242,7 +242,7 @@ class SpectrumWriter(H5Handler):
         return spec_datasets
 
     def get_spectral_resolution_groups(self):
-        spatial_path = self.get_heal_path_from_coords(order=self.config.getint("Handler", "SPEC_SPAT_INDEX_ORDER"))
+        spatial_path = self.get_heal_path_from_coords(order=self.SPEC_SPAT_INDEX_ORDER)
         try:
             time = self.metadata["TAI"]
         except KeyError:

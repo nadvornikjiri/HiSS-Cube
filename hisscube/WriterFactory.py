@@ -14,15 +14,13 @@ class WriterFactory:
         self.config.read("%s/config.ini" % lib_path)
 
     def get_writer(self, h5_path):
-        mpio = self.config.getboolean("Handler", "MPIO")
-        writer_mode = self.config.get("Handler", "PARALLEL_MODE")
-        if not mpio:
+        if not self.MPIO:
             return Writer(h5_path=h5_path)
         else:
-            if writer_mode == "SWMR":
+            if self.PARALLEL_MODE == "SWMR":
                 return ParallelWriterSWMR(h5_path=h5_path)
-            elif writer_mode == "MWMR":
-                if self.config.getboolean("Writer", "C_BOOSTER"):
+            elif self.PARALLEL_MODE == "MWMR":
+                if self.C_BOOSTER:
                     return CWriter(h5_path=h5_path)
                 else:
                     return ParallelWriterMWMR(h5_path=h5_path)

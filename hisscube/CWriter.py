@@ -5,6 +5,7 @@ from ast import literal_eval as make_tuple
 from sys import getsizeof, stderr
 from itertools import chain
 from collections import deque
+from timeit import default_timer as timer
 
 from hisscube.ParallelWriterMWMR import ParallelWriterMWMR
 from hisscube.Writer import Writer
@@ -64,7 +65,7 @@ class CWriter(ParallelWriterMWMR):
         self.h5_file_structure = {"name": ""}
 
     def require_raw_cube_grp(self):
-        return self.require_group(self.h5_file_structure, self.config.get("Handler", "ORIG_CUBE_NAME"))
+        return self.require_group(self.h5_file_structure, self.ORIG_CUBE_NAME)
 
     def require_group(self, parent_grp, name, track_order=False):
         if not name in parent_grp:
@@ -157,9 +158,8 @@ class CWriter(ParallelWriterMWMR):
 
     def c_write_hdf5_metadata(self):
         self.logger.info("Initiating C booster for metadata write.")
-        chunk_size = self.config.get("Handler", "CHUNK_SIZE")
-        if chunk_size:
-            chunk_size = make_tuple(chunk_size)
+        if self.CHUNK_SIZE:
+            chunk_size = make_tuple(self.CHUNK_SIZE)
             write_hdf5_metadata(self.h5_file_structure, self.h5_path, self.c_timing_log, 1, chunk_size[0],
                                 chunk_size[1], chunk_size[2])
         else:
@@ -173,11 +173,14 @@ class CWriter(ParallelWriterMWMR):
 
     def add_region_references(self):
         if self.mpi_rank == 0:
+            start = timer()
             writer = Writer(h5_path=self.h5_path)
             writer.open_h5_file_serial()
             self.logger.info("Adding image region references.")
             writer.add_image_refs(writer.f)
             writer.close_h5_file()
+            end = timer()
+            self.logger.info("Region references added in: %s", end - start)
 
     def create_dense_cube(self):
         if self.mpi_rank == 0:

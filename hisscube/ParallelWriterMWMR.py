@@ -44,9 +44,9 @@ class ParallelWriterMWMR(ParallelWriter):
     def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
         self.process_metadata(image_path, image_pattern, spectra_path, spectra_pattern, truncate_file)
         self.process_data()
-        if self.config.getboolean("Writer", "CREATE_REFERENCES"):
+        if self.CREATE_REFERENCES:
             self.add_region_references()
-        if self.config.getboolean("Writer", "CREATE_DENSE_CUBE"):
+        if self.CREATE_DENSE_CUBE:
             self.create_dense_cube()
 
     # @profile(filename="profile_process_metadata")
@@ -121,12 +121,12 @@ class ParallelWriterMWMR(ParallelWriter):
             for spec_path in spectra_path_list:
                 self.logger.debug("Rank %02d: Processing spectrum %s." % (self.mpi_rank, spec_path))
                 self.metadata, self.data = self.cube_utils.get_multiple_resolution_spectrum(
-                    spec_path, self.config.getint("Handler", "SPEC_ZOOM_CNT"),
-                    apply_rebin=self.config.getboolean("Preprocessing", "APPLY_REBIN"),
-                    rebin_min=self.config.getfloat("Preprocessing", "REBIN_MIN"),
-                    rebin_max=self.config.getfloat("Preprocessing", "REBIN_MAX"),
-                    rebin_samples=self.config.getint("Preprocessing", "REBIN_SAMPLES"),
-                    apply_transmission=self.config.getboolean("Preprocessing", "APPLY_TRANSMISSION_CURVE"))
+                    spec_path, self.SPEC_ZOOM_CNT,
+                    apply_rebin=self.APPLY_REBIN,
+                    rebin_min=self.REBIN_MIN,
+                    rebin_max=self.REBIN_MAX,
+                    rebin_samples=self.REBIN_SAMPLES,
+                    apply_transmission=self.APPLY_TRANSMISSION_CURVE)
                 self.file_name = spec_path.split('/')[-1]
                 self.write_spec_datasets()
             self.comm.send(obj=None, tag=self.FINISHED_TAG, dest=0)
@@ -166,7 +166,7 @@ class ParallelWriterMWMR(ParallelWriter):
         self.logger.debug("Received response from. dest %02d: %d " % (status.Get_source(), self.sent_work_cnt))
 
     def barrier(self, comm, tag=0):
-        sleep_time = self.config.getfloat("Writer", "POLL_INTERVAL")
+        sleep_time = self.POLL_INTERVAL
         size = comm.Get_size()
         if size == 1:
             return

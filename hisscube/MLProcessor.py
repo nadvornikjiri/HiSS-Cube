@@ -20,17 +20,15 @@ class MLProcessor(Processor):
         self.target_cnt = {}
 
     def create_3d_cube(self):
-        cutout_size = self.config.getint("Handler", "IMAGE_CUTOUT_SIZE")
-        rebin_samples = self.config.getint("Preprocessing", "REBIN_SAMPLES")
-        dense_grp = self.f[self.config.get("Handler", "DENSE_CUBE_NAME")]
-        semi_sparse_grp = self.f[self.config.get("Handler", "ORIG_CUBE_NAME")]
+        dense_grp = self.f[self.DENSE_CUBE_NAME]
+        semi_sparse_grp = self.f[self.ORIG_CUBE_NAME]
         no_targets = self.count_spatial_groups_with_depth(semi_sparse_grp,
-                                                          self.config.getint("Handler", "SPEC_SPAT_INDEX_ORDER"))
+                                                          self.SPEC_SPAT_INDEX_ORDER)
         dense_grp.attrs["no_targets"] = no_targets
 
-        for zoom in range(min(self.config.getint("Handler", "IMG_ZOOM_CNT"),
-                              self.config.getint("Handler", "SPEC_ZOOM_CNT"))):
-            self.create_datasets_for_zoom(cutout_size, dense_grp, no_targets, rebin_samples, zoom)
+        for zoom in range(min(self.IMG_ZOOM_CNT,
+                              self.SPEC_ZOOM_CNT)):
+            self.create_datasets_for_zoom(self.IMAGE_CUTOUT_SIZE, dense_grp, no_targets, self.REBIN_SAMPLES, zoom)
 
         self.append_target_3d_cube(semi_sparse_grp)
 
@@ -91,9 +89,9 @@ class MLProcessor(Processor):
         if isinstance(h5_grp, h5py.Group):
             if "type" in h5_grp.attrs and \
                     h5_grp.attrs["type"] == "spatial" and \
-                    depth == self.config.getint("Handler", "SPEC_SPAT_INDEX_ORDER"):
+                    depth == self.SPEC_SPAT_INDEX_ORDER:
                 target_spectra = {}
-                for zoom in range(self.config.getint("Handler", "SPEC_ZOOM_CNT")):
+                for zoom in range(self.SPEC_ZOOM_CNT):
                     target_spectra[zoom] = []
                 for time_grp in h5_grp.values():
                     if isinstance(time_grp, h5py.Group):

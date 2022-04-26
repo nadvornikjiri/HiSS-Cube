@@ -29,6 +29,7 @@ class H5Handler(object):
         lib_path = pathlib.Path(__file__).parent.absolute()
         self.config = configparser.ConfigParser(allow_no_value=True)
         self.config.read("%s/config.ini" % lib_path)
+        self.parse_config()
         # utils
         lib_path = pathlib.Path(__file__).parent.absolute()
         cube_utils = self.cube_utils = cu.Photometry("%s/../config/SDSS_Bands" % lib_path,
@@ -48,7 +49,7 @@ class H5Handler(object):
         self.metadata = None
 
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(self.config.get("Handler", "LOG_LEVEL"))
+        self.logger.setLevel(self.LOG_LEVEL)
         self.grp_cnt = 0
 
     def close_h5_file(self):
@@ -70,7 +71,7 @@ class H5Handler(object):
         """
         image_fits_header = self.read_serialized_fits_header(image_ds)
         cutout_bounds = get_cutout_bounds(image_fits_header, res_idx, self.metadata,
-                                          self.config.getint("Handler", "IMAGE_CUTOUT_SIZE"))
+                                          self.IMAGE_CUTOUT_SIZE)
         if not is_cutout_whole(cutout_bounds, image_ds):
             raise NoCoverageFoundError("Cutout not whole.")
         region_ref = image_ds.regionref[cutout_bounds[0][1][1]:cutout_bounds[1][1][1],
@@ -86,7 +87,7 @@ class H5Handler(object):
         return region_ref
 
     def require_raw_cube_grp(self):
-        return self.require_group(self.f, self.config.get("Handler", "ORIG_CUBE_NAME"))
+        return self.require_group(self.f, self.ORIG_CUBE_NAME)
 
     def require_spatial_grp(self, order, prev, coord):
         """
@@ -119,7 +120,7 @@ class H5Handler(object):
         if self.ingest_type == "image":  ##if I'm an image
             x_lower_res = int(self.metadata["NAXIS1"])
             y_lower_res = int(self.metadata["NAXIS2"])
-            for res_zoom in range(self.config.getint("Handler", "IMG_ZOOM_CNT")):
+            for res_zoom in range(self.IMG_ZOOM_CNT):
                 res_grp_name = str((x_lower_res, y_lower_res))
                 grp = self.require_group(parent_grp, res_grp_name)
                 self.set_attr(grp, "type", "resolution")
@@ -129,7 +130,7 @@ class H5Handler(object):
                 y_lower_res = int(y_lower_res / 2)
         else:
             x_lower_res = int(self.spectrum_length)
-            for res_zoom in range(self.config.getint("Handler", "SPEC_ZOOM_CNT")):
+            for res_zoom in range(self.SPEC_ZOOM_CNT):
                 res_grp_name = str(x_lower_res)
                 grp = self.require_group(parent_grp, res_grp_name)
                 self.set_attr(grp, "type", "resolution")
@@ -191,14 +192,14 @@ class H5Handler(object):
             ra = self.metadata["PLUG_RA"]
             dec = self.metadata["PLUG_DEC"]
         if order is None:
-            order = self.config.getint("Handler", "IMG_SPAT_INDEX_ORDER")
+            order = self.IMG_SPAT_INDEX_ORDER
         pixel_IDs = hp.ang2pix(hp.order2nside(np.arange(order)),
                                ra,
                                dec,
                                nest=True,
                                lonlat=True)
         heal_path = "/".join(str(pixel_ID) for pixel_ID in pixel_IDs)
-        absolute_path = "%s/%s" % (self.config.get("Handler", "ORIG_CUBE_NAME"), heal_path)
+        absolute_path = "%s/%s" % (self.ORIG_CUBE_NAME, heal_path)
         return absolute_path
 
     def require_group(self, parent_grp, name, track_order=False):
@@ -285,9 +286,9 @@ class H5Handler(object):
         dcpl.set_alloc_time(h5py.h5d.ALLOC_TIME_EARLY)
         dcpl.set_fill_time(h5py.h5d.FILL_TIME_NEVER)
         space = h5py.h5s.create_simple(dataset_shape)
-        if self.config.get("Writer", "COMPRESSION"):
-            dcpl.set_deflate(self.config.get("Writer", "COMPRESSION_OPTS"))
-        if self.config.getboolean("Writer", "SHUFFLE"):
+        if self.COMPRESSION:
+            dcpl.set_deflate(self.COMPRESSION_OPTS)
+        if self.SHUFFLE:
             dcpl.set_shuffle()
         return dcpl, space, dataset_type
 
@@ -319,5 +320,39 @@ class H5Handler(object):
     def get_shape(ds):
         return ds.shape
 
-
-
+    def parse_config(self):
+        self.IMAGE_CUTOUT_SIZE = self.config.getint("Handler", "IMAGE_CUTOUT_SIZE")
+        self.IMG_ZOOM_CNT = self.config.getint("Handler", "IMG_ZOOM_CNT")
+        self.SPEC_ZOOM_CNT = self.config.getint("Handler", "SPEC_ZOOM_CNT")
+        self.IMG_SPAT_INDEX_ORDER = self.config.getint("Handler", "IMG_SPAT_INDEX_ORDER")
+        self.SPEC_SPAT_INDEX_ORDER = self.config.getint("Handler", "SPEC_SPAT_INDEX_ORDER")
+        self.CHUNK_SIZE = self.config.get("Handler", "CHUNK_SIZE")
+        self.ORIG_CUBE_NAME = self.config.get("Handler", "ORIG_CUBE_NAME")
+        self.DENSE_CUBE_NAME = self.config.get("Handler", "DENSE_CUBE_NAME")
+        self.INCLUDE_ADDITIONAL_METADATA = self.config.getboolean("Handler", "INCLUDE_ADDITIONAL_METADATA")
+        self.INIT_ARRAY_SIZE = self.config.getint("Handler", "INIT_ARRAY_SIZE")
+        self.FITS_MEM_MAP = self.config.getboolean("Handler", "FITS_MEM_MAP")
+        self.MPIO = self.config.getboolean("Handler", "MPIO")
+        self.PARALLEL_MODE = self.config.get("Handler", "PARALLEL_MODE")
+        self.LOG_LEVEL = self.config.get("Handler", "LOG_LEVEL")
+        self.COMPRESSION = self.config.get("Writer", "COMPRESSION")
+        self.COMPRESSION_OPTS = self.config.get("Writer", "COMPRESSION_OPTS")
+        self.FLOAT_COMPRESS = self.config.getboolean("Writer", "FLOAT_COMPRESS")
+        self.SHUFFLE = self.config.getboolean("Writer", "SHUFFLE")
+        self.IMAGE_PATTERN = self.config.get("Writer", "IMAGE_PATTERN")
+        self.SPECTRA_PATTERN = self.config.get("Writer", "SPECTRA_PATTERN")
+        self.MAX_CUTOUT_REFS = self.config.getint("Writer", "MAX_CUTOUT_REFS")
+        self.LIMIT_IMAGE_COUNT = self.config.getint("Writer", "LIMIT_IMAGE_COUNT")
+        self.LIMIT_SPECTRA_COUNT = self.config.getint("Writer", "LIMIT_SPECTRA_COUNT")
+        self.BATCH_SIZE = self.config.getint("Writer", "BATCH_SIZE")
+        self.POLL_INTERVAL = self.config.getfloat("Writer", "POLL_INTERVAL")
+        self.C_BOOSTER = self.config.getboolean("Writer", "C_BOOSTER")
+        self.CREATE_REFERENCES = self.config.getboolean("Writer", "CREATE_REFERENCES")
+        self.CREATE_DENSE_CUBE = self.config.getboolean("Writer", "CREATE_DENSE_CUBE")
+        self.OUTPUT_HEAL_ORDER = self.config.getint("Reader", "OUTPUT_HEAL_ORDER")
+        self.APPLY_TRANSMISSION_ONLINE = self.config.get("Processor", "APPLY_TRANSMISSION_ONLINE")
+        self.REBIN_MIN = self.config.getfloat("Preprocessing", "REBIN_MIN")
+        self.REBIN_MAX = self.config.getfloat("Preprocessing", "REBIN_MAX")
+        self.REBIN_SAMPLES = self.config.getint("Preprocessing", "REBIN_SAMPLES")
+        self.APPLY_REBIN = self.config.getboolean("Preprocessing", "APPLY_REBIN")
+        self.APPLY_TRANSMISSION_CURVE = self.config.getboolean("Preprocessing", "APPLY_TRANSMISSION_CURVE")

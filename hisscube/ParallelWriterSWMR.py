@@ -9,7 +9,7 @@ class ParallelWriterSWMR(ParallelWriter):
     def __init__(self, h5_file=None, h5_path=None):
         super().__init__(h5_file=h5_file, h5_path=h5_path)
         self.comm_buffer = bytearray(
-            self.config.getint("Writer", "BATCH_SIZE") * 100 * 1024 * 1024)  # 100 MBs for one image
+            self.BATCH_SIZE * 100 * 1024 * 1024)  # 100 MBs for one image
 
     def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
@@ -79,12 +79,12 @@ class ParallelWriterSWMR(ParallelWriter):
             for spec_path in spectra_path_list:
                 self.logger.info("Rank %02d: Processing spectrum %s." % (self.mpi_rank, spec_path))
                 self.metadata, self.data = self.cube_utils.get_multiple_resolution_spectrum(
-                    spec_path, self.config.getint("Handler", "SPEC_ZOOM_CNT"),
-                    apply_rebin=self.config.getboolean("Preprocessing", "APPLY_REBIN"),
-                    rebin_min=self.config.getfloat("Preprocessing", "REBIN_MIN"),
-                    rebin_max=self.config.getfloat("Preprocessing", "REBIN_MAX"),
-                    rebin_samples=self.config.getint("Preprocessing", "REBIN_SAMPLES"),
-                    apply_transmission=self.config.getboolean("Preprocessing", "APPLY_TRANSMISSION_CURVE"))
+                    spec_path, self.SPEC_ZOOM_CNT,
+                    apply_rebin=self.APPLY_REBIN,
+                    rebin_min=self.REBIN_MIN,
+                    rebin_max=self.REBIN_MAX,
+                    rebin_samples=self.REBIN_SAMPLES,
+                    apply_transmission=self.APPLY_TRANSMISSION_CURVE)
                 self.file_name = spec_path.split('/')[-1]
                 if "COMMENT" in self.metadata:
                     del self.metadata["COMMENT"]  # TODO fix this serialization hack.
