@@ -1,4 +1,5 @@
 import os
+import unittest
 import warnings
 from pathlib import Path
 
@@ -23,7 +24,7 @@ def truncate_test_file(request):
     writer.close_h5_file()
 
 
-class TestH5Writer:
+class TestH5Writer(unittest.TestCase):
 
     def setup_method(self, test_method):
         self.writer = Writer(h5_path=H5PATH)
@@ -42,7 +43,7 @@ class TestH5Writer:
         assert len(h5_datasets) == self.writer.config.getint("Handler", "IMG_ZOOM_CNT")
 
     def test_add_spectrum(self):
-        test_path = "../../data/raw/galaxy_small/spectra/spec-0411-51817-0119.fits"
+        test_path = "../../data/raw/problematic/spectra/spec-5290-55862-0984.fits"
 
         writer = Writer(self.h5_file)
 
@@ -51,13 +52,24 @@ class TestH5Writer:
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image_multiple(self):
-        # test_images = "../../data/images/301/2820/3"
-        # test_images = "../../data/images_medium_ds"
         test_images = "../../data/raw/galaxy_small/images"
         image_pattern = "frame-*-004136-*-0129.fits"
         image_paths = list(Path(test_images).rglob(image_pattern))
+        img_datasets = []
         for image in tqdm(image_paths, desc="Images completed: "):
-            self.writer.ingest_image(image)
+            img_datasets.append(self.writer.ingest_image(image))
+        assert(len(image_paths) == len(img_datasets))
+
+    @pytest.mark.usefixtures("truncate_test_file")
+    def test_add_image_multiple_same_run(self):
+        # test_images = "../../data/images/301/2820/3"
+        test_images = "../../data/raw/problematic/images_same_run"
+        image_pattern = "*.fits"
+        # test_images = "../../data/raw/galaxy_small/images"
+        # image_pattern = "frame-*-004136-*-0129.fits"
+
+        self.assertRaises(ValueError,
+                          lambda: self.writer.ingest(test_images, "path_to_nowhere", image_pattern, "*"))
 
     def test_add_spec_refs(self):
         test_spectrum = "../../data/raw/galaxy_small/spectra/spec-0411-51817-0119.fits"
@@ -175,3 +187,4 @@ class TestH5Writer:
                             compressed_number, orig_number, np.abs((compressed_number / orig_number) - 1)))
                         assert False
         assert True
+
