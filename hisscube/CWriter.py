@@ -142,7 +142,7 @@ class CWriter(ParallelWriterMWMR):
         self.logger.debug("Total size of the HDF5 in-memory dictionary: %d", total_size(self.h5_file_structure))
         self.c_write_hdf5_metadata()
 
-    @profile(filename="profile_process_metadata")
+    # @profile(filename="profile_process_metadata")
     def process_metadata(self, image_path, image_pattern, spectra_path, spectra_pattern, truncate_file, no_attrs=False,
                          no_datasets=False):
         if self.mpi_rank == 0:

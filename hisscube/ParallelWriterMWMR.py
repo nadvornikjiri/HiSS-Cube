@@ -49,7 +49,7 @@ class ParallelWriterMWMR(ParallelWriter):
         if self.config.getboolean("Writer", "CREATE_DENSE_CUBE"):
             self.create_dense_cube()
 
-    @profile(filename="profile_process_metadata")
+    # @profile(filename="profile_process_metadata")
     def process_metadata(self, image_path, image_pattern, spectra_path, spectra_pattern, truncate_file, no_attrs=False,
                          no_datasets=False):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
@@ -61,7 +61,7 @@ class ParallelWriterMWMR(ParallelWriter):
             self.metadata_timings_log_csv_file.close()
         self.barrier(self.comm)
 
-    @profile(filename="profile_process_data")
+    # @profile(filename="profile_process_data")
     def process_data(self):
         self.open_h5_file_parallel()
         start = timer()
