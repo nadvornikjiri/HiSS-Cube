@@ -17,9 +17,6 @@ class Processor(H5Handler):
         """
         super().__init__(h5_file)
 
-        #self.logger = logging.getLogger(self.__class__.__name__)
-        self.OUTPUT_HEAL_ORDER = int(self.config["Reader"]["OUTPUT_HEAL_ORDER"])
-
     def get_cutout_bounds_from_spectrum(self, image_ds, res_idx, spectrum_ds):
         orig_image_header = self.get_header(image_ds)
         orig_spectrum_header = self.get_header(spectrum_ds)
@@ -28,7 +25,7 @@ class Processor(H5Handler):
         w = get_optimized_wcs(self.read_serialized_fits_header(image_ds))
         image_fits_header = self.read_serialized_fits_header(image_ds)
         cutout_bounds = get_cutout_bounds(image_fits_header, res_idx, orig_spectrum_header,
-                                          self.config.getint("Handler", "IMAGE_CUTOUT_SIZE"))
+                                          self.IMAGE_CUTOUT_SIZE)
         return cutout_bounds, time, w, wl
 
     def get_header(self, image_ds):

@@ -25,18 +25,18 @@ class Writer(ImageWriter, SpectrumWriter):
         """
         start = timer()
         reader = VisualizationProcessor(self.f)
-        dense_cube_grp = self.f.require_group(self.config.get("Handler", "DENSE_CUBE_NAME"))
+        dense_cube_grp = self.f.require_group(self.DENSE_CUBE_NAME)
         for zoom in range(
-                min(self.config.getint("Handler", "SPEC_ZOOM_CNT"), self.config.getint("Handler", "IMG_ZOOM_CNT"))):
+                min(self.SPEC_ZOOM_CNT, self.IMG_ZOOM_CNT)):
             spectral_cube = reader.construct_spectral_cube_table(zoom)
             res_grp = dense_cube_grp.require_group(str(zoom))
             visualization = res_grp.require_group("visualization")
             ds = visualization.require_dataset("dense_cube_zoom_%d" % zoom,
                                                spectral_cube.shape,
                                                spectral_cube.dtype,
-                                               compression=self.config.get("Writer", "COMPRESSION"),
-                                               compression_opts=self.config.get("Writer", "COMPRESSION_OPTS"),
-                                               shuffle=self.config.getboolean("Writer", "SHUFFLE"))
+                                               compression=self.COMPRESSION,
+                                               compression_opts=self.COMPRESSION_OPTS,
+                                               shuffle=self.SHUFFLE)
             ds.write_direct(spectral_cube)
         end = timer()
         self.logger.info("Region references added in: %s", end - start)
@@ -45,19 +45,19 @@ class Writer(ImageWriter, SpectrumWriter):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
         if self.config.get("Writer", "LIMIT_IMAGE_COUNT"):
             image_paths = list(Path(image_path).rglob(image_pattern))[
-                          :self.config.getint("Writer", "LIMIT_IMAGE_COUNT")]
+                          :self.LIMIT_IMAGE_COUNT]
         else:
             image_paths = list(Path(image_path).rglob(image_pattern))
-        if self.config.get("Writer", "LIMIT_SPECTRA_COUNT"):
+        if self.LIMIT_SPECTRA_COUNT:
             spectra_paths = list(Path(spectra_path).rglob(spectra_pattern))[
-                            :self.config.getint("Writer", "LIMIT_SPECTRA_COUNT")]
+                            :self.LIMIT_SPECTRA_COUNT]
         else:
             spectra_paths = list(Path(spectra_path).rglob(spectra_pattern))
         for image in tqdm(image_paths, desc="Images completed: "):
             self.ingest_image(image)
         for spectrum in tqdm(spectra_paths, desc="Spectra Progress: "):
             self.ingest_spectrum(spectrum)
-        if self.config.getboolean("Writer", "CREATE_REFERENCES"):
+        if self.CREATE_REFERENCES :
             self.add_image_refs(self.f)
         self.close_loggers
 
@@ -71,9 +71,9 @@ class Writer(ImageWriter, SpectrumWriter):
 
     def get_path_patterns(self, image_pattern=None, spectra_pattern=None):
         if not image_pattern:
-            image_pattern = self.config.get("Writer", "IMAGE_PATTERN")
+            image_pattern = self.IMAGE_PATTERN
         if not spectra_pattern:
-            spectra_pattern = self.config.get("Writer", "SPECTRA_PATTERN")
+            spectra_pattern = self.SPECTRA_PATTERN
         return image_pattern, spectra_pattern
 
     def open_h5_file_serial(self, truncate=False):

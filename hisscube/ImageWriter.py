@@ -68,9 +68,9 @@ class ImageWriter(H5Handler):
         leaf_grp_set = []
         for coord in boundaries:
             parent_grp = orig_parent
-            for order in range(self.config.getint("Handler", "IMG_SPAT_INDEX_ORDER")):
+            for order in range(self.IMG_SPAT_INDEX_ORDER):
                 parent_grp = self.require_spatial_grp(order, parent_grp, coord)
-                if order == self.config.getint("Handler", "IMG_SPAT_INDEX_ORDER") - 1:
+                if order == self.IMG_SPAT_INDEX_ORDER - 1:
                     # only return each leaf group once.
                     if len(leaf_grp_set) == 0 or \
                             not (any(self.get_name(grp) == self.get_name(parent_grp) for grp in leaf_grp_set)):
@@ -92,7 +92,7 @@ class ImageWriter(H5Handler):
     def create_img_datasets(self, parent_grp_list):
         img_datasets = []
         for group in parent_grp_list:
-            if self.config.getboolean("Writer", "C_BOOSTER"):
+            if self.C_BOOSTER:
                 if "image_dataset" in group:
                     raise ValueError(
                         "There is already an image dataset %s within this resolution group. Trying to insert image %s." % (
@@ -110,8 +110,8 @@ class ImageWriter(H5Handler):
 
     def create_image_h5_dataset(self, group, img_data_shape):
         dcpl, space, img_data_dtype = self.get_property_list(img_data_shape)
-        if self.config.get("Handler", "CHUNK_SIZE"):
-            dcpl.set_chunk(make_tuple(self.config.get("Handler", "CHUNK_SIZE")))
+        if self.CHUNK_SIZE:
+            dcpl.set_chunk(make_tuple(self.CHUNK_SIZE))
         dsid = h5py.h5d.create(group.id, self.file_name.encode(), img_data_dtype, space, dcpl=dcpl)
         ds = h5py.Dataset(dsid)
         return ds
@@ -129,7 +129,7 @@ class ImageWriter(H5Handler):
                 self.logger.info("Image cnt: %05d" % self.img_cnt)
             self.write_image_metadata(fits_path, no_attrs, no_datasets)
             self.img_cnt += 1
-            if self.img_cnt >= self.config.getint("Writer", "LIMIT_IMAGE_COUNT"):
+            if self.img_cnt >= self.LIMIT_IMAGE_COUNT:
                 break
         self.set_attr(self.f, "image_count", self.img_cnt)
 
@@ -152,7 +152,7 @@ class ImageWriter(H5Handler):
             wanted_res = next(img for img in self.data if str(tuple(img["res"])) == res_tuple)  # parsing 2D resolution
             img_data = np.dstack((wanted_res["flux_mean"], wanted_res["flux_sigma"]))
             img_data[img_data == np.inf] = np.nan
-            if self.config.getboolean("Writer", "FLOAT_COMPRESS"):
+            if self.FLOAT_COMPRESS:
                 img_data = self.float_compress(img_data)
             ds = group[self.file_name]
             ds.write_direct(img_data)

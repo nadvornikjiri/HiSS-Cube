@@ -21,6 +21,6 @@ class TestMLProcessor:
     def test_count_spatial_groups_with_depth(self):
         processor = MLProcessor(self.h5_file)
         target_cnt = processor.count_spatial_groups_with_depth(
-            processor.f[processor.config.get("Handler", "ORIG_CUBE_NAME")],
+            processor.f[processor.ORIG_CUBE_NAME],
             processor.config.getint("Handler", "SPEC_SPAT_INDEX_ORDER"))
         assert (target_cnt == 3)

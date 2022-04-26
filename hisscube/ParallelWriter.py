@@ -77,8 +77,6 @@ class ParallelWriter(Writer):
     def __init__(self, h5_file=None, h5_path=None, timings_csv="timings.csv"):
         super().__init__(h5_file, h5_path, timings_csv)
         # mpio
-        self.mpio = self.config.getboolean("Handler", "MPIO")
-        self.BATCH_SIZE = int(self.config["Writer"]["BATCH_SIZE"])
         self.WORK_TAG = 0
         self.KILL_TAG = 1
         self.FINISHED_TAG = 2
@@ -90,7 +88,7 @@ class ParallelWriter(Writer):
         self.received_result_cnt = 0
 
         logging.basicConfig()
-        logging.root.setLevel(self.config.get("Handler", "LOG_LEVEL"))
+        logging.root.setLevel(self.LOG_LEVEL)
         self.logger = logging.getLogger("rank[%i]" % self.comm.rank)
         mh = MPIFileHandler("logfile.log")
         formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s',
@@ -120,15 +118,14 @@ class ParallelWriter(Writer):
             self.data_timings_logger.writerow(["Image batch count", "Spectra batch count", "Time"])
 
     def open_h5_file_parallel(self, truncate=False):
-        use_c_booster = self.config.getboolean("Writer", "C_BOOSTER")
-        if truncate and not use_c_booster:
-            if self.mpio:
+        if truncate and not self.C_BOOSTER:
+            if self.MPIO:
                 self.f = h5py.File(self.h5_path, 'w', fs_strategy="page", fs_page_size=4096, driver='mpio',
                                    comm=self.comm, libver="latest")
             else:
                 self.f = h5py.File(self.h5_path, 'w', fs_strategy="page", fs_page_size=4096, libver="latest")
         else:
-            if self.mpio:
+            if self.MPIO:
                 self.f = h5py.File(self.h5_path, 'r+', driver='mpio',
                                    comm=self.comm, libver="latest")
             else:
@@ -158,7 +155,7 @@ class ParallelWriter(Writer):
 
     def wait_for_message(self, source, tag, status):
         while not self.comm.Iprobe(source, tag, status):
-            time.sleep(self.config.getfloat("Writer", "POLL_INTERVAL"))
+            time.sleep(self.POLL_INTERVAL)
         return
 
     def log_metadata_csv_timing(self, time):

@@ -35,7 +35,7 @@ class VisualizationProcessor(Processor):
 
         """
         spectral_cube_path = "%s/%d/%s/dense_cube_zoom_%d" % (
-            self.config.get("Handler", "DENSE_CUBE_NAME"), res, "visualization", res)
+            self.DENSE_CUBE_NAME, res, "visualization", res)
         self.spectral_cube = self.f[spectral_cube_path][()]
         return self.spectral_cube
 
@@ -55,7 +55,7 @@ class VisualizationProcessor(Processor):
 
         """
         self.output_counter = 0
-        self.spectral_cube = np.empty((self.config.getint("Handler", "INIT_ARRAY_SIZE"),), dtype=self.array_type)
+        self.spectral_cube = np.empty((self.INIT_ARRAY_SIZE,), dtype=self.array_type)
         self.output_res = zoom
         self.construct_multires_spectral_cube_table(self.f)
         truncated_cube = self.spectral_cube[:self.output_counter]
@@ -141,7 +141,7 @@ class VisualizationProcessor(Processor):
         ra_column = np.repeat([ra], res, axis=0)
         dec_column = np.repeat([dec], res, axis=0)
         time_column = np.repeat([time], res, axis=0)
-        if self.config.getboolean("Handler", "INCLUDE_ADDITIONAL_METADATA") is False:
+        if self.INCLUDE_ADDITIONAL_METADATA is False:
             spectrum_column_names = 'heal, ra, dec, time, wl, mean, sigma'
             spectrum_columns = [heal_id_column,
                                 ra_column,
@@ -204,7 +204,7 @@ class VisualizationProcessor(Processor):
         data_columns = np.reshape(image_region, (no_pixels, 2))
         wl_column = np.repeat([wl], no_pixels, axis=0)
         time_column = np.repeat([time], no_pixels, axis=0)
-        if self.config.getboolean("Handler", "INCLUDE_ADDITIONAL_METADATA") is False:
+        if self.INCLUDE_ADDITIONAL_METADATA is False:
             image_column_names = 'heal, ra, dec, time, wl, mean, sigma'
             image_columns = [spec_healpix_column, ra_column, dec_column, time_column, wl_column,
                              data_columns[:, 0].reshape(no_pixels, 1),
@@ -250,7 +250,7 @@ class VisualizationProcessor(Processor):
         table.write(output_path, overwrite=True, format='fits')
 
     def get_q_table(self):
-        if not self.config.getboolean("Handler", "INCLUDE_ADDITIONAL_METADATA"):
+        if not self.INCLUDE_ADDITIONAL_METADATA:
             table = QTable(self.spectral_cube, names=("HealPix ID", "RA", "DEC", "Time", "Wavelength", "Mean", "Sigma"),
                            meta={'name': 'SDSS Cube'})
         else:

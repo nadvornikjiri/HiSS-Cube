@@ -37,7 +37,7 @@ class TestH5Writer(unittest.TestCase):
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image(self):
-        test_path = "../../data/raw/images/301/4797/1/frame-g-004797-1-0019.fits.bz2"
+        test_path = "../../data/raw/images/301/2820/3/frame-g-002820-3-0122.fits.bz2"
 
         h5_datasets = self.writer.ingest_image(test_path)
         assert len(h5_datasets) == self.writer.config.getint("Handler", "IMG_ZOOM_CNT")
@@ -50,6 +50,17 @@ class TestH5Writer(unittest.TestCase):
         h5_datasets = writer.ingest_spectrum(test_path)
         assert len(h5_datasets) == writer.config.getint("Handler", "SPEC_ZOOM_CNT")
 
+    # @pytest.mark.usefixtures("truncate_test_file")
+    # def test_add_image_multiple_same_run(self):
+    #     # test_images = "../../data/images/301/2820/3"
+    #     test_images = "../../data/raw/problematic/images_same_run"
+    #     image_pattern = "*.fits"
+    #     # test_images = "../../data/raw/galaxy_small/images"
+    #     # image_pattern = "frame-*-004136-*-0129.fits"
+    #
+    #     self.assertRaises(ValueError,
+    #                       lambda: self.writer.ingest(test_images, "path_to_nowhere", image_pattern, "*"))
+
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image_multiple(self):
         test_images = "../../data/raw/galaxy_small/images"
@@ -60,16 +71,7 @@ class TestH5Writer(unittest.TestCase):
             img_datasets.append(self.writer.ingest_image(image))
         assert(len(image_paths) == len(img_datasets))
 
-    @pytest.mark.usefixtures("truncate_test_file")
-    def test_add_image_multiple_same_run(self):
-        # test_images = "../../data/images/301/2820/3"
-        test_images = "../../data/raw/problematic/images_same_run"
-        image_pattern = "*.fits"
-        # test_images = "../../data/raw/galaxy_small/images"
-        # image_pattern = "frame-*-004136-*-0129.fits"
 
-        self.assertRaises(ValueError,
-                          lambda: self.writer.ingest(test_images, "path_to_nowhere", image_pattern, "*"))
 
     def test_add_spec_refs(self):
         test_spectrum = "../../data/raw/galaxy_small/spectra/spec-0411-51817-0119.fits"
@@ -136,6 +138,8 @@ class TestH5Writer(unittest.TestCase):
         spectra_pattern = "*.fits"
         spectra_paths = list(Path(spectra_folder).rglob(spectra_pattern))
         for spectrum in tqdm(spectra_paths, desc="Spectra completed: "):
+            if "spec-0411-51817-0119.fits" in str(spectrum):    #added in previous tests
+                continue
             datasets = self.writer.ingest_spectrum(spectrum)
             assert (len(datasets) >= 1)
 
