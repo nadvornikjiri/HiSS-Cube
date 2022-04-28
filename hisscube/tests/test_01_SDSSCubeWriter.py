@@ -37,7 +37,7 @@ class TestH5Writer(unittest.TestCase):
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image(self):
-        test_path = "../../data/raw/images/301/2820/3/frame-g-002820-3-0122.fits.bz2"
+        test_path = "../../data/raw/images/301/2820/3/frame-g-002820-3-0122.fits"
 
         h5_datasets = self.writer.ingest_image(test_path)
         assert len(h5_datasets) == self.writer.config.getint("Handler", "IMG_ZOOM_CNT")
@@ -170,7 +170,7 @@ class TestH5Writer(unittest.TestCase):
 
     @pytest.mark.skip("Annoyingly long run.")
     def test_float_compress(self):
-        test_path = "../../data/raw/images/301/4797/1/frame-g-004797-1-0019.fits.bz2"
+        test_path = "../../data/raw/images/301/4797/1/frame-g-004797-1-0019.fits"
 
         writer = Writer(self.h5_file)
         writer.metadata, writer.data = writer.cube_utils.get_multiple_resolution_image(test_path,

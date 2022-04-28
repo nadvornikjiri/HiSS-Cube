@@ -11,6 +11,8 @@ import numpy as np
 from hisscube.H5Handler import H5Handler
 from timeit import default_timer as timer
 
+from hisscube.fitstools import read_primary_header_quick, read_header_from_path
+
 
 class ImageWriter(H5Handler):
 
@@ -136,7 +138,7 @@ class ImageWriter(H5Handler):
     def write_image_metadata(self, fits_path, no_attrs=False, no_datasets=False):
         self.ingest_type = "image"
         self.image_path_list.append(str(fits_path))
-        self.metadata = fitsio.read_header(fits_path)
+        self.metadata = read_header_from_path(fits_path)
         self.file_name = os.path.basename(fits_path)
         res_grps = self.create_image_index_tree()
         if not no_datasets:

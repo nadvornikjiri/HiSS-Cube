@@ -9,6 +9,8 @@ from hisscube.H5Handler import H5Handler
 from hisscube.astrometry import NoCoverageFoundError
 from timeit import default_timer as timer
 
+from hisscube.fitstools import read_primary_header_quick, read_header_from_path
+
 
 class SpectrumWriter(H5Handler):
 
@@ -214,7 +216,7 @@ class SpectrumWriter(H5Handler):
     def write_spectrum_metadata(self, fits_path, no_attrs=False, no_datasets=False):
         self.ingest_type = "spectrum"
         self.spectra_path_list.append(str(fits_path))
-        self.metadata = fitsio.read_header(fits_path)
+        self.metadata = read_header_from_path(fits_path)
         if self.APPLY_REBIN is False:
             self.spectrum_length = fitsio.read_header(fits_path, 1)["NAXIS2"]
         else:
