@@ -216,7 +216,7 @@ class SpectrumWriter(H5Handler):
     def write_spectrum_metadata(self, fits_path, no_attrs=False, no_datasets=False):
         self.ingest_type = "spectrum"
         self.spectra_path_list.append(str(fits_path))
-        self.metadata = read_header_from_path(fits_path)
+        self.metadata = fitsio.read_header(fits_path)
         if self.APPLY_REBIN is False:
             self.spectrum_length = fitsio.read_header(fits_path, 1)["NAXIS2"]
         else:
