@@ -105,12 +105,15 @@ class ParallelWriterMWMR(ParallelWriter):
 
         while status.Get_tag() != self.KILL_TAG:
             for image_path in image_path_list:
-                self.logger.debug("Rank %02d: Processing image %s." % (self.mpi_rank, image_path))
-                self.metadata, self.data = self.cube_utils.get_multiple_resolution_image(image_path,
-                                                                                         self.config.getint(
-                                                                                             "Handler", "IMG_ZOOM_CNT"))
-                self.file_name = image_path.split('/')[-1]
-                self.write_img_datasets()
+                try:
+                    self.logger.debug("Rank %02d: Processing image %s." % (self.mpi_rank, image_path))
+                    self.metadata, self.data = self.cube_utils.get_multiple_resolution_image(image_path,
+                                                                                             self.config.getint(
+                                                                                                 "Handler", "IMG_ZOOM_CNT"))
+                    self.file_name = image_path.split('/')[-1]
+                    self.write_img_datasets()
+                except Exception as e:
+                    self.logger.warning("Could not process image %s, message: %s" % (image_path, str(e)))
             self.comm.send(obj=None, tag=self.FINISHED_TAG, dest=0)
             image_path_list = self.receive_work(status)
 
@@ -119,16 +122,19 @@ class ParallelWriterMWMR(ParallelWriter):
         spectra_path_list = self.receive_work(status)
         while status.Get_tag() != self.KILL_TAG:
             for spec_path in spectra_path_list:
-                self.logger.debug("Rank %02d: Processing spectrum %s." % (self.mpi_rank, spec_path))
-                self.metadata, self.data = self.cube_utils.get_multiple_resolution_spectrum(
-                    spec_path, self.SPEC_ZOOM_CNT,
-                    apply_rebin=self.APPLY_REBIN,
-                    rebin_min=self.REBIN_MIN,
-                    rebin_max=self.REBIN_MAX,
-                    rebin_samples=self.REBIN_SAMPLES,
-                    apply_transmission=self.APPLY_TRANSMISSION_CURVE)
-                self.file_name = spec_path.split('/')[-1]
-                self.write_spec_datasets()
+                try:
+                    self.logger.debug("Rank %02d: Processing spectrum %s." % (self.mpi_rank, spec_path))
+                    self.metadata, self.data = self.cube_utils.get_multiple_resolution_spectrum(
+                        spec_path, self.SPEC_ZOOM_CNT,
+                        apply_rebin=self.APPLY_REBIN,
+                        rebin_min=self.REBIN_MIN,
+                        rebin_max=self.REBIN_MAX,
+                        rebin_samples=self.REBIN_SAMPLES,
+                        apply_transmission=self.APPLY_TRANSMISSION_CURVE)
+                    self.file_name = spec_path.split('/')[-1]
+                    self.write_spec_datasets()
+                except Exception as e:
+                    self.logger.warning("Could not process spectrum %s, message: %s" % (spec_path, str(e)))
             self.comm.send(obj=None, tag=self.FINISHED_TAG, dest=0)
             spectra_path_list = self.receive_work(status)
 
