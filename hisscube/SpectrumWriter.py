@@ -88,7 +88,7 @@ class SpectrumWriter(H5Handler):
                 if "spectrum_dataset" in group:
                     raise ValueError(
                         "There is already an image dataset %s within this resolution group. Trying to insert image %s." % (
-                            list(group), self.file_name))
+                            list(group["spectrum_dataset"]), self.file_name))
             elif len(group) > 0:
                 raise ValueError(
                     "There is already a spectrum dataset %s within this resolution group. Trying to insert spectrum %s." % (
@@ -155,7 +155,7 @@ class SpectrumWriter(H5Handler):
                 if image_res_idx > image_min_zoom_idx:
                     image_min_zoom_idx = image_res_idx
             except NoCoverageFoundError as e:
-                # self.logger.debug("No coverage found for spectrum %s and image %s, reason %s" % (self.file_name, image_ds, str(e)))
+                self.logger.warning("No coverage found for spectrum %s and image %s, reason %s" % (self.file_name, image_ds, str(e)))
                 pass
 
         for res in image_refs:
@@ -207,8 +207,12 @@ class SpectrumWriter(H5Handler):
                 self.log_metadata_csv_timing(end - start)
                 start = end
                 self.logger.info("Spectra cnt: %05d" % self.spec_cnt)
-            self.write_spectrum_metadata(fits_path, no_attrs, no_datasets)
-            self.spec_cnt += 1
+            try:
+                self.write_spectrum_metadata(fits_path, no_attrs, no_datasets)
+                self.spec_cnt += 1
+            except ValueError as e:
+                self.logger.warning(
+                    "Unable to ingest spectrum %s, message: %s" % (fits_path, str(e)))
             if self.spec_cnt >= self.LIMIT_SPECTRA_COUNT:
                 break
         self.set_attr(self.f, "spectrum_count", self.spec_cnt)

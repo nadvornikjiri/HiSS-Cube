@@ -98,7 +98,7 @@ class ImageWriter(H5Handler):
                 if "image_dataset" in group:
                     raise ValueError(
                         "There is already an image dataset %s within this resolution group. Trying to insert image %s." % (
-                            list(group), self.file_name))
+                            list(group["image_dataset"]), self.file_name))
             elif len(group) > 0:
                 raise ValueError(
                     "There is already an image dataset %s within this resolution group. Trying to insert image %s." % (
@@ -129,8 +129,12 @@ class ImageWriter(H5Handler):
                 self.log_metadata_csv_timing(end - start)
                 start = end
                 self.logger.info("Image cnt: %05d" % self.img_cnt)
-            self.write_image_metadata(fits_path, no_attrs, no_datasets)
-            self.img_cnt += 1
+            try:
+                self.write_image_metadata(fits_path, no_attrs, no_datasets)
+                self.img_cnt += 1
+            except ValueError as e:
+                self.logger.warning(
+                    "Unable to ingest spectrum %s, message: %s" % (fits_path, str(e)))
             if self.img_cnt >= self.LIMIT_IMAGE_COUNT:
                 break
         self.set_attr(self.f, "image_count", self.img_cnt)

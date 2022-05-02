@@ -59,7 +59,6 @@ class Writer(ImageWriter, SpectrumWriter):
             self.ingest_spectrum(spectrum)
         if self.CREATE_REFERENCES :
             self.add_image_refs(self.f)
-        self.close_loggers
 
     def ingest_metadata(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, no_attrs=False,
                         no_datasets=False):
