@@ -155,7 +155,7 @@ class SpectrumWriter(H5Handler):
                 if image_res_idx > image_min_zoom_idx:
                     image_min_zoom_idx = image_res_idx
             except NoCoverageFoundError as e:
-                self.logger.warning("No coverage found for spectrum %s and image %s, reason %s" % (self.file_name, image_ds, str(e)))
+                self.logger.debug("No coverage found for spectrum %s and image %s, reason %s" % (self.file_name, image_ds, str(e)))
                 pass
 
         for res in image_refs:
