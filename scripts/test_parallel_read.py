@@ -46,6 +46,6 @@ if rank == 0:
     whole_end = timer()
     sleep(1)
     print("Read in total %d bytes read in: %fs,, MB/s = %f" % (
-        dense_cube_ds.nbytes, end - start, (dense_cube_ds.nbytes / 1024 / 1024) / (whole_end - whole_start)))
+        dense_cube_ds.nbytes, whole_end - whole_start, (dense_cube_ds.nbytes / 1024 / 1024) / (whole_end - whole_start)))
 
 h5_file.close()
