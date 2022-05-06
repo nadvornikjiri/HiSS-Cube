@@ -27,6 +27,7 @@ dense_cube_length = len(dense_cube_ds)
 whole_chunk_len = int(dense_cube_length / size)
 max_chunk_len = int(MAX_CHUNK_SIZE / dense_cube_ds.dtype.itemsize)
 my_chunk_bounds = range(0, whole_chunk_len, max_chunk_len)
+whole_start = timer()
 for start_idx in my_chunk_bounds:
     start_i = start_idx + (rank * whole_chunk_len)
     if start_idx + max_chunk_len > whole_chunk_len:
@@ -43,9 +44,9 @@ for start_idx in my_chunk_bounds:
         rank, my_arr.nbytes, end - start, (my_arr.nbytes / 1024 / 1024) / (end - start)))
 MPI.COMM_WORLD.barrier()
 if rank == 0:
-    end = timer()
+    whole_end = timer()
     sleep(1)
     print("Read in total %d bytes, MB/s = %f" % (
-    dense_cube_ds.nbytes, (dense_cube_ds.nbytes / 1024 / 1024) / (end - start)))
+    dense_cube_ds.nbytes, (dense_cube_ds.nbytes / 1024 / 1024) / (whole_end - whole_start)))
 
 h5_file.close()
