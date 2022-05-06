@@ -9,8 +9,7 @@ import os
 
 H5_PATH = "../results/read_test.h5"
 TEST_DS_PATH = "/big_contiguos_data"
-MAX_CHUNK_SIZE = 2 * 1024 * 1024 * 1024
-
+MAX_CHUNK_SIZE = 1 * 1024 * 1024 * 1024  # 1 GB to be sure
 
 h5_file = h5py.File(H5_PATH, "r", driver="mpio", comm=MPI.COMM_WORLD)
 
@@ -46,7 +45,7 @@ MPI.COMM_WORLD.barrier()
 if rank == 0:
     whole_end = timer()
     sleep(1)
-    print("Read in total %d bytes, MB/s = %f" % (
-    dense_cube_ds.nbytes, (dense_cube_ds.nbytes / 1024 / 1024) / (whole_end - whole_start)))
+    print("Read in total %d bytes read in: %fs,, MB/s = %f" % (
+        dense_cube_ds.nbytes, end - start, (dense_cube_ds.nbytes / 1024 / 1024) / (whole_end - whole_start)))
 
 h5_file.close()
