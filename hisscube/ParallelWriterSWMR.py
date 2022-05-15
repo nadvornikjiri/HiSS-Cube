@@ -11,7 +11,8 @@ class ParallelWriterSWMR(ParallelWriter):
         self.comm_buffer = bytearray(
             self.BATCH_SIZE * 100 * 1024 * 1024)  # 100 MBs for one image
 
-    def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
+    def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None,
+               recreate_fits_tables=False):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
         start1 = timer()
         if self.mpi_rank == 0:
@@ -19,7 +20,7 @@ class ParallelWriterSWMR(ParallelWriter):
                 self.truncate_h5_file()
             if not self.f:
                 self.open_h5_file_serial()
-            self.ingest_metadata(image_path, spectra_path)
+            self.ingest_metadata()
         self.comm.Barrier()
         start2 = timer()
         print("Elapsed time: %.2f" % (start2 - start1))

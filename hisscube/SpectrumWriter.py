@@ -4,12 +4,11 @@ import pathlib
 import fitsio
 import h5py
 import numpy as np
+import ujson
 
 from hisscube.H5Handler import H5Handler
-from hisscube.astrometry import NoCoverageFoundError
+from hisscube.utils.astrometry import NoCoverageFoundError
 from timeit import default_timer as timer
-
-from hisscube.fitstools import read_primary_header_quick, read_header_from_path
 
 
 class SpectrumWriter(H5Handler):
@@ -102,7 +101,7 @@ class SpectrumWriter(H5Handler):
 
     def create_spectrum_h5_dataset(self, group, spec_data_shape):
         dcpl, space, spec_data_dtype = self.get_property_list(spec_data_shape)
-        ds_name = self.file_name.encode()
+        ds_name = self.file_name
         if not ds_name in group:
             dsid = h5py.h5d.create(group.id, ds_name, spec_data_dtype, space, dcpl=dcpl)
             ds = h5py.Dataset(dsid)
@@ -196,11 +195,11 @@ class SpectrumWriter(H5Handler):
                                 except KeyError:
                                     pass
 
-    def write_spectra_metadata(self, spectra_folder, spectra_pattern, no_attrs=False, no_datasets=False):
+    def write_spectra_metadata(self, no_attrs=False, no_datasets=False):
         start = timer()
         check = 100
-        for fits_path in pathlib.Path(spectra_folder).rglob(
-                spectra_pattern):
+        fits_headers = self.f["/fits_spectra_metadata"]
+        for fits_path, header in fits_headers:
             if self.spec_cnt % check == 0 and self.spec_cnt / check > 0:
                 end = timer()
                 self.logger.info("100 spectra done in %.4fs" % (end - start))
@@ -208,7 +207,7 @@ class SpectrumWriter(H5Handler):
                 start = end
                 self.logger.info("Spectra cnt: %05d" % self.spec_cnt)
             try:
-                self.write_spectrum_metadata(fits_path, no_attrs, no_datasets)
+                self.write_spectrum_metadata(fits_path, header, no_attrs, no_datasets)
                 self.spec_cnt += 1
             except ValueError as e:
                 self.logger.warning(
@@ -217,10 +216,10 @@ class SpectrumWriter(H5Handler):
                 break
         self.set_attr(self.f, "spectrum_count", self.spec_cnt)
 
-    def write_spectrum_metadata(self, fits_path, no_attrs=False, no_datasets=False):
+    def write_spectrum_metadata(self, fits_path, fits_header, no_attrs=False, no_datasets=False):
         self.ingest_type = "spectrum"
         self.spectra_path_list.append(str(fits_path))
-        self.metadata = fitsio.read_header(fits_path)
+        self.metadata = ujson.loads(fits_header)
         if self.APPLY_REBIN is False:
             self.spectrum_length = fitsio.read_header(fits_path, 1)["NAXIS2"]
         else:

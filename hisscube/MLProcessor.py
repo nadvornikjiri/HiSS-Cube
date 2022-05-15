@@ -13,8 +13,8 @@ class SparseTreeCube:
 
 
 class MLProcessor(Processor):
-    def __init__(self, h5_file=None):
-        super(MLProcessor, self).__init__(h5_file)
+    def __init__(self, h5_file=None, h5_path=None, timings_csv="timings.csv"):
+        super(MLProcessor, self).__init__(h5_file=h5_file, h5_path=h5_path, timings_csv=timings_csv)
         self.spectral_3d_cube = None
         self.spec_3d_cube_datasets = {"spectral": {}, "image": {}}
         self.target_cnt = {}

@@ -1,5 +1,5 @@
 import fitsio
-from hisscube import astrometry
+from hisscube.utils import astrometry
 
 
 def test_get_boundary_coords():

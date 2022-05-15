@@ -8,7 +8,7 @@ import pytest
 from tqdm.auto import tqdm
 
 from hisscube.Writer import Writer
-from hisscube.astrometry import is_cutout_whole
+from hisscube.utils.astrometry import is_cutout_whole
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)

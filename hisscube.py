@@ -19,10 +19,11 @@ from hisscube.WriterFactory import WriterFactory
 size = MPI.COMM_WORLD.Get_size()
 rank = MPI.COMM_WORLD.Get_rank()
 
-
 # import pydevd_pycharm
-# port_mapping = [42053, 42743]
+# port_mapping = [41817, 36673]
 # pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
+print(os.getpid())
+
 
 def write_proc_stats():
     buf = np.zeros(8, np.int64)  # 7 stat values + rank
@@ -65,13 +66,16 @@ parser.add_argument('output_path', metavar="output", type=str,
                     help="path to HDF5 file, does not need to exist")
 parser.add_argument('-t', '--truncate', action='store_const', const=True,
                     help="Should truncate the file if exists?")
+parser.add_argument('--recreate-fits-tables', action='store_true',
+                    help="Should recreate the FITS paths and serialized headers tables?")
 args = parser.parse_args()
 
 fits_image_path = "%s/images" % args.input_path
 fits_spectra_path = "%s/spectra" % args.input_path
 
 writer = WriterFactory().get_writer(args.output_path)
-writer.ingest(fits_image_path, fits_spectra_path, truncate_file=args.truncate)
-
+writer.ingest(fits_image_path, fits_spectra_path, truncate_file=args.truncate,
+              recreate_fits_tables=args.recreate_fits_tables)
+writer.barrier(MPI.COMM_WORLD)
 write_proc_stats()
 MPI.COMM_WORLD.barrier()

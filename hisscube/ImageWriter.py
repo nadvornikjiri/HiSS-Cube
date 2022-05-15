@@ -3,15 +3,14 @@ import pathlib
 
 import fitsio
 import h5py.h5p
+import ujson
 
-from hisscube import astrometry
+from hisscube.utils import astrometry
 from ast import literal_eval as make_tuple
 import numpy as np
 
 from hisscube.H5Handler import H5Handler
 from timeit import default_timer as timer
-
-from hisscube.fitstools import read_primary_header_quick, read_header_from_path
 
 
 class ImageWriter(H5Handler):
@@ -114,15 +113,15 @@ class ImageWriter(H5Handler):
         dcpl, space, img_data_dtype = self.get_property_list(img_data_shape)
         if self.CHUNK_SIZE:
             dcpl.set_chunk(make_tuple(self.CHUNK_SIZE))
-        dsid = h5py.h5d.create(group.id, self.file_name.encode(), img_data_dtype, space, dcpl=dcpl)
+        dsid = h5py.h5d.create(group.id, self.file_name, img_data_dtype, space, dcpl=dcpl)
         ds = h5py.Dataset(dsid)
         return ds
 
-    def write_images_metadata(self, image_folder, image_pattern, no_attrs=False, no_datasets=False):
+    def write_images_metadata(self, no_attrs=False, no_datasets=False):
         start = timer()
         check = 100
-        for fits_path in pathlib.Path(image_folder).rglob(
-                image_pattern):
+        fits_headers = self.f["/fits_images_metadata"]
+        for fits_path, header in fits_headers:
             if self.img_cnt % check == 0 and self.img_cnt / check > 0:
                 end = timer()
                 self.logger.info("100 images done in %.4fs" % (end - start))
@@ -130,19 +129,19 @@ class ImageWriter(H5Handler):
                 start = end
                 self.logger.info("Image cnt: %05d" % self.img_cnt)
             try:
-                self.write_image_metadata(fits_path, no_attrs, no_datasets)
+                self.write_image_metadata(fits_path, header, no_attrs=no_attrs, no_datasets=no_datasets)
                 self.img_cnt += 1
             except ValueError as e:
                 self.logger.warning(
-                    "Unable to ingest spectrum %s, message: %s" % (fits_path, str(e)))
+                    "Unable to ingest image %s, message: %s" % (fits_path, str(e)))
             if self.img_cnt >= self.LIMIT_IMAGE_COUNT:
                 break
         self.set_attr(self.f, "image_count", self.img_cnt)
 
-    def write_image_metadata(self, fits_path, no_attrs=False, no_datasets=False):
+    def write_image_metadata(self, fits_path, fits_header, no_attrs=False, no_datasets=False):
         self.ingest_type = "image"
         self.image_path_list.append(str(fits_path))
-        self.metadata = fitsio.read_header(fits_path)
+        self.metadata = ujson.loads(fits_header)
         self.file_name = os.path.basename(fits_path)
         res_grps = self.create_image_index_tree()
         if not no_datasets:

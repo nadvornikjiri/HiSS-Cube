@@ -21,6 +21,6 @@ class TestSDSSCubeParallelWriter:
         spectra_path = "../../data/raw/galaxy_small/spectra"
         writer = ParallelWriterMWMR(h5_path=H5PATH)
         writer.open_h5_file_serial()
-        writer.ingest_metadata(image_path, spectra_path)
+        writer.ingest_metadata()
         writer.close_h5_file()
         assert True

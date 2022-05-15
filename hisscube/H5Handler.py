@@ -1,5 +1,4 @@
 import configparser
-import csv
 import logging
 import pathlib
 from datetime import datetime
@@ -11,7 +10,7 @@ import numpy as np
 import ujson
 from astropy.time import Time
 
-from hisscube.astrometry import NoCoverageFoundError, get_cutout_bounds, is_cutout_whole, get_optimized_wcs
+from hisscube.utils.astrometry import NoCoverageFoundError, get_cutout_bounds, is_cutout_whole, get_optimized_wcs
 from hisscube import Photometry as cu
 
 
@@ -344,6 +343,12 @@ class H5Handler(object):
         self.MAX_CUTOUT_REFS = self.config.getint("Writer", "MAX_CUTOUT_REFS")
         self.LIMIT_IMAGE_COUNT = self.config.getint("Writer", "LIMIT_IMAGE_COUNT")
         self.LIMIT_SPECTRA_COUNT = self.config.getint("Writer", "LIMIT_SPECTRA_COUNT")
+        self.FITS_IMAGE_MAX_HEADER_SIZE = self.config.getint("Writer", "FITS_IMAGE_MAX_HEADER_SIZE")
+        self.FITS_SPECTRUM_MAX_HEADER_SIZE = self.config.getint("Writer", "FITS_SPECTRUM_MAX_HEADER_SIZE")
+        self.MAX_STORED_IMAGE_HEADERS = self.config.getint("Writer", "MAX_STORED_IMAGE_HEADERS")
+        self.MAX_STORED_SPECTRA_HEADERS = self.config.getint("Writer", "MAX_STORED_SPECTRA_HEADERS")
+        self.FITS_HEADER_BUF_SIZE = self.config.getint("Writer", "FITS_HEADER_BUF_SIZE")
+        self.FITS_MAX_PATH_SIZE = self.config.getint("Writer", "FITS_MAX_PATH_SIZE")
         self.BATCH_SIZE = self.config.getint("Writer", "BATCH_SIZE")
         self.POLL_INTERVAL = self.config.getfloat("Writer", "POLL_INTERVAL")
         self.C_BOOSTER = self.config.getboolean("Writer", "C_BOOSTER")

@@ -33,22 +33,21 @@ class TestCWriter:
     def test_write_images_metadata(self):
         writer = CWriter()
         image_pattern, spectra_pattern = writer.get_path_patterns()
-        writer.write_images_metadata(FITS_IMAGE_PATH, image_pattern, no_attrs=False, no_datasets=False)
+        writer.write_images_metadata(no_attrs=False, no_datasets=False)
         assert True
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_write_spectra_metadata(self):
         writer = CWriter()
         image_pattern, spectra_pattern = writer.get_path_patterns()
-        writer.write_spectra_metadata(FITS_SPECTRA_PATH, spectra_pattern)
+        writer.write_spectra_metadata()
         assert True
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_process_metadata(self):
         writer = CWriter(h5_path=H5_PATH, timings_log="logs/test_log.csv")
         image_pattern, spectra_pattern = writer.get_path_patterns()
-        writer.process_metadata(FITS_IMAGE_PATH, image_pattern, FITS_SPECTRA_PATH, spectra_pattern, truncate_file=True,
-                                no_datasets=False, no_attrs=False)
+        writer.process_metadata(no_attrs=False, no_datasets=False)
 
         h5_file = h5py.File(H5_PATH, libver="latest")
         test_ds = h5_file[

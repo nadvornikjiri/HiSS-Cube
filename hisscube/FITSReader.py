@@ -6,9 +6,9 @@ from astropy import wcs
 from astropy.io import fits
 from astropy.time import Time
 
-from hisscube import astrometry
+from hisscube.utils import astrometry
 from hisscube.VisualizationProcessor import VisualizationProcessor
-from hisscube.astrometry import NoCoverageFoundError, is_cutout_whole
+from hisscube.utils.astrometry import NoCoverageFoundError, is_cutout_whole
 
 
 class FITSReader(VisualizationProcessor):

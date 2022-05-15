@@ -1,9 +1,13 @@
 import os
+import pathlib
 from pathlib import Path
 
+import fitsio
 import h5py
+import ujson
 from mpi4py import MPI
 from tqdm import tqdm
+import numpy as np
 
 from hisscube.ParallelWriter import ParallelWriter, chunks
 from timeit import default_timer as timer
@@ -41,25 +45,32 @@ def profile(filename=None, comm=MPI.COMM_WORLD):
 
 
 class ParallelWriterMWMR(ParallelWriter):
-    def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
-        self.process_metadata(image_path, image_pattern, spectra_path, spectra_pattern, truncate_file)
+    def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None,
+               recreate_fits_tables=False):
+        if self.mpi_rank == 0:
+            self.open_h5_file_serial(truncate=truncate_file)
+            if recreate_fits_tables or truncate_file:
+                self.reingest_fits_tables(image_path, image_pattern, spectra_path, spectra_pattern)
+            self.process_metadata()
+            self.close_h5_file()
+        self.barrier(self.comm)
         self.process_data()
         if self.CREATE_REFERENCES:
             self.add_region_references()
         if self.CREATE_DENSE_CUBE:
             self.create_dense_cube()
 
-    # @profile(filename="profile_process_metadata")
-    def process_metadata(self, image_path, image_pattern, spectra_path, spectra_pattern, truncate_file, no_attrs=False,
-                         no_datasets=False):
+    def reingest_fits_tables(self, image_path, image_pattern, spectra_path, spectra_pattern):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
-        if self.mpi_rank == 0:
-            self.logger.info("Writing metadata.")
-            self.open_h5_file_serial(truncate=truncate_file)
-            self.ingest_metadata(image_path, spectra_path, image_pattern, spectra_pattern)
-            self.close_h5_file()
-            self.metadata_timings_log_csv_file.close()
-        self.barrier(self.comm)
+        self.clean_fits_header_tables()
+        self.create_fits_headers(image_path, image_pattern, spectra_path, spectra_pattern)
+
+
+    # @profile(filename="profile_process_metadata")
+    def process_metadata(self, no_attrs=False, no_datasets=False):
+        self.logger.info("Writing metadata.")
+        self.ingest_metadata(no_attrs, no_datasets)
+        self.metadata_timings_log_csv_file.close()
 
     # @profile(filename="profile_process_data")
     def process_data(self):
@@ -92,7 +103,6 @@ class ParallelWriterMWMR(ParallelWriter):
             end = timer()
             self.logger.info("Region references added in: %s", end - start)
 
-
     def open_and_truncate(self):
         self.f = h5py.File(self.h5_path, 'w', libver="latest")
 
@@ -109,7 +119,8 @@ class ParallelWriterMWMR(ParallelWriter):
                     self.logger.debug("Rank %02d: Processing image %s." % (self.mpi_rank, image_path))
                     self.metadata, self.data = self.cube_utils.get_multiple_resolution_image(image_path,
                                                                                              self.config.getint(
-                                                                                                 "Handler", "IMG_ZOOM_CNT"))
+                                                                                                 "Handler",
+                                                                                                 "IMG_ZOOM_CNT"))
                     self.file_name = image_path.split('/')[-1]
                     self.write_img_datasets()
                 except Exception as e:
@@ -187,3 +198,66 @@ class ParallelWriterMWMR(ParallelWriter):
             comm.recv(None, src, tag)
             req.Wait()
             mask <<= 1
+
+    def clean_fits_header_tables(self):
+        if "fits_images_metadata" in self.f:
+            del self.f["fits_images_metadata"]
+        if "fits_spectra_metadata" in self.f:
+            del self.f["fits_spectra_metadata"]
+
+    def create_fits_headers(self, image_path, image_pattern, spectra_path, spectra_pattern):
+        image_header_ds, image_header_ds_dtype, spec_header_ds, spec_header_ds_dtype = self.create_fits_header_datasets()
+        self.img_cnt = self.write_fits_headers(image_header_ds, image_header_ds_dtype, image_path, image_pattern,
+                                               self.LIMIT_IMAGE_COUNT)
+        self.spec_cnt = self.write_fits_headers(spec_header_ds, spec_header_ds_dtype, spectra_path, spectra_pattern,
+                                                self.LIMIT_SPECTRA_COUNT)
+
+        self.f.attrs["image_count"] = self.img_cnt
+        self.f.attrs["spectra_count"] = self.spec_cnt
+
+    def write_fits_headers(self, header_ds, header_ds_dtype, fits_path, fits_pattern, max_fits_cnt):
+        buf = np.zeros(shape=(self.FITS_HEADER_BUF_SIZE,), dtype=header_ds_dtype)
+        buf_i = 0
+        offset = 0
+        start = timer()
+        check = 100
+        fits_cnt = 0
+        for fits_path in pathlib.Path(fits_path).rglob(
+                fits_pattern):
+            if fits_cnt % check == 0 and fits_cnt / check > 0:
+                end = timer()
+                self.logger.info("100 fits headers done in %.4fs" % (end - start))
+                self.log_metadata_csv_timing(end - start)
+                start = end
+                self.logger.info("Fits cnt: %05d" % fits_cnt)
+            if buf_i >= self.FITS_HEADER_BUF_SIZE:
+                header_ds.write_direct(buf, source_sel=np.s_[0:buf_i], dest_sel=np.s_[offset:offset + buf_i])
+                offset += buf_i
+                buf_i = 0
+            serialized_header = ujson.dumps(dict(fitsio.read_header(fits_path)))
+            buf[buf_i] = (str(fits_path), serialized_header)
+            buf_i += 1
+            fits_cnt += 1
+            if fits_cnt >= max_fits_cnt:
+                break
+        header_ds.write_direct(buf, source_sel=np.s_[0:buf_i], dest_sel=np.s_[offset:offset + buf_i])
+        return fits_cnt
+
+    def create_fits_header_datasets(self):
+        dt = h5py.string_dtype(encoding='utf-8')
+        max_images = self.LIMIT_IMAGE_COUNT
+        max_spectra = self.LIMIT_SPECTRA_COUNT
+        if max_images < 1:
+            max_images = self.MAX_STORED_IMAGE_HEADERS
+        if max_spectra < 1:
+            max_spectra = self.MAX_STORED_SPECTRA_HEADERS
+        path_dtype = h5py.string_dtype(encoding="ascii", length=self.FITS_MAX_PATH_SIZE)
+        image_header_dtype = h5py.string_dtype(encoding="utf-8", length=self.FITS_IMAGE_MAX_HEADER_SIZE)
+        spectrum_header_dtype = h5py.string_dtype(encoding="utf-8", length=self.FITS_SPECTRUM_MAX_HEADER_SIZE)
+        image_header_ds_dtype = [("path", path_dtype), ("header", image_header_dtype)]
+        image_header_ds = self.f.create_dataset('fits_images_metadata', (max_images,),
+                                                dtype=image_header_ds_dtype)
+        spec_header_ds_dtype = [("path", path_dtype), ("header", spectrum_header_dtype)]
+        spec_header_ds = self.f.create_dataset('fits_spectra_metadata', (max_spectra,),
+                                               dtype=spec_header_ds_dtype)
+        return image_header_ds, image_header_ds_dtype, spec_header_ds, spec_header_ds_dtype

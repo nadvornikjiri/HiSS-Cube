@@ -1,13 +1,11 @@
-
-
 import numpy as np
 
 from hisscube.H5Handler import H5Handler
-from hisscube.astrometry import get_optimized_wcs, get_cutout_bounds
+from hisscube.utils.astrometry import get_optimized_wcs, get_cutout_bounds
 
 
 class Processor(H5Handler):
-    def __init__(self, h5_file):
+    def __init__(self, h5_file=None, h5_path=None, timings_csv="timings.csv"):
         """
         Initializes the reader related properties, such as the array type for the exported dense cube.
         Parameters
@@ -15,7 +13,7 @@ class Processor(H5Handler):
         h5_file
         cube_utils
         """
-        super().__init__(h5_file)
+        super().__init__(h5_file=h5_file, h5_path=h5_path, timings_csv=timings_csv)
 
     def get_cutout_bounds_from_spectrum(self, image_ds, res_idx, spectrum_ds):
         orig_image_header = self.get_header(image_ds)

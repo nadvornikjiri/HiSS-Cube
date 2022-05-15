@@ -1,3 +1,4 @@
+import pathlib
 from pathlib import Path
 
 import h5py
@@ -41,7 +42,8 @@ class Writer(ImageWriter, SpectrumWriter):
         end = timer()
         self.logger.info("Region references added in: %s", end - start)
 
-    def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
+    def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None,
+               recreate_fits_tables=False):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
         if self.config.get("Writer", "LIMIT_IMAGE_COUNT"):
             image_paths = list(Path(image_path).rglob(image_pattern))[
@@ -57,16 +59,14 @@ class Writer(ImageWriter, SpectrumWriter):
             self.ingest_image(image)
         for spectrum in tqdm(spectra_paths, desc="Spectra Progress: "):
             self.ingest_spectrum(spectrum)
-        if self.CREATE_REFERENCES :
+        if self.CREATE_REFERENCES:
             self.add_image_refs(self.f)
 
-    def ingest_metadata(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, no_attrs=False,
-                        no_datasets=False):
-        image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
+    def ingest_metadata(self, no_attrs=False, no_datasets=False):
         self.logger.info("Writing image metadata.")
-        self.write_images_metadata(image_path, image_pattern, no_attrs, no_datasets)
+        self.write_images_metadata(no_attrs, no_datasets)
         self.logger.info("Writing spectra metadata.")
-        self.write_spectra_metadata(spectra_path, spectra_pattern, no_attrs, no_datasets)
+        self.write_spectra_metadata(no_attrs, no_datasets)
 
     def get_path_patterns(self, image_pattern=None, spectra_pattern=None):
         if not image_pattern:
@@ -80,3 +80,5 @@ class Writer(ImageWriter, SpectrumWriter):
             self.f = h5py.File(self.h5_path, 'w', fs_strategy="page", fs_page_size=4096, libver="latest")
         else:
             self.f = h5py.File(self.h5_path, 'r+', libver="latest")
+
+

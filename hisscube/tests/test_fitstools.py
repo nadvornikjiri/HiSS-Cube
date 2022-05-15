@@ -1,7 +1,6 @@
 import astropy
-import fitsio
 
-from hisscube.fitstools import read_primary_header_quick
+from hisscube.utils.fitstools import read_primary_header_quick
 
 
 def test_read_header_bytes():

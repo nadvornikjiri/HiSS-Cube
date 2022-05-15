@@ -136,23 +136,16 @@ class CWriter(ParallelWriterMWMR):
     def set_attr_ref(obj, key, obj2):
         obj["attrs"][key] = obj2["path"]  # the obj2["path"] is not needed ATM.
 
-    def ingest_metadata(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, no_attrs=False,
-                        no_datasets=False):
-        super().ingest_metadata(image_path, spectra_path, image_pattern, spectra_pattern, no_attrs,
-                                no_datasets)
+    def ingest_metadata(self, no_attrs=False, no_datasets=False):
+        super().ingest_metadata(no_attrs, no_datasets)
         self.logger.debug("Total size of the HDF5 in-memory dictionary: %d", total_size(self.h5_file_structure))
         self.c_write_hdf5_metadata()
 
     # @profile(filename="profile_process_metadata")
-    def process_metadata(self, image_path, image_pattern, spectra_path, spectra_pattern, truncate_file, no_attrs=False,
-                         no_datasets=False):
+    def process_metadata(self, no_attrs=False, no_datasets=False):
         if self.mpi_rank == 0:
-            h5_file = self.open_h5_file_serial(truncate_file)
-            h5_file.close()
-            image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
             self.logger.info("Writing metadata.")
-            self.ingest_metadata(image_path, spectra_path, image_pattern, spectra_pattern, no_attrs,
-                                 no_datasets)
+            self.ingest_metadata(no_attrs, no_datasets)
             self.metadata_timings_log_csv_file.close()
         self.barrier(self.comm)
 
