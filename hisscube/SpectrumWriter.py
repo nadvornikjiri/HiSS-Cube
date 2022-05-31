@@ -101,7 +101,7 @@ class SpectrumWriter(H5Handler):
 
     def create_spectrum_h5_dataset(self, group, spec_data_shape):
         dcpl, space, spec_data_dtype = self.get_property_list(spec_data_shape)
-        ds_name = self.file_name
+        ds_name = str.encode(self.file_name)
         if not ds_name in group:
             dsid = h5py.h5d.create(group.id, ds_name, spec_data_dtype, space, dcpl=dcpl)
             ds = h5py.Dataset(dsid)
@@ -216,10 +216,13 @@ class SpectrumWriter(H5Handler):
                 break
         self.set_attr(self.f, "spectrum_count", self.spec_cnt)
 
-    def write_spectrum_metadata(self, fits_path, fits_header, no_attrs=False, no_datasets=False):
+    def write_spectrum_metadata(self, fits_path, no_attrs=False, no_datasets=False):
+        self.metadata = fitsio.read_header(fits_path)
+        self.write_parsed_spectrum_metadata(fits_path, no_attrs, no_datasets)
+
+    def write_parsed_spectrum_metadata(self, fits_path, no_attrs, no_datasets):
         self.ingest_type = "spectrum"
         self.spectra_path_list.append(str(fits_path))
-        self.metadata = ujson.loads(fits_header)
         if self.APPLY_REBIN is False:
             self.spectrum_length = fitsio.read_header(fits_path, 1)["NAXIS2"]
         else:

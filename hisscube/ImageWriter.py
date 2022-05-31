@@ -113,7 +113,7 @@ class ImageWriter(H5Handler):
         dcpl, space, img_data_dtype = self.get_property_list(img_data_shape)
         if self.CHUNK_SIZE:
             dcpl.set_chunk(make_tuple(self.CHUNK_SIZE))
-        dsid = h5py.h5d.create(group.id, self.file_name, img_data_dtype, space, dcpl=dcpl)
+        dsid = h5py.h5d.create(group.id, str.encode(self.file_name), img_data_dtype, space, dcpl=dcpl)
         ds = h5py.Dataset(dsid)
         return ds
 
@@ -138,10 +138,13 @@ class ImageWriter(H5Handler):
                 break
         self.set_attr(self.f, "image_count", self.img_cnt)
 
-    def write_image_metadata(self, fits_path, fits_header, no_attrs=False, no_datasets=False):
+    def write_image_metadata(self, fits_path, no_attrs=False, no_datasets=False):
+        self.metadata = fitsio.read_header(fits_path)
+        self.write_parsed_image_metadata(fits_path, no_attrs, no_datasets)
+
+    def write_parsed_image_metadata(self, fits_path, no_attrs, no_datasets):
         self.ingest_type = "image"
         self.image_path_list.append(str(fits_path))
-        self.metadata = ujson.loads(fits_header)
         self.file_name = os.path.basename(fits_path)
         res_grps = self.create_image_index_tree()
         if not no_datasets:

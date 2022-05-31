@@ -42,8 +42,7 @@ class Writer(ImageWriter, SpectrumWriter):
         end = timer()
         self.logger.info("Region references added in: %s", end - start)
 
-    def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None,
-               recreate_fits_tables=False):
+    def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
         if self.config.get("Writer", "LIMIT_IMAGE_COUNT"):
             image_paths = list(Path(image_path).rglob(image_pattern))[
@@ -80,5 +79,14 @@ class Writer(ImageWriter, SpectrumWriter):
             self.f = h5py.File(self.h5_path, 'w', fs_strategy="page", fs_page_size=4096, libver="latest")
         else:
             self.f = h5py.File(self.h5_path, 'r+', libver="latest")
+
+    def add_region_references(self):
+        start = timer()
+        self.logger.debug("Adding image region references.")
+        self.open_h5_file_serial()
+        self.add_image_refs(self.f)
+        self.close_h5_file()
+        end = timer()
+        self.logger.info("Region references added in: %s", end - start)
 
 

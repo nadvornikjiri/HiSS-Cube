@@ -45,12 +45,10 @@ def profile(filename=None, comm=MPI.COMM_WORLD):
 
 
 class ParallelWriterMWMR(ParallelWriter):
-    def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None,
-               recreate_fits_tables=False):
+    def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
         if self.mpi_rank == 0:
             self.open_h5_file_serial(truncate=truncate_file)
-            if recreate_fits_tables or truncate_file:
-                self.reingest_fits_tables(image_path, image_pattern, spectra_path, spectra_pattern)
+            self.reingest_fits_tables(image_path, spectra_path, image_pattern, spectra_pattern)
             self.process_metadata()
             self.close_h5_file()
         self.barrier(self.comm)
@@ -60,7 +58,7 @@ class ParallelWriterMWMR(ParallelWriter):
         if self.CREATE_DENSE_CUBE:
             self.create_dense_cube()
 
-    def reingest_fits_tables(self, image_path, image_pattern, spectra_path, spectra_pattern):
+    def reingest_fits_tables(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
         self.clean_fits_header_tables()
         self.create_fits_headers(image_path, image_pattern, spectra_path, spectra_pattern)

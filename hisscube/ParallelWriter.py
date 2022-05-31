@@ -6,6 +6,8 @@ import h5py
 import logging
 from os.path import abspath
 
+import ujson
+
 from hisscube.Writer import Writer
 from mpi4py import MPI
 import msgpack
@@ -164,6 +166,14 @@ class ParallelWriter(Writer):
     def log_data_csv_timing(self, time, image_batch_cnt, spectrum_batch_cnt):
         self.data_timings_logger.writerow([image_batch_cnt, spectrum_batch_cnt, time])
         self.data_timings_log_csv_file.flush()
+
+    def write_image_metadata(self, fits_path, fits_header, no_attrs=False, no_datasets=False):
+        self.metadata = ujson.loads(fits_header)
+        self.write_parsed_image_metadata(fits_path, no_attrs, no_datasets)
+
+    def write_spectrum_metadata(self, fits_path, fits_header, no_attrs=False, no_datasets=False):
+        self.metadata = self.metadata = ujson.loads(fits_header)
+        self.write_parsed_spectrum_metadata(fits_path, no_attrs, no_datasets)
 
 
 def chunks(lst, n):

@@ -23,7 +23,7 @@ class TestH5ParallelWriter:
         fits_spectra_path = "%s/spectra" % INPUT_PATH
         pattern = "*.fits"
         writer.open_h5_file_serial()
-        writer.reingest_fits_tables(fits_image_path, pattern, fits_spectra_path, pattern)
+        writer.reingest_fits_tables(fits_image_path, fits_spectra_path, pattern, pattern)
         assert True
 
     def test_ingest_metadata(self):
