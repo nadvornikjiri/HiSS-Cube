@@ -25,36 +25,38 @@ H5_PATH = "../../results/SDSS_cube_c_par.h5"
 def truncate_test_file(request):
     writer = Writer(h5_path=H5_PATH)
     writer.open_h5_file_serial(truncate=True)
+    writer.reingest_fits_tables(FITS_IMAGE_PATH, FITS_SPECTRA_PATH)
     writer.close_h5_file()
 
 
 class TestCWriter:
     @pytest.mark.usefixtures("truncate_test_file")
     def test_write_images_metadata(self):
-        writer = CWriter()
-        image_pattern, spectra_pattern = writer.get_path_patterns()
+        writer = CWriter(h5_path=H5_PATH)
         writer.write_images_metadata(no_attrs=False, no_datasets=False)
         assert True
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_write_spectra_metadata(self):
-        writer = CWriter()
-        image_pattern, spectra_pattern = writer.get_path_patterns()
+        writer = CWriter(h5_path=H5_PATH)
         writer.write_spectra_metadata()
         assert True
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_process_metadata(self):
-        writer = CWriter(h5_path=H5_PATH, timings_log="logs/test_log.csv")
-        image_pattern, spectra_pattern = writer.get_path_patterns()
-        writer.process_metadata(no_attrs=False, no_datasets=False)
+        writer = Writer(h5_path=H5_PATH, timings_log="logs/test_log_writer.csv")
+        writer.open_h5_file_serial(truncate=True)
+        writer.reingest_fits_tables(FITS_IMAGE_PATH, FITS_SPECTRA_PATH)
+        writer.close_h5_file()
+        c_writer = CWriter(h5_path=H5_PATH, timings_log="logs/test_log_c_writer.csv")
+        c_writer.process_metadata(no_attrs=False, no_datasets=False)
 
         h5_file = h5py.File(H5_PATH, libver="latest")
         test_ds = h5_file[
-            "/semi_sparse_cube/5/22/90/362/1450/5802/23208/92832/371331/4604806771.19/3551/(1024, 744)/frame-u-004899-2-0260.fits"]
+            "/semi_sparse_cube/5/22/90/362/1450/5802/23208/92833/371334/4604806771.19/3551/(1024, 744)/frame-u-004899-2-0260.fits"]
         orig_res_link = test_ds.attrs["orig_res_link"]
         orig_res_ds = h5_file[
-            "/semi_sparse_cube/5/22/90/362/1450/5802/23208/92832/371331/4604806771.19/3551/(2048, 1489)/frame-u-004899-2-0260.fits"]
+            "/semi_sparse_cube/5/22/90/362/1450/5802/23208/92833/371334/4604806771.19/3551/(2048, 1489)/frame-u-004899-2-0260.fits"]
         orig_res_ds_name = orig_res_ds.name.split('/')[-1]
         test_ds_name = h5_file[orig_res_link].name.split('/')[-1]
         assert (orig_res_ds_name == test_ds_name)

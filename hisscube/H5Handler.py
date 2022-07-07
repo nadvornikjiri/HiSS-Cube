@@ -4,11 +4,15 @@ import pathlib
 from datetime import datetime
 from math import log
 
+import csv
+
+import fitsio
 import h5py
 import healpy as hp
 import numpy as np
 import ujson
 from astropy.time import Time
+from timeit import default_timer as timer
 
 from hisscube.utils.astrometry import NoCoverageFoundError, get_cutout_bounds, is_cutout_whole, get_optimized_wcs
 from hisscube import Photometry as cu
@@ -25,6 +29,7 @@ class H5Handler(object):
         """
         self.spec_cnt = 0
         self.img_cnt = 0
+        self.mpi_rank = 0  # mocked for serial mode
         lib_path = pathlib.Path(__file__).parent.absolute()
         self.config = configparser.ConfigParser(allow_no_value=True)
         self.config.read("%s/config.ini" % lib_path)
@@ -50,6 +55,7 @@ class H5Handler(object):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(self.LOG_LEVEL)
         self.grp_cnt = 0
+        self.create_timing_loggers(timings_csv)
 
     def close_h5_file(self):
         self.f.flush()
@@ -324,6 +330,7 @@ class H5Handler(object):
         self.IMG_ZOOM_CNT = self.config.getint("Handler", "IMG_ZOOM_CNT")
         self.SPEC_ZOOM_CNT = self.config.getint("Handler", "SPEC_ZOOM_CNT")
         self.IMG_SPAT_INDEX_ORDER = self.config.getint("Handler", "IMG_SPAT_INDEX_ORDER")
+        self.IMG_DIAMETER_ANG_MIN = self.config.getfloat("Handler", "IMG_DIAMETER_ANG_MIN")
         self.SPEC_SPAT_INDEX_ORDER = self.config.getint("Handler", "SPEC_SPAT_INDEX_ORDER")
         self.CHUNK_SIZE = self.config.get("Handler", "CHUNK_SIZE")
         self.ORIG_CUBE_NAME = self.config.get("Handler", "ORIG_CUBE_NAME")
@@ -361,3 +368,132 @@ class H5Handler(object):
         self.REBIN_SAMPLES = self.config.getint("Preprocessing", "REBIN_SAMPLES")
         self.APPLY_REBIN = self.config.getboolean("Preprocessing", "APPLY_REBIN")
         self.APPLY_TRANSMISSION_CURVE = self.config.getboolean("Preprocessing", "APPLY_TRANSMISSION_CURVE")
+
+    def create_timing_loggers(self, timings_csv):
+        if self.mpi_rank == 0:
+            timing_file_name = timings_csv.split('/')[-1]
+            timing_path = "/".join(timings_csv.split('/')[:-1])
+            if timing_path != "":
+                timing_path += "/"
+            metadata_timing_log = timing_path + "metadata_" + timing_file_name
+            data_timing_log = timing_path + "data_" + timing_file_name
+            self.metadata_timings_log_csv_file = open(metadata_timing_log, "w", newline='')
+            self.metadata_timings_logger = csv.writer(self.metadata_timings_log_csv_file, delimiter=',', quotechar='|',
+                                                      quoting=csv.QUOTE_MINIMAL)
+            self.metadata_timings_logger.writerow(["Image/Spectrum count", "Group count", "Time"])
+            self.data_timings_log_csv_file = open(data_timing_log, "w", newline='')
+            self.data_timings_logger = csv.writer(self.data_timings_log_csv_file, delimiter=',', quotechar='|',
+                                                  quoting=csv.QUOTE_MINIMAL)
+            self.data_timings_logger.writerow(["Image batch count", "Spectra batch count", "Time"])
+
+    def log_metadata_csv_timing(self, time):
+        self.metadata_timings_logger.writerow([self.img_cnt + self.spec_cnt, self.grp_cnt, time])
+
+    def log_data_csv_timing(self, time, image_batch_cnt, spectrum_batch_cnt):
+        self.data_timings_logger.writerow([image_batch_cnt, spectrum_batch_cnt, time])
+        self.data_timings_log_csv_file.flush()
+
+    def get_path_patterns(self, image_pattern=None, spectra_pattern=None):
+        if not image_pattern:
+            image_pattern = self.IMAGE_PATTERN
+        if not spectra_pattern:
+            spectra_pattern = self.SPECTRA_PATTERN
+        return image_pattern, spectra_pattern
+
+    def clean_fits_header_tables(self):
+        if "fits_images_metadata" in self.f:
+            del self.f["fits_images_metadata"]
+        if "fits_spectra_metadata" in self.f:
+            del self.f["fits_spectra_metadata"]
+
+    def reingest_fits_tables(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None):
+        image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)
+        self.clean_fits_header_tables()
+        self.create_fits_headers(image_path, image_pattern, spectra_path, spectra_pattern)
+
+    def create_fits_headers(self, image_path, image_pattern, spectra_path, spectra_pattern):
+        image_header_ds, image_header_ds_dtype, spec_header_ds, spec_header_ds_dtype = self.create_fits_header_datasets()
+        self.img_cnt = self.write_fits_headers(image_header_ds, image_header_ds_dtype, image_path, image_pattern,
+                                               self.LIMIT_IMAGE_COUNT)
+        self.f.attrs["image_count"] = self.img_cnt
+        self.spec_cnt = self.write_fits_headers(spec_header_ds, spec_header_ds_dtype, spectra_path, spectra_pattern,
+                                                self.LIMIT_SPECTRA_COUNT)
+        self.f.attrs["spectra_count"] = self.spec_cnt
+
+    def update_image_headers(self, image_path, image_pattern=None):
+        image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, None)
+        try:
+            self.img_cnt = self.f.attrs["image_count"]  # header datasets not created yet
+        except KeyError:
+            self.img_cnt = 0
+            self.create_fits_header_datasets()
+        image_header_ds = self.get_image_header_dataset()
+        self.img_cnt += self.write_fits_headers(image_header_ds, image_header_ds.dtype, image_path, image_pattern,
+                                                self.LIMIT_IMAGE_COUNT, offset=self.img_cnt)
+        self.f.attrs["image_count"] = self.img_cnt
+
+    def update_spectra_headers(self, spec_path, spec_pattern=None):
+        spec_pattern, spectra_pattern = self.get_path_patterns(None, spec_pattern)
+        try:
+            self.spec_cnt = self.f.attrs["spectra_count"]  # header datasets not created yet
+        except KeyError:
+            self.spec_cnt = 0
+            self.create_fits_header_datasets()
+        spec_header_ds = self.get_spectrum_header_dataset()
+        self.spec_cnt += self.write_fits_headers(spec_header_ds, spec_header_ds.dtype, spec_path, spectra_pattern,
+                                                 self.LIMIT_SPECTRA_COUNT, offset=self.spec_cnt)
+        self.f.attrs["spectra_count"] = self.spec_cnt
+
+    def write_fits_headers(self, header_ds, header_ds_dtype, fits_path, fits_pattern, max_fits_cnt, offset=0):
+        buf = np.zeros(shape=(self.FITS_HEADER_BUF_SIZE,), dtype=header_ds_dtype)
+        buf_i = 0
+        start = timer()
+        check = 100
+        fits_cnt = 0
+        for fits_path in pathlib.Path(fits_path).rglob(
+                fits_pattern):
+            if fits_cnt % check == 0 and fits_cnt / check > 0:
+                end = timer()
+                self.logger.info("100 fits headers done in %.4fs" % (end - start))
+                self.log_metadata_csv_timing(end - start)
+                start = end
+                self.logger.info("Fits cnt: %05d" % fits_cnt)
+            if buf_i >= self.FITS_HEADER_BUF_SIZE:
+                header_ds.write_direct(buf, source_sel=np.s_[0:buf_i], dest_sel=np.s_[offset:offset + buf_i])
+                offset += buf_i
+                buf_i = 0
+            serialized_header = ujson.dumps(dict(fitsio.read_header(fits_path)))
+            buf[buf_i] = (str(fits_path), serialized_header)
+            buf_i += 1
+            fits_cnt += 1
+            if fits_cnt >= max_fits_cnt:
+                break
+        header_ds.write_direct(buf, source_sel=np.s_[0:buf_i], dest_sel=np.s_[offset:offset + buf_i])
+        return fits_cnt
+
+    def create_fits_header_datasets(self):
+        dt = h5py.string_dtype(encoding='utf-8')
+        max_images = self.LIMIT_IMAGE_COUNT
+        max_spectra = self.LIMIT_SPECTRA_COUNT
+        if max_images < 1:
+            max_images = self.MAX_STORED_IMAGE_HEADERS
+        if max_spectra < 1:
+            max_spectra = self.MAX_STORED_SPECTRA_HEADERS
+        path_dtype = h5py.string_dtype(encoding="ascii", length=self.FITS_MAX_PATH_SIZE)
+        image_header_dtype = h5py.string_dtype(encoding="utf-8", length=self.FITS_IMAGE_MAX_HEADER_SIZE)
+        spectrum_header_dtype = h5py.string_dtype(encoding="utf-8", length=self.FITS_SPECTRUM_MAX_HEADER_SIZE)
+        image_header_ds_dtype = [("path", path_dtype), ("header", image_header_dtype)]
+        image_header_ds = self.f.create_dataset('fits_images_metadata', (max_images,),
+                                                dtype=image_header_ds_dtype)
+        spec_header_ds_dtype = [("path", path_dtype), ("header", spectrum_header_dtype)]
+        spec_header_ds = self.f.create_dataset('fits_spectra_metadata', (max_spectra,),
+                                               dtype=spec_header_ds_dtype)
+        self.f.attrs["image_count"] = 0
+        self.f.attrs["spectra_count"] = 0
+        return image_header_ds, image_header_ds_dtype, spec_header_ds, spec_header_ds_dtype
+
+    def get_image_header_dataset(self):
+        return self.f["fits_images_metadata"]
+
+    def get_spectrum_header_dataset(self):
+        return self.f["fits_spectra_metadata"]

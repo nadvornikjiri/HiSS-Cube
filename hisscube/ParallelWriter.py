@@ -1,4 +1,3 @@
-import csv
 import os
 import time
 
@@ -101,23 +100,8 @@ class ParallelWriter(Writer):
         self.image_batch_cnt = 0
         self.spectrum_batch_cnt = 0
         self.active_workers = 0
-
         if self.mpi_rank == 0:
             self.logger.info("Rank 0 pid: %d", os.getpid())
-            timing_file_name = timings_csv.split('/')[-1]
-            timing_path = "/".join(timings_csv.split('/')[:-1])
-            if timing_path != "":
-                timing_path += "/"
-            metadata_timing_log = timing_path + "metadata_" + timing_file_name
-            data_timing_log = timing_path + "data_" + timing_file_name
-            self.metadata_timings_log_csv_file = open(metadata_timing_log, "w", newline='')
-            self.metadata_timings_logger = csv.writer(self.metadata_timings_log_csv_file, delimiter=',', quotechar='|',
-                                                      quoting=csv.QUOTE_MINIMAL)
-            self.metadata_timings_logger.writerow(["Image/Spectrum count", "Group count", "Time"])
-            self.data_timings_log_csv_file = open(data_timing_log, "w", newline='')
-            self.data_timings_logger = csv.writer(self.data_timings_log_csv_file, delimiter=',', quotechar='|',
-                                                  quoting=csv.QUOTE_MINIMAL)
-            self.data_timings_logger.writerow(["Image batch count", "Spectra batch count", "Time"])
 
     def open_h5_file_parallel(self, truncate=False):
         if truncate and not self.C_BOOSTER:
@@ -159,21 +143,6 @@ class ParallelWriter(Writer):
         while not self.comm.Iprobe(source, tag, status):
             time.sleep(self.POLL_INTERVAL)
         return
-
-    def log_metadata_csv_timing(self, time):
-        self.metadata_timings_logger.writerow([self.img_cnt + self.spec_cnt, self.grp_cnt, time])
-
-    def log_data_csv_timing(self, time, image_batch_cnt, spectrum_batch_cnt):
-        self.data_timings_logger.writerow([image_batch_cnt, spectrum_batch_cnt, time])
-        self.data_timings_log_csv_file.flush()
-
-    def write_image_metadata(self, fits_path, fits_header, no_attrs=False, no_datasets=False):
-        self.metadata = ujson.loads(fits_header)
-        self.write_parsed_image_metadata(fits_path, no_attrs, no_datasets)
-
-    def write_spectrum_metadata(self, fits_path, fits_header, no_attrs=False, no_datasets=False):
-        self.metadata = self.metadata = ujson.loads(fits_header)
-        self.write_parsed_spectrum_metadata(fits_path, no_attrs, no_datasets)
 
 
 def chunks(lst, n):

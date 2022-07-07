@@ -149,6 +149,18 @@ class CWriter(ParallelWriterMWMR):
             self.metadata_timings_log_csv_file.close()
         self.barrier(self.comm)
 
+    def write_images_metadata(self, no_attrs=False, no_datasets=False):
+        f = self.open_h5_file_serial(truncate=False)
+        fits_headers = f["/fits_images_metadata"]
+        self.parse_image_headers(fits_headers, no_attrs, no_datasets)
+        f.close()
+
+    def write_spectra_metadata(self, no_attrs=False, no_datasets=False):
+        f = self.open_h5_file_serial(truncate=False)
+        fits_headers = f["/fits_spectra_metadata"]
+        self.parse_spectra_headers(fits_headers, no_attrs, no_datasets)
+        f.close()
+
     def c_write_hdf5_metadata(self):
         self.logger.info("Initiating C booster for metadata write.")
         if self.CHUNK_SIZE:

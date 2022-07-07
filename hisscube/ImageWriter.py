@@ -29,7 +29,13 @@ class ImageWriter(H5Handler):
         -------
 
         """
-        self.write_image_metadata(image_path)
+        path = pathlib.Path(image_path)
+        fits_folder_path = path.parent
+        fits_file_name = path.name
+        self.update_image_headers(fits_folder_path, image_pattern=fits_file_name)
+        fits_header = self.get_image_header_dataset()[self.img_cnt - 1][
+            1]  # the latest inserted image header, not the path
+        self.write_image_metadata(image_path, fits_header)
         self.metadata, self.data = self.cube_utils.get_multiple_resolution_image(image_path,
                                                                                  self.config.getint("Handler",
                                                                                                     "IMG_ZOOM_CNT"))
@@ -44,9 +50,8 @@ class ImageWriter(H5Handler):
 
         """
         cube_grp = self.require_raw_cube_grp()
-        spatial_grps = self.require_image_spatial_grp_structure(cube_grp)
-        time_grp = self.require_image_time_grp(spatial_grps[0])
-        self.add_hard_links(spatial_grps[1:], time_grp)
+        spatial_grp = self.require_image_spatial_grp_structure(cube_grp)
+        time_grp = self.require_image_time_grp(spatial_grp)
         img_spectral_grp = self.require_image_spectral_grp(time_grp)
         res_grps = self.require_res_grps(img_spectral_grp)
         return res_grps
@@ -65,18 +70,13 @@ class ImageWriter(H5Handler):
 
         """
         orig_parent = parent_grp
-        boundaries = astrometry.get_boundary_coords(self.metadata)
-        leaf_grp_set = []
-        for coord in boundaries:
-            parent_grp = orig_parent
-            for order in range(self.IMG_SPAT_INDEX_ORDER):
-                parent_grp = self.require_spatial_grp(order, parent_grp, coord)
-                if order == self.IMG_SPAT_INDEX_ORDER - 1:
-                    # only return each leaf group once.
-                    if len(leaf_grp_set) == 0 or \
-                            not (any(self.get_name(grp) == self.get_name(parent_grp) for grp in leaf_grp_set)):
-                        leaf_grp_set.append(parent_grp)
-        return leaf_grp_set
+        image_coords = astrometry.get_image_center_coords(self.metadata)
+
+        parent_grp = orig_parent
+        for order in range(self.IMG_SPAT_INDEX_ORDER):
+            parent_grp = self.require_spatial_grp(order, parent_grp, image_coords)
+            if order == self.IMG_SPAT_INDEX_ORDER - 1:
+                return parent_grp
 
     def require_image_time_grp(self, parent_grp):
         tai_time = self.metadata["TAI"]
@@ -113,15 +113,19 @@ class ImageWriter(H5Handler):
         dcpl, space, img_data_dtype = self.get_property_list(img_data_shape)
         if self.CHUNK_SIZE:
             dcpl.set_chunk(make_tuple(self.CHUNK_SIZE))
-        dsid = h5py.h5d.create(group.id, str.encode(self.file_name), img_data_dtype, space, dcpl=dcpl)
+        dsid = h5py.h5d.create(group.id, self.file_name.encode('utf-8'), img_data_dtype, space, dcpl=dcpl)
         ds = h5py.Dataset(dsid)
         return ds
 
     def write_images_metadata(self, no_attrs=False, no_datasets=False):
+        fits_headers = self.f["/fits_images_metadata"]
+        self.parse_image_headers(fits_headers, no_attrs, no_datasets)
+
+    def parse_image_headers(self, fits_headers, no_attrs, no_datasets):
         start = timer()
         check = 100
-        fits_headers = self.f["/fits_images_metadata"]
         for fits_path, header in fits_headers:
+            fits_path = fits_path.decode('ascii')
             if self.img_cnt % check == 0 and self.img_cnt / check > 0:
                 end = timer()
                 self.logger.info("100 images done in %.4fs" % (end - start))
@@ -138,8 +142,8 @@ class ImageWriter(H5Handler):
                 break
         self.set_attr(self.f, "image_count", self.img_cnt)
 
-    def write_image_metadata(self, fits_path, no_attrs=False, no_datasets=False):
-        self.metadata = fitsio.read_header(fits_path)
+    def write_image_metadata(self, fits_path, fits_header, no_attrs=False, no_datasets=False):
+        self.metadata = ujson.loads(fits_header)
         self.write_parsed_image_metadata(fits_path, no_attrs, no_datasets)
 
     def write_parsed_image_metadata(self, fits_path, no_attrs, no_datasets):
@@ -168,7 +172,7 @@ class ImageWriter(H5Handler):
         return img_datasets
 
     def get_image_resolution_groups(self):
-        reference_coord = astrometry.get_boundary_coords(self.metadata)[0]
+        reference_coord = astrometry.get_image_center_coords(self.metadata)
         spatial_path = self.get_heal_path_from_coords(ra=reference_coord[0], dec=reference_coord[1])
         tai_time = self.metadata["TAI"]
         spectral_midpoint = self.cube_utils.filter_midpoints[self.metadata["FILTER"]]

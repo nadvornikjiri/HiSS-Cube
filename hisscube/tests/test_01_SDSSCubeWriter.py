@@ -17,51 +17,37 @@ with warnings.catch_warnings():
 H5PATH = "../../results/SDSS_cube.h5"
 
 
-@pytest.fixture(scope="session", autouse=False)
-def truncate_test_file(request):
-    writer = Writer(h5_path=H5PATH)
-    writer.open_h5_file_serial(truncate=True)
-    writer.close_h5_file()
-
-
 class TestH5Writer(unittest.TestCase):
 
     def setup_method(self, test_method):
         self.writer = Writer(h5_path=H5PATH)
-        self.writer.open_h5_file_serial(truncate=False)
+        self.writer.open_h5_file_serial(truncate=True)
         self.h5_file = self.writer.f
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
     def teardown_method(self, test_method):
-        self.h5_file.close()
+        print("Closing file")
+        self.writer.close_h5_file()
 
-    @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image(self):
-        test_path = "../../data/raw/images/301/2820/3/frame-g-002820-3-0122.fits"
-
+        # test_path = "../../data/raw/images/301/2820/3/frame-g-002820-3-0122.fits"
+        test_path = "../../data/raw/galaxy_small/images/frame-r-004136-3-0129.fits"
         h5_datasets = self.writer.ingest_image(test_path)
         assert len(h5_datasets) == self.writer.config.getint("Handler", "IMG_ZOOM_CNT")
 
     def test_add_spectrum(self):
         test_path = "../../data/raw/problematic/spectra/spec-5290-55862-0984.fits"
+        h5_datasets = self.writer.ingest_spectrum(test_path)
+        assert len(h5_datasets) == self.writer.config.getint("Handler", "SPEC_ZOOM_CNT")
 
-        writer = Writer(self.h5_file)
+    def test_add_image_multiple_same_run(self):
+        self.writer.IMG_SPAT_INDEX_ORDER = 8
+        self.writer.C_BOOSTER = False
+        test_images = "../../data/raw/problematic/images_same_run"
+        image_pattern = "*.fits"
+        self.assertRaises(ValueError,
+                          lambda: self.writer.ingest(test_images, "path_to_nowhere", image_pattern, "*"))
 
-        h5_datasets = writer.ingest_spectrum(test_path)
-        assert len(h5_datasets) == writer.config.getint("Handler", "SPEC_ZOOM_CNT")
-
-    # @pytest.mark.usefixtures("truncate_test_file")
-    # def test_add_image_multiple_same_run(self):
-    #     # test_images = "../../data/images/301/2820/3"
-    #     test_images = "../../data/raw/problematic/images_same_run"
-    #     image_pattern = "*.fits"
-    #     # test_images = "../../data/raw/galaxy_small/images"
-    #     # image_pattern = "frame-*-004136-*-0129.fits"
-    #
-    #     self.assertRaises(ValueError,
-    #                       lambda: self.writer.ingest(test_images, "path_to_nowhere", image_pattern, "*"))
-
-    @pytest.mark.usefixtures("truncate_test_file")
     def test_add_image_multiple(self):
         test_images = "../../data/raw/galaxy_small/images"
         image_pattern = "frame-*-004136-*-0129.fits"
@@ -69,12 +55,12 @@ class TestH5Writer(unittest.TestCase):
         img_datasets = []
         for image in tqdm(image_paths, desc="Images completed: "):
             img_datasets.append(self.writer.ingest_image(image))
-        assert(len(image_paths) == len(img_datasets))
-
-
+        assert (len(image_paths) == len(img_datasets))
 
     def test_add_spec_refs(self):
-        test_spectrum = "../../data/raw/galaxy_small/spectra/spec-0411-51817-0119.fits"
+        test_image = "../../data/raw/galaxy_small/images/frame-r-004136-3-0129.fits"
+        test_spectrum = "../../data/raw/galaxy_tiny/spectra/spec-0412-51871-0308.fits"
+        self.writer.ingest_image(test_image)
         spec_datasets = self.writer.ingest_spectrum(test_spectrum)
         self.writer.add_image_refs_to_spectra(spec_datasets)
         assert bool(spec_datasets[0].parent.parent.parent["image_cutouts_0"][0])
@@ -138,7 +124,7 @@ class TestH5Writer(unittest.TestCase):
         spectra_pattern = "*.fits"
         spectra_paths = list(Path(spectra_folder).rglob(spectra_pattern))
         for spectrum in tqdm(spectra_paths, desc="Spectra completed: "):
-            if "spec-0411-51817-0119.fits" in str(spectrum):    #added in previous tests
+            if "spec-0411-51817-0119.fits" in str(spectrum):  # added in previous tests
                 continue
             datasets = self.writer.ingest_spectrum(spectrum)
             assert (len(datasets) >= 1)
@@ -164,22 +150,22 @@ class TestH5Writer(unittest.TestCase):
             assert (data[0]['flux_mean'].shape[0] == 4620)
 
     def test_write_dense_cube(self):
-        writer = Writer(self.h5_file)
-        writer.create_dense_cube()
+        self.test_add_spec_refs()
+        self.writer.create_dense_cube()
         assert True
 
-    @pytest.mark.skip("Annoyingly long run.")
+    @pytest.mark.skip(reason="Long run")
     def test_float_compress(self):
-        test_path = "../../data/raw/images/301/4797/1/frame-g-004797-1-0019.fits"
-
-        writer = Writer(self.h5_file)
-        writer.metadata, writer.data = writer.cube_utils.get_multiple_resolution_image(test_path,
-                                                                                       writer.config.getint("Handler",
-                                                                                                            "IMG_ZOOM_CNT"))
-        writer.file_name = os.path.basename(test_path)
-        for img in writer.data:  # parsing 2D resolution
+        test_path = "../../data/raw/images/301/2820/3/frame-g-002820-3-0122.fits"
+        self.writer.FLOAT_COMPRESS = True
+        self.writer.metadata, self.writer.data = self.writer.cube_utils.get_multiple_resolution_image(test_path,
+                                                                                                      self.writer.config.getint(
+                                                                                                          "Handler",
+                                                                                                          "IMG_ZOOM_CNT"))
+        self.writer.file_name = os.path.basename(test_path)
+        for img in self.writer.data:  # parsing 2D resolution
             img_data = np.dstack((img["flux_mean"], img["flux_sigma"]))
-            float_compressed_data = writer.float_compress(img_data)
+            float_compressed_data = self.writer.float_compress(img_data)
             # check that we truncated the mantissa correctly - 13 last digits of mantissa should be 0
             for compressed_number, orig_number in np.nditer((float_compressed_data, img_data)):
                 if orig_number != 0:
@@ -191,4 +177,3 @@ class TestH5Writer(unittest.TestCase):
                             compressed_number, orig_number, np.abs((compressed_number / orig_number) - 1)))
                         assert False
         assert True
-

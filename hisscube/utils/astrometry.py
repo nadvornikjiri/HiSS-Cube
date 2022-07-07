@@ -1,7 +1,11 @@
+import math
+
 from astropy import wcs
 import numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.wcs.utils import skycoord_to_pixel
+import healpy as hp
+from numpy import arange
 
 
 def get_boundary_coords(fits_header):
@@ -22,6 +26,10 @@ def get_boundary_coords(fits_header):
     coord_top_right = w.wcs_pix2world(fits_header["NAXIS1"], 0, 0)
     coord_bot_right = w.wcs_pix2world(fits_header["NAXIS1"], fits_header["NAXIS2"], 0)
     return [coord_top_left, coord_bot_left, coord_top_right, coord_bot_right]
+
+
+def get_image_center_coords(fits_header):
+    return fits_header["CRVAL1"], fits_header["CRVAL2"]
 
 
 def get_optimized_wcs(image_fits_header):
@@ -107,3 +115,21 @@ def is_cutout_whole(cutout_bounds, image_ds):
            0 <= cutout_bounds[1][0][0] <= cutout_bounds[1][1][0] <= image_ds.shape[1] and \
            0 <= cutout_bounds[0][0][1] <= cutout_bounds[0][1][1] <= image_ds.shape[0] and \
            0 <= cutout_bounds[1][0][1] <= cutout_bounds[1][1][1] <= image_ds.shape[0]
+
+
+def get_potential_overlapping_image_spatial_paths(fits_header, radius_arcmin, image_index_depth):
+    spec_ra = fits_header["PLUG_RA"]
+    spec_dec = fits_header["PLUG_DEC"]
+    vec = hp.ang2vec(spec_ra, spec_dec, lonlat=True)
+    radius_rad = radius_arcmin * math.pi / (60 * 180)
+    nsides = 2 ** arange(image_index_depth)
+    pix_ids = hp.query_disc(nsides[-1], vec, inclusive=True, fact=2 ** image_index_depth, radius=radius_rad, nest=True)
+    paths = []
+    for ipix in pix_ids:
+        path = str(ipix)
+        for nside in reversed(nsides[:-1]):
+            ipix_vec = hp.pix2vec(nside * 2, ipix, nest=True)
+            ipix = hp.vec2pix(nside, ipix_vec[0], ipix_vec[1], ipix_vec[2], nest=True)
+            path = "%s/%s" % (ipix, path)
+        paths.append(path)
+    return paths

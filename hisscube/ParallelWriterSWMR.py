@@ -46,9 +46,6 @@ class ParallelWriterSWMR(ParallelWriter):
         # start2 = timer()
         # print("Elapsed time: %.2f" % (start2 - start1))
 
-    def write_spectrum_data(self, spec_path):
-        return super().ingest_spectrum(spec_path)
-
     def send_processed_image_data(self):
         status = MPI.Status()
         image_path_list = self.receive_work(status)

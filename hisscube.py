@@ -67,7 +67,7 @@ parser.add_argument('output_path', metavar="output", type=str,
 parser.add_argument('-t', '--truncate', action='store_const', const=True,
                     help="Should truncate the file if exists?")
 
-subparsers = parser.add_subparsers(help='commands')
+subparsers = parser.add_subparsers(help='commands', dest="command")
 ingest_parser = subparsers.add_parser("ingest",
                                       help="This command allows you to ingest the whole h5 file in one go.")
 update_parser = subparsers.add_parser("update",
@@ -92,9 +92,9 @@ fits_image_path = "%s/images" % args.input_path
 fits_spectra_path = "%s/spectra" % args.input_path
 
 writer = WriterFactory().get_writer(args.output_path)
-if args.ingest:
+if args.command == "ingest":
     writer.ingest(fits_image_path, fits_spectra_path, truncate_file=args.truncate)
-elif args.update:
+elif args.command == "update":
     writer.open_h5_file_serial(truncate=args.truncate)
     if args.fits_tables:
         writer.reingest_fits_tables(fits_image_path, fits_spectra_path)

@@ -5,8 +5,10 @@ import fitsio
 import h5py
 import numpy as np
 import ujson
+import healpy as hp
 
 from hisscube.H5Handler import H5Handler
+from hisscube.utils import astrometry
 from hisscube.utils.astrometry import NoCoverageFoundError
 from timeit import default_timer as timer
 
@@ -28,7 +30,13 @@ class SpectrumWriter(H5Handler):
         -------
 
         """
-        self.write_spectrum_metadata(spec_path)
+        path = pathlib.Path(spec_path)
+        fits_folder_path = path.parent
+        fits_file_name = path.name
+        self.update_spectra_headers(fits_folder_path, spec_pattern=fits_file_name)
+        fits_header = self.get_spectrum_header_dataset()[self.spec_cnt - 1][
+            1]  # the latest inserted image header, not the path
+        self.write_spectrum_metadata(spec_path, fits_header)
         self.metadata, self.data = self.cube_utils.get_multiple_resolution_spectrum(
             spec_path, self.SPEC_ZOOM_CNT,
             apply_rebin=self.APPLY_REBIN,
@@ -101,9 +109,9 @@ class SpectrumWriter(H5Handler):
 
     def create_spectrum_h5_dataset(self, group, spec_data_shape):
         dcpl, space, spec_data_dtype = self.get_property_list(spec_data_shape)
-        ds_name = str.encode(self.file_name)
+        ds_name = self.file_name
         if not ds_name in group:
-            dsid = h5py.h5d.create(group.id, ds_name, spec_data_dtype, space, dcpl=dcpl)
+            dsid = h5py.h5d.create(group.id, ds_name.encode('utf-8'), spec_data_dtype, space, dcpl=dcpl)
             ds = h5py.Dataset(dsid)
         else:
             ds = group[ds_name]
@@ -154,7 +162,8 @@ class SpectrumWriter(H5Handler):
                 if image_res_idx > image_min_zoom_idx:
                     image_min_zoom_idx = image_res_idx
             except NoCoverageFoundError as e:
-                self.logger.debug("No coverage found for spectrum %s and image %s, reason %s" % (self.file_name, image_ds, str(e)))
+                self.logger.debug(
+                    "No coverage found for spectrum %s and image %s, reason %s" % (self.file_name, image_ds, str(e)))
                 pass
 
         for res in image_refs:
@@ -180,26 +189,34 @@ class SpectrumWriter(H5Handler):
         Yields         (int, HDF5 dataset)
         -------
         """
-        heal_path = self.get_heal_path_from_coords()
-        heal_path_group = self.f[heal_path]
-        for time_grp in heal_path_group.values():
-            if isinstance(time_grp, h5py.Group):
-                for band_grp in time_grp.values():
-                    if isinstance(band_grp, h5py.Group) and band_grp.attrs["type"] == "spectral":
-                        for res_idx, res in enumerate(band_grp):
-                            res_grp = band_grp[res]
-                            for image_ds in res_grp.values():
-                                try:
-                                    if image_ds.attrs["mime-type"] == "image":
-                                        yield res_idx, image_ds
-                                except KeyError:
-                                    pass
+        overlapping_pixel_paths = astrometry.get_potential_overlapping_image_spatial_paths(self.metadata,
+                                                                                           self.IMG_DIAMETER_ANG_MIN,
+                                                                                           self.IMG_SPAT_INDEX_ORDER)
+        heal_paths = self.get_absolute_heal_paths(overlapping_pixel_paths)
+        for heal_path in heal_paths:
+            try:
+                heal_path_group = self.f[heal_path]
+                for time_grp in heal_path_group.values():
+                    if isinstance(time_grp, h5py.Group):
+                        for band_grp in time_grp.values():
+                            if isinstance(band_grp, h5py.Group) and band_grp.attrs["type"] == "spectral":
+                                for res_idx, res in enumerate(band_grp):
+                                    res_grp = band_grp[res]
+                                    for image_ds in res_grp.values():
+                                        if image_ds.attrs["mime-type"] == "image":
+                                            yield res_idx, image_ds
+            except KeyError:
+                pass
 
     def write_spectra_metadata(self, no_attrs=False, no_datasets=False):
+        fits_headers = self.f["/fits_spectra_metadata"]
+        self.parse_spectra_headers(fits_headers, no_attrs, no_datasets)
+
+    def parse_spectra_headers(self, fits_headers, no_attrs, no_datasets):
         start = timer()
         check = 100
-        fits_headers = self.f["/fits_spectra_metadata"]
         for fits_path, header in fits_headers:
+            fits_path = fits_path.decode('ascii')
             if self.spec_cnt % check == 0 and self.spec_cnt / check > 0:
                 end = timer()
                 self.logger.info("100 spectra done in %.4fs" % (end - start))
@@ -214,10 +231,10 @@ class SpectrumWriter(H5Handler):
                     "Unable to ingest spectrum %s, message: %s" % (fits_path, str(e)))
             if self.spec_cnt >= self.LIMIT_SPECTRA_COUNT:
                 break
-        self.set_attr(self.f, "spectrum_count", self.spec_cnt)
+        self.set_attr(self.f, "spectra_count", self.spec_cnt)
 
-    def write_spectrum_metadata(self, fits_path, no_attrs=False, no_datasets=False):
-        self.metadata = fitsio.read_header(fits_path)
+    def write_spectrum_metadata(self, fits_path, fits_header, no_attrs=False, no_datasets=False):
+        self.metadata = ujson.loads(fits_header)
         self.write_parsed_spectrum_metadata(fits_path, no_attrs, no_datasets)
 
     def write_parsed_spectrum_metadata(self, fits_path, no_attrs, no_datasets):
@@ -259,3 +276,8 @@ class SpectrumWriter(H5Handler):
         time_grp = self.f[path]
         for res_grp in time_grp:
             yield time_grp[res_grp]
+
+    def get_absolute_heal_paths(self, overlapping_pixel_paths):
+        for heal_path in overlapping_pixel_paths:
+            absolute_path = "%s/%s" % (self.ORIG_CUBE_NAME, heal_path)
+            yield absolute_path

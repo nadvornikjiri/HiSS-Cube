@@ -1,8 +1,6 @@
-import pathlib
 from pathlib import Path
 
 import h5py
-from h5py._hl.files import make_fcpl
 from tqdm.auto import tqdm
 
 from hisscube.ImageWriter import ImageWriter
@@ -60,19 +58,14 @@ class Writer(ImageWriter, SpectrumWriter):
             self.ingest_spectrum(spectrum)
         if self.CREATE_REFERENCES:
             self.add_image_refs(self.f)
+        if self.CREATE_DENSE_CUBE:
+            self.create_dense_cube()
 
     def ingest_metadata(self, no_attrs=False, no_datasets=False):
         self.logger.info("Writing image metadata.")
         self.write_images_metadata(no_attrs, no_datasets)
         self.logger.info("Writing spectra metadata.")
         self.write_spectra_metadata(no_attrs, no_datasets)
-
-    def get_path_patterns(self, image_pattern=None, spectra_pattern=None):
-        if not image_pattern:
-            image_pattern = self.IMAGE_PATTERN
-        if not spectra_pattern:
-            spectra_pattern = self.SPECTRA_PATTERN
-        return image_pattern, spectra_pattern
 
     def open_h5_file_serial(self, truncate=False):
         if truncate:
@@ -88,5 +81,3 @@ class Writer(ImageWriter, SpectrumWriter):
         self.close_h5_file()
         end = timer()
         self.logger.info("Region references added in: %s", end - start)
-
-
