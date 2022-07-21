@@ -216,7 +216,9 @@ class SpectrumWriter(H5Handler):
         start = timer()
         check = 100
         for fits_path, header in fits_headers:
-            fits_path = fits_path.decode('ascii')
+            fits_path = fits_path.decode('utf-8')
+            if fits_path == "":     # end of data
+                break
             if self.spec_cnt % check == 0 and self.spec_cnt / check > 0:
                 end = timer()
                 self.logger.info("100 spectra done in %.4fs" % (end - start))

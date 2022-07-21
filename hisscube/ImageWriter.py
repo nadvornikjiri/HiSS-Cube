@@ -125,7 +125,9 @@ class ImageWriter(H5Handler):
         start = timer()
         check = 100
         for fits_path, header in fits_headers:
-            fits_path = fits_path.decode('ascii')
+            fits_path = fits_path.decode('utf-8')
+            if fits_path == "":     # end of data
+                break
             if self.img_cnt % check == 0 and self.img_cnt / check > 0:
                 end = timer()
                 self.logger.info("100 images done in %.4fs" % (end - start))

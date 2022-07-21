@@ -38,7 +38,7 @@ class Writer(ImageWriter, SpectrumWriter):
                                                shuffle=self.SHUFFLE)
             ds.write_direct(spectral_cube)
         end = timer()
-        self.logger.info("Region references added in: %s", end - start)
+        self.logger.info("Dense cube created in: %s", end - start)
 
     def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
         image_pattern, spectra_pattern = self.get_path_patterns(image_pattern, spectra_pattern)

@@ -36,15 +36,13 @@ class H5Handler(object):
         self.parse_config()
         # utils
         lib_path = pathlib.Path(__file__).parent.absolute()
-        cube_utils = self.cube_utils = cu.Photometry("%s/../config/SDSS_Bands" % lib_path,
+        self.cube_utils = cu.Photometry("%s/../config/SDSS_Bands" % lib_path,
                                                      "%s/../config/ccd_gain.tsv" % lib_path,
                                                      "%s/../config/ccd_dark_variance.tsv" % lib_path)
         self.ingest_type = None
         self.spectrum_length = None
         self.image_path_list = []
         self.spectra_path_list = []
-
-        self.cube_utils = cube_utils
         self.f = h5_file
         self.h5_path = h5_path
         self.file_name = None
@@ -472,19 +470,18 @@ class H5Handler(object):
         return fits_cnt
 
     def create_fits_header_datasets(self):
-        dt = h5py.string_dtype(encoding='utf-8')
         max_images = self.LIMIT_IMAGE_COUNT
         max_spectra = self.LIMIT_SPECTRA_COUNT
         if max_images < 1:
             max_images = self.MAX_STORED_IMAGE_HEADERS
         if max_spectra < 1:
             max_spectra = self.MAX_STORED_SPECTRA_HEADERS
-        path_dtype = h5py.string_dtype(encoding="ascii", length=self.FITS_MAX_PATH_SIZE)
+        path_dtype = h5py.string_dtype(encoding="utf-8", length=self.FITS_MAX_PATH_SIZE)
         image_header_dtype = h5py.string_dtype(encoding="utf-8", length=self.FITS_IMAGE_MAX_HEADER_SIZE)
-        spectrum_header_dtype = h5py.string_dtype(encoding="utf-8", length=self.FITS_SPECTRUM_MAX_HEADER_SIZE)
         image_header_ds_dtype = [("path", path_dtype), ("header", image_header_dtype)]
         image_header_ds = self.f.create_dataset('fits_images_metadata', (max_images,),
                                                 dtype=image_header_ds_dtype)
+        spectrum_header_dtype = h5py.string_dtype(encoding="utf-8", length=self.FITS_SPECTRUM_MAX_HEADER_SIZE)
         spec_header_ds_dtype = [("path", path_dtype), ("header", spectrum_header_dtype)]
         spec_header_ds = self.f.create_dataset('fits_spectra_metadata', (max_spectra,),
                                                dtype=spec_header_ds_dtype)

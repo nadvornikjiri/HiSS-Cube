@@ -220,7 +220,11 @@ void write_attr(PyObject *val, PyObject *key, hid_t h5_obj, hid_t *orig_res_ds) 
     }
     if (strcmp(dtype, "int") == 0) {
         long attr_val = PyLong_AsLong(val);
-        attr = H5Acreate(h5_obj, key_bytes, H5T_NATIVE_LONG, aspace, H5P_DEFAULT, H5P_DEFAULT);
+        if (H5Aexists(h5_obj, key_bytes)) {
+            attr = H5Aopen(h5_obj, key_bytes, H5P_DEFAULT);
+        } else{
+            attr = H5Acreate(h5_obj, key_bytes, H5T_NATIVE_LONG, aspace, H5P_DEFAULT, H5P_DEFAULT);
+        }
         if (attr < 0) {
             H5Eprint(H5E_DEFAULT, stderr);
         }
@@ -233,7 +237,11 @@ void write_attr(PyObject *val, PyObject *key, hid_t h5_obj, hid_t *orig_res_ds) 
         if (status < 0) {
             H5Eprint(H5E_DEFAULT, stderr);
         }
-        attr = H5Acreate(h5_obj, key_bytes, H5T_STD_REF_OBJ, aspace, H5P_DEFAULT, H5P_DEFAULT);
+        if (H5Aexists(h5_obj, key_bytes)) {
+            attr = H5Aopen(h5_obj, key_bytes, H5P_DEFAULT);
+        } else {
+            attr = H5Acreate(h5_obj, key_bytes, H5T_STD_REF_OBJ, aspace, H5P_DEFAULT, H5P_DEFAULT);
+        }
         if (attr < 0) {
             H5Eprint(H5E_DEFAULT, stderr);
         }
@@ -251,7 +259,11 @@ void write_attr(PyObject *val, PyObject *key, hid_t h5_obj, hid_t *orig_res_ds) 
         atype = H5Tcopy(H5T_C_S1);
         H5Tset_size(atype, H5T_VARIABLE);
         H5Tset_cset(atype, H5T_CSET_UTF8);
-        attr = H5Acreate(h5_obj, key_bytes, atype, aspace, H5P_DEFAULT, H5P_DEFAULT);
+        if (H5Aexists(h5_obj, key_bytes)) {
+            attr = H5Aopen(h5_obj, key_bytes, H5P_DEFAULT);
+        } else {
+            attr = H5Acreate(h5_obj, key_bytes, atype, aspace, H5P_DEFAULT, H5P_DEFAULT);
+        }
         if (attr < 0) {
             H5Eprint(H5E_DEFAULT, stderr);
         }

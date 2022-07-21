@@ -147,7 +147,6 @@ class CWriter(ParallelWriterMWMR):
             self.logger.info("Writing metadata.")
             self.ingest_metadata(no_attrs, no_datasets)
             self.metadata_timings_log_csv_file.close()
-        self.barrier(self.comm)
 
     def write_images_metadata(self, no_attrs=False, no_datasets=False):
         f = self.open_h5_file_serial(truncate=False)

@@ -9,6 +9,8 @@ import cProfile
 
 import os
 
+from hisscube.Writer import Writer
+
 
 def measured_time():
     times = os.times()
@@ -40,16 +42,19 @@ def profile(filename=None, comm=MPI.COMM_WORLD):
 class ParallelWriterMWMR(ParallelWriter):
     def ingest(self, image_path, spectra_path, image_pattern=None, spectra_pattern=None, truncate_file=None):
         if self.mpi_rank == 0:
-            self.open_h5_file_serial(truncate=truncate_file)
-            self.reingest_fits_tables(image_path, spectra_path, image_pattern, spectra_pattern)
+            writer = Writer(h5_path=self.h5_path, timings_log="test_log_writer.csv")
+            writer.open_h5_file_serial(truncate=truncate_file)
+            writer.reingest_fits_tables(image_path, spectra_path, image_pattern=image_pattern,
+                                        spectra_pattern=spectra_pattern)
+            writer.close_h5_file()
             self.process_metadata()
-            self.close_h5_file()
         self.barrier(self.comm)
         self.process_data()
-        if self.CREATE_REFERENCES:
-            self.add_region_references()
-        if self.CREATE_DENSE_CUBE:
-            self.create_dense_cube()
+        if self.mpi_rank == 0:
+            if self.CREATE_REFERENCES:
+                self.add_region_references()
+            if self.CREATE_DENSE_CUBE:
+                self.create_dense_cube()
 
     # @profile(filename="profile_process_metadata")
     def process_metadata(self, no_attrs=False, no_datasets=False):
@@ -79,18 +84,16 @@ class ParallelWriterMWMR(ParallelWriter):
         self.logger.info("Parallel part time: %s", end - start)
 
     def add_region_references(self):
-        if self.mpi_rank == 0:
-            start = timer()
-            self.logger.debug("Adding image region references.")
-            self.open_h5_file_serial()
-            self.add_image_refs(self.f)
-            self.close_h5_file()
-            end = timer()
-            self.logger.info("Region references added in: %s", end - start)
+        start = timer()
+        self.logger.debug("Adding image region references.")
+        self.open_h5_file_serial()
+        self.add_image_refs(self.f)
+        self.close_h5_file()
+        end = timer()
+        self.logger.info("Region references added in: %s", end - start)
 
     def open_and_truncate(self):
         self.f = h5py.File(self.h5_path, 'w', libver="latest")
-
 
     def write_image_data(self):
         status = MPI.Status()

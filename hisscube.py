@@ -2,6 +2,7 @@
 import csv
 import os
 import re
+from pathlib import Path
 from time import sleep
 
 import numpy as np
@@ -20,7 +21,7 @@ size = MPI.COMM_WORLD.Get_size()
 rank = MPI.COMM_WORLD.Get_rank()
 
 # import pydevd_pycharm
-# port_mapping = [41817, 36673]
+# port_mapping = [43163, 42623]
 # pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
 print(os.getpid())
 
@@ -88,8 +89,8 @@ update_parser.add_argument('dense-cube', action='store_true',
 
 args = parser.parse_args()
 
-fits_image_path = "%s/images" % args.input_path
-fits_spectra_path = "%s/spectra" % args.input_path
+fits_image_path = Path(args.input_path).joinpath("images")
+fits_spectra_path = Path(args.input_path).joinpath("spectra")
 
 writer = WriterFactory().get_writer(args.output_path)
 if args.command == "ingest":
@@ -106,7 +107,6 @@ elif args.command == "update":
         writer.add_region_references()
     if args.dense_cube:
         writer.create_dense_cube()
-
 writer.barrier(MPI.COMM_WORLD)
 write_proc_stats()
 writer.barrier(MPI.COMM_WORLD)
