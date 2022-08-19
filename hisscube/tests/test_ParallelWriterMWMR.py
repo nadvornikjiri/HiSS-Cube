@@ -1,7 +1,7 @@
 import pytest
 import h5py
 
-from hisscube.ParallelWriterMWMR import ParallelWriterMWMR
+from hisscube.ParallelWriterMWMRService import ParallelWriterMWMRService
 
 H5PATH = "../../results/SDSS_cube_parallel.h5"
 INPUT_PATH = "../../data/raw/galaxy_small"
@@ -18,17 +18,17 @@ def truncate_test_file(request):
 class TestH5ParallelWriter:
 
     def test_reingest_fits_tables(self):
-        writer = ParallelWriterMWMR(h5_path=H5PATH)
+        writer = ParallelWriterMWMRService(h5_path=H5PATH)
         fits_image_path = "%s/images" % INPUT_PATH
         fits_spectra_path = "%s/spectra" % INPUT_PATH
         pattern = "*.fits"
-        writer.open_h5_file_serial()
+        writer.open_h5_file()
         writer.reingest_fits_tables(fits_image_path, fits_spectra_path, pattern, pattern)
         assert True
 
     def test_ingest_metadata(self):
-        writer = ParallelWriterMWMR(h5_path=H5PATH)
-        writer.open_h5_file_serial()
+        writer = ParallelWriterMWMRService(h5_path=H5PATH)
+        writer.open_h5_file()
         writer.ingest_metadata()
         assert True
 

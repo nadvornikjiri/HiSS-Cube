@@ -1,9 +1,64 @@
 import h5py
 
-from hisscube.H5Handler import H5Handler
 import numpy as np
 
-from hisscube.Processor import Processor
+from hisscube.processors.metadata import get_orig_header
+from hisscube.processors.metadata_spectrum import get_time_from_spectrum
+from hisscube.utils.astrometry import get_cutout_pixel_coords, get_cutout_bounds_from_spectrum
+from hisscube.utils.logging import HiSSCubeLogger
+
+
+def aggregate_inverse_variance_weighting(arr, axis=0):  # TODO rescale by 1e-17 to make the calculations easier?
+    arr = arr.astype('<f8')  # necessary conversion as the numbers are small
+    flux = arr[..., 0]
+    flux_sigma = arr[..., 1]
+    weighted_mean = np.nansum(flux / flux_sigma ** 2, axis=axis) / \
+                    np.nansum(1 / flux_sigma ** 2, axis=0)
+    weighed_sigma = np.sqrt(1 /
+                            np.nansum(1 / flux_sigma ** 2, axis=axis))
+    res = np.stack((weighted_mean, weighed_sigma), axis=-1)
+    return res.astype('<f4')
+
+
+def target_distance(arr1, arr2):
+    arr1 = arr1.astype('<f8')
+    arr2 = arr2.astype('<f8')
+    flux1, flux_sigma1 = arr1[..., 0], arr1[..., 1]
+    flux2, flux_sigma2 = arr2[..., 0], arr2[..., 1]
+    arr1_weighted = (flux1 / flux_sigma1 ** 2) / (1 / flux_sigma1 ** 2)
+    arr2_weighted = (flux2 / flux_sigma2 ** 2) / (1 / flux_sigma2 ** 2)
+    diff = np.nansum(np.absolute(arr1_weighted - arr2_weighted))
+    return float(diff)
+
+
+def get_spectral_cube(h5_connector, spec_datasets):
+    spec_datasets_mean_sigma = np.array(spec_datasets)[..., 1:3]
+    for spec_idx, spec_ds in enumerate(spec_datasets):
+        spec_header = get_orig_header(h5_connector, spec_ds)
+        if spec_idx == 0:
+            spec_dims = {"spatial": [spec_header["PLUG_RA"],
+                                     spec_header["PLUG_DEC"]],  # spatial is the same for every spectrum
+                         "wl": spec_ds[:, 0],  # wl is the same for every spectrum (binned)
+                         "time": []}  # time is different for every spectrum
+        spec_dims["time"].append(get_time_from_spectrum(spec_header))
+    spectra = SparseTreeCube(spec_datasets_mean_sigma, spec_dims)
+    return spec_ds, spectra
+
+
+def aggregate_3d_cube(cutout_data, cutout_dims, spec_data, spec_dims):
+    target_spectra_1d_cube1d_cube = aggregate_inverse_variance_weighting(spec_data)
+    target_image_3d_cube = []
+    for wl in cutout_data:
+        stacked_cutout_for_wl = aggregate_inverse_variance_weighting(cutout_data[wl])
+        target_image_3d_cube.append(stacked_cutout_for_wl)
+    target_image_3d_cube = np.array(target_image_3d_cube)
+    spec_dims["time"] = np.mean(
+        spec_dims["time"])  # TODO might change time to probability distribution as well?
+    for wl in cutout_dims["child_dim"]:
+        time_coords = cutout_dims["child_dim"][wl]["child_dim"]["time"]
+        cutout_dims["child_dim"][wl]["child_dim"]["time"] = np.mean(
+            time_coords)  # TODO might change time to probability distribution as well?
+    return target_image_3d_cube, target_spectra_1d_cube1d_cube
 
 
 class SparseTreeCube:
@@ -12,23 +67,29 @@ class SparseTreeCube:
         self.dims = dims
 
 
-class MLProcessor(Processor):
-    def __init__(self, h5_file=None, h5_path=None, timings_csv="timings.csv"):
-        super(MLProcessor, self).__init__(h5_file=h5_file, h5_path=h5_path, timings_csv=timings_csv)
+class MLProcessor:
+    def __init__(self, config):
+        self.h5_connector = None
+        self.f = None
+        self.config = config
+        self.logger = HiSSCubeLogger.logger
         self.spectral_3d_cube = None
         self.spec_3d_cube_datasets = {"spectral": {}, "image": {}}
         self.target_cnt = {}
 
-    def create_3d_cube(self):
-        dense_grp = self.f[self.DENSE_CUBE_NAME]
-        semi_sparse_grp = self.f[self.ORIG_CUBE_NAME]
+    def create_3d_cube(self, h5_connector):
+        self.h5_connector = h5_connector
+        self.f = h5_connector.f
+        dense_grp = self.f[self.config.DENSE_CUBE_NAME]
+        semi_sparse_grp = self.f[self.config.ORIG_CUBE_NAME]
         no_targets = self.count_spatial_groups_with_depth(semi_sparse_grp,
-                                                          self.SPEC_SPAT_INDEX_ORDER)
+                                                          self.config.SPEC_SPAT_INDEX_ORDER)
         dense_grp.attrs["no_targets"] = no_targets
 
-        for zoom in range(min(self.IMG_ZOOM_CNT,
-                              self.SPEC_ZOOM_CNT)):
-            self.create_datasets_for_zoom(self.IMAGE_CUTOUT_SIZE, dense_grp, no_targets, self.REBIN_SAMPLES, zoom)
+        for zoom in range(min(self.config.IMG_ZOOM_CNT,
+                              self.config.SPEC_ZOOM_CNT)):
+            self.create_datasets_for_zoom(self.config.IMAGE_CUTOUT_SIZE, dense_grp, no_targets,
+                                          self.config.REBIN_SAMPLES, zoom)
 
         self.append_target_3d_cube(semi_sparse_grp)
 
@@ -89,9 +150,9 @@ class MLProcessor(Processor):
         if isinstance(h5_grp, h5py.Group):
             if "type" in h5_grp.attrs and \
                     h5_grp.attrs["type"] == "spatial" and \
-                    depth == self.SPEC_SPAT_INDEX_ORDER:
+                    depth == self.config.SPEC_SPAT_INDEX_ORDER:
                 target_spectra = {}
-                for zoom in range(self.SPEC_ZOOM_CNT):
+                for zoom in range(self.config.SPEC_ZOOM_CNT):
                     target_spectra[zoom] = []
                 for time_grp in h5_grp.values():
                     if isinstance(time_grp, h5py.Group):
@@ -114,8 +175,8 @@ class MLProcessor(Processor):
                 spec_cube_ds = self.spec_3d_cube_datasets["spectral"][zoom]
                 image_cube_ds = self.spec_3d_cube_datasets["image"][zoom]
 
-                target_image_3d_cube, target_spectra_1d_cube1d_cube = self.aggregate_3d_cube(cutout_data, cutout_dims,
-                                                                                             spec_data, spec_dims)
+                target_image_3d_cube, target_spectra_1d_cube1d_cube = aggregate_3d_cube(cutout_data, cutout_dims,
+                                                                                        spec_data, spec_dims)
                 spec_cube_ds[self.target_cnt[zoom]] = target_spectra_1d_cube1d_cube
                 image_cube_ds[self.target_cnt[zoom]] = target_image_3d_cube
                 self.write_dimensions(spec_cube_ds, image_cube_ds, cutout_dims, spec_dims, zoom)
@@ -135,23 +196,8 @@ class MLProcessor(Processor):
             time_coords.append(float(cutout_dims["child_dim"][wl_dim]["child_dim"]["time"]))
         image_cube_ds.dims[2]["time"][self.target_cnt[zoom]] = np.array(time_coords)  # time is reduced to 1D
 
-    def aggregate_3d_cube(self, cutout_data, cutout_dims, spec_data, spec_dims):
-        target_spectra_1d_cube1d_cube = self.aggregate_inverse_variance_weighting(spec_data)
-        target_image_3d_cube = []
-        for wl in cutout_data:
-            stacked_cutout_for_wl = self.aggregate_inverse_variance_weighting(cutout_data[wl])
-            target_image_3d_cube.append(stacked_cutout_for_wl)
-        target_image_3d_cube = np.array(target_image_3d_cube)
-        spec_dims["time"] = np.mean(
-            spec_dims["time"])  # TODO might change time to probability distribution as well?
-        for wl in cutout_dims["child_dim"]:
-            time_coords = cutout_dims["child_dim"][wl]["child_dim"]["time"]
-            cutout_dims["child_dim"][wl]["child_dim"]["time"] = np.mean(
-                time_coords)  # TODO might change time to probability distribution as well?
-        return target_image_3d_cube, target_spectra_1d_cube1d_cube
-
     def construct_target_dense_cubes(self, zoom, spec_datasets):
-        spec_ds, spectra = self.get_spectral_cube(spec_datasets)
+        spec_ds, spectra = get_spectral_cube(self.h5_connector, spec_datasets)
         image_cutouts = None
         cutout_refs = spec_ds.parent.parent.parent["image_cutouts_%d" % zoom]
         image_cutouts = self.get_image_cutout_cube(cutout_refs, image_cutouts, spec_ds, zoom)
@@ -165,9 +211,10 @@ class MLProcessor(Processor):
                     image_ds = self.f[region_ref]
                     image_region = image_ds[region_ref]
 
-                    cutout_bounds, time, w, cutout_wl = self.get_cutout_bounds_from_spectrum(image_ds, zoom,
-                                                                                             spec_ds)
-                    ra, dec = self.get_cutout_pixel_coords(cutout_bounds, w)
+                    cutout_bounds, time, w, cutout_wl = get_cutout_bounds_from_spectrum(self.h5_connector, image_ds, zoom,
+                                                                                        spec_ds,
+                                                                                        self.config.IMAGE_CUTOUT_SIZE)
+                    ra, dec = get_cutout_pixel_coords(cutout_bounds, w)
 
                     if image_cutouts is None:
                         image_cutouts = SparseTreeCube()
@@ -200,39 +247,3 @@ class MLProcessor(Processor):
                 cutout_dims["child_dim"][wl]["child_dim"]["time"] = np.array(
                     cutout_dims["child_dim"][wl]["child_dim"]["time"])
         return image_cutouts
-
-    def get_spectral_cube(self, spec_datasets):
-        spec_datasets_mean_sigma = np.array(spec_datasets)[..., 1:3]
-        for spec_idx, spec_ds in enumerate(spec_datasets):
-            spec_header = self.get_header(spec_ds)
-            if spec_idx == 0:
-                spec_dims = {"spatial": [spec_header["PLUG_RA"],
-                                         spec_header["PLUG_DEC"]],  # spatial is the same for every spectrum
-                             "wl": spec_ds[:, 0],  # wl is the same for every spectrum (binned)
-                             "time": []}  # time is different for every spectrum
-            spec_dims["time"].append(self.get_time_from_spectrum(spec_header))
-        spectra = SparseTreeCube(spec_datasets_mean_sigma, spec_dims)
-        return spec_ds, spectra
-
-    @staticmethod
-    def aggregate_inverse_variance_weighting(arr, axis=0):  # TODO rescale by 1e-17 to make the calculations easier?
-        arr = arr.astype('<f8')  # necessary conversion as the numbers are small
-        flux = arr[..., 0]
-        flux_sigma = arr[..., 1]
-        weighted_mean = np.nansum(flux / flux_sigma ** 2, axis=axis) / \
-                        np.nansum(1 / flux_sigma ** 2, axis=0)
-        weighed_sigma = np.sqrt(1 /
-                                np.nansum(1 / flux_sigma ** 2, axis=axis))
-        res = np.stack((weighted_mean, weighed_sigma), axis=-1)
-        return res.astype('<f4')
-
-    @staticmethod
-    def target_distance(arr1, arr2):
-        arr1 = arr1.astype('<f8')
-        arr2 = arr2.astype('<f8')
-        flux1, flux_sigma1 = arr1[..., 0], arr1[..., 1]
-        flux2, flux_sigma2 = arr2[..., 0], arr2[..., 1]
-        arr1_weighted = (flux1 / flux_sigma1 ** 2) / (1 / flux_sigma1 ** 2)
-        arr2_weighted = (flux2 / flux_sigma2 ** 2) / (1 / flux_sigma2 ** 2)
-        diff = np.nansum(np.absolute(arr1_weighted - arr2_weighted))
-        return float(diff)

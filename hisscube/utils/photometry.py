@@ -1,4 +1,5 @@
 import csv
+import pathlib
 from pathlib import Path
 
 import cv2
@@ -12,16 +13,17 @@ from scipy import ndimage
 
 class Photometry:
 
-    def __init__(self, filter_curve_path, ccd_gain_path, ccd_dark_var_path, fits_mem_map=True):
+    def __init__(self, fits_mem_map=True):
         """
         Initializes the parameters of SDSS photometry from the ccd_gain and ccd_dark_var files. The transmission curves
         are initialized directly here.
         Parameters
         ----------
-        filter_curve_path
-        ccd_gain_path
-        ccd_dark_var_path
         """
+        lib_path = pathlib.Path(__file__).parent.absolute()
+        filter_curve_path = "%s/../config/SDSS_Bands" % lib_path,
+        ccd_gain_path = "%s/../config/ccd_gain.tsv" % lib_path,
+        ccd_dark_var_path = "%s/../config/ccd_dark_variance.tsv" % lib_path
         self.ccd_gain_config = self.read_config(ccd_gain_path)
         self.ccd_dark_variance_config = self.read_config(ccd_dark_var_path)
         self.fits_mem_map = fits_mem_map

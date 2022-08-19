@@ -7,7 +7,7 @@ import fitsio
 import pytest
 from tqdm.auto import tqdm
 
-from hisscube.Writer import Writer
+from hisscube.utils.io import SerialH5Connector
 from hisscube.utils.astrometry import is_cutout_whole
 
 with warnings.catch_warnings():
@@ -20,8 +20,8 @@ H5PATH = "../../results/SDSS_cube.h5"
 class TestH5Writer(unittest.TestCase):
 
     def setup_method(self, test_method):
-        self.writer = Writer(h5_path=H5PATH)
-        self.writer.open_h5_file_serial(truncate=True)
+        self.writer = SerialH5Connector(h5_path=H5PATH)
+        self.writer.open_h5_file(truncate_file=True)
         self.h5_file = self.writer.f
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -136,10 +136,10 @@ class TestH5Writer(unittest.TestCase):
     def test_rebin(self):
         spectra_folder = "../../data/raw/galaxy_small/spectra"
         spectra_pattern = "*.fits"
-        writer = Writer(self.h5_file)
+        writer = SerialH5Connector(self.h5_file)
         spectra_paths = list(Path(spectra_folder).rglob(spectra_pattern))
         for spec_path in tqdm(spectra_paths, desc="Spectra completed: "):
-            metadata, data = writer.cube_utils.get_multiple_resolution_spectrum(
+            metadata, data = writer.photometry.get_multiple_resolution_spectrum(
                 spec_path,
                 writer.config.getint("Handler", "SPEC_ZOOM_CNT"),
                 apply_rebin=writer.config.getboolean("Preprocessing", "APPLY_REBIN"),
@@ -158,7 +158,7 @@ class TestH5Writer(unittest.TestCase):
     def test_float_compress(self):
         test_path = "../../data/raw/images/301/2820/3/frame-g-002820-3-0122.fits"
         self.writer.FLOAT_COMPRESS = True
-        self.writer.metadata, self.writer.data = self.writer.cube_utils.get_multiple_resolution_image(test_path,
+        self.writer.metadata, self.writer.data = self.writer.photometry.get_multiple_resolution_image(test_path,
                                                                                                       self.writer.config.getint(
                                                                                                           "Handler",
                                                                                                           "IMG_ZOOM_CNT"))

@@ -3,8 +3,7 @@ from urllib.parse import urljoin
 
 from astropy.samp import SAMPIntegratedClient
 
-from hisscube import FITSReader as FITS
-from hisscube import Photometry as cu
+from hisscube.processors import fits_cube_visualization as FITS
 
 
 class TestFITSCubeReader:

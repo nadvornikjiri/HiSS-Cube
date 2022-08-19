@@ -8,8 +8,7 @@ from astropy.samp import SAMPIntegratedClient
 
 import pytest
 from hisscube import VisualizationProcessor as h5r
-from hisscube import Photometry as cu
-from hisscube.Writer import Writer
+from hisscube.utils.io import SerialH5Connector
 
 H5PATH = "../../results/SDSS_cube.h5"
 
@@ -23,10 +22,10 @@ class TestH5Reader:
         image_pattern = "frame-*-004136-*-0129.fits"
         test_spectra = "../../data/raw/galaxy_small/spectra"
         spectra_pattern = "*.fits"
-        self.writer = Writer(h5_path=H5PATH)
+        self.writer = SerialH5Connector(h5_path=H5PATH)
         self.writer.CREATE_REFERENCES = True
         self.writer.CREATE_DENSE_CUBE = True
-        self.writer.open_h5_file_serial(truncate=True)
+        self.writer.open_h5_file(truncate_file=True)
         self.writer.ingest(test_images, test_spectra, image_pattern, spectra_pattern)
         self.writer.close_h5_file()
 

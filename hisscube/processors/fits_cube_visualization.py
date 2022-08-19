@@ -6,8 +6,8 @@ from astropy import wcs
 from astropy.io import fits
 from astropy.time import Time
 
+from hisscube.processors.cube_visualization import VisualizationProcessor
 from hisscube.utils import astrometry
-from hisscube.VisualizationProcessor import VisualizationProcessor
 from hisscube.utils.astrometry import NoCoverageFoundError, is_cutout_whole
 
 
@@ -22,7 +22,7 @@ class FITSReader(VisualizationProcessor):
         self.image_metadata = None
 
     def get_spectral_cube_from_orig_for_res(self, res_idx=0):
-        self.spectral_cube = np.empty((self.INIT_ARRAY_SIZE, 1), dtype=self.array_type)
+        self.spectral_cube = np.empty((self.config.INIT_ARRAY_SIZE, 1), dtype=self.array_type)
         self.output_res = res_idx
         self.get_spectral_cube_from_orig()
         truncated_cube = self.spectral_cube[:self.output_counter]
@@ -79,12 +79,12 @@ class FITSReader(VisualizationProcessor):
             time = Time(time_attr, format='isot', scale='tai').mjd
         except ValueError:
             time = Time(datetime.strptime(time_attr, "%d/%m/%y")).mjd
-        wl = str(self.cube_utils.filter_midpoints[orig_image_header["filter"]])
+        wl = str(self.photometry.filter_midpoints[orig_image_header["filter"]])
 
         w = wcs.WCS(orig_image_header)
         image_size = np.array((orig_image_header["NAXIS2"], orig_image_header["NAXIS1"]))
         cutout_bounds = astrometry.process_cutout_bounds(w, image_size, orig_spectrum_header,
-                                                         self.IMAGE_CUTOUT_SIZE)
+                                                         self.config.IMAGE_CUTOUT_SIZE)
         return self.get_table_image_pixels_from_cutout_bounds(cutout_bounds, image_path, image_region, spectrum_path, time,
                                                         w, wl)
 
@@ -94,7 +94,7 @@ class FITSReader(VisualizationProcessor):
             w = wcs.WCS(image_header)
             image_size = np.array((image_header["NAXIS2"], image_header["NAXIS1"]))
             cutout_bounds = astrometry.process_cutout_bounds(w, image_size, spectrum_header,
-                                                             self.IMAGE_CUTOUT_SIZE)
+                                                             self.config.IMAGE_CUTOUT_SIZE)
             image_data = image_hdul[0].data
             if not is_cutout_whole(cutout_bounds, image_data):
                 raise NoCoverageFoundError

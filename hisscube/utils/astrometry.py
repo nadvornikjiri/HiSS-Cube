@@ -7,6 +7,10 @@ from astropy.wcs.utils import skycoord_to_pixel
 import healpy as hp
 from numpy import arange
 
+from hisscube.processors.metadata import get_orig_header
+from hisscube.utils.io import read_serialized_fits_header, H5Connector
+from hisscube.processors.metadata_image import get_time_from_image
+
 
 def get_boundary_coords(fits_header):
     """
@@ -133,3 +137,93 @@ def get_potential_overlapping_image_spatial_paths(fits_header, radius_arcmin, im
             path = "%s/%s" % (ipix, path)
         paths.append(path)
     return paths
+
+
+def get_region_ref(h5_connector, res_idx, image_ds, spec_fits_header, image_cutout_size):
+    """
+    Gets the region reference for a given resolution from an image_ds.
+
+    Parameters
+    ----------
+    res_idx     Resolution index = zoom factor, e.g., 0, 1, 2, ...
+    image_ds    HDF5 dataset
+
+    Returns     HDF5 region reference
+    -------
+
+    """
+    image_fits_header = h5_connector.read_serialized_fits_header(image_ds)
+    cutout_bounds = get_cutout_bounds(image_fits_header, res_idx, spec_fits_header, image_cutout_size)
+    if not is_cutout_whole(cutout_bounds, image_ds):
+        raise NoCoverageFoundError("Cutout not whole.")
+    region_ref = image_ds.regionref[cutout_bounds[0][1][1]:cutout_bounds[1][1][1],
+                 cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
+    cutout_shape = h5_connector.f[region_ref][region_ref].shape
+    try:
+        if not (0 <= cutout_shape[0] <= (64 / 2 ** res_idx) and
+                0 <= cutout_shape[1] <= (64 / 2 ** res_idx) and
+                cutout_shape[2] == 2):
+            raise NoCoverageFoundError("Cutout not in correct shape.")
+    except IndexError:
+        raise NoCoverageFoundError("IndexError")
+    return region_ref
+
+
+def write_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx=0):
+    """
+    Modifies the FITS WCS parameters for lower resolutions of the image so it is still correct.
+    Parameters
+    ----------
+    ds      HDF5 dataset
+    res_idx int
+
+    Returns
+    -------
+
+    """
+    w = get_optimized_wcs(orig_image_fits_header)
+    w.wcs.crpix /= 2 ** res_idx  # shift center of the image
+    w.wcs.cd *= 2 ** res_idx  # change the pixel scale
+    image_fits_header["CRPIX1"], image_fits_header["CRPIX2"] = w.wcs.crpix
+    [[image_fits_header["CD1_1"], image_fits_header["CD1_2"]],
+     [image_fits_header["CD2_1"], image_fits_header["CD2_2"]]] = w.wcs.cd
+    image_fits_header["CRVAL1"], image_fits_header["CRVAL2"] = w.wcs.crval
+    image_fits_header["CTYPE1"], image_fits_header["CTYPE2"] = w.wcs.ctype
+    return image_fits_header
+
+
+def get_heal_path_from_coords(metadata, config, ra=None, dec=None, order=None):
+    if ra is None and dec is None:
+        ra = metadata["PLUG_RA"]
+        dec = metadata["PLUG_DEC"]
+    if order is None:
+        order = config.IMG_SPAT_INDEX_ORDER
+    pixel_IDs = hp.ang2pix(hp.order2nside(np.arange(order)),
+                           ra,
+                           dec,
+                           nest=True,
+                           lonlat=True)
+    heal_path = "/".join(str(pixel_ID) for pixel_ID in pixel_IDs)
+    absolute_path = "%s/%s" % (config.ORIG_CUBE_NAME, heal_path)
+    return absolute_path
+
+
+def get_cutout_pixel_coords(cutout_bounds, w):
+    y = np.arange(cutout_bounds[0][1][1], cutout_bounds[1][1][1])
+    x = np.arange(cutout_bounds[0][0][0], cutout_bounds[1][1][0])
+    X, Y = np.meshgrid(x, y)
+    ra, dec = w.wcs_pix2world(X, Y, 0)
+
+    return ra, dec
+
+
+def get_cutout_bounds_from_spectrum(h5_connector, image_ds, res_idx, spectrum_ds, image_cutout_size):
+    orig_image_header = get_orig_header(h5_connector, image_ds)
+    orig_spectrum_header = get_orig_header(h5_connector, spectrum_ds)
+    time = get_time_from_image(orig_image_header)
+    wl = image_ds.name.split('/')[-3]
+    image_fits_header = h5_connector.read_serialized_fits_header(image_ds)
+    w = get_optimized_wcs(image_fits_header)
+    cutout_bounds = get_cutout_bounds(image_fits_header, res_idx, orig_spectrum_header,
+                                      image_cutout_size)
+    return cutout_bounds, time, w, wl

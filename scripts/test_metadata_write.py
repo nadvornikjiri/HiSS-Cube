@@ -1,7 +1,7 @@
 import sys
 
 sys.path.append('../')
-from hisscube.CWriter import CWriter
+from hisscube.CWriterService import CWriterService
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -13,7 +13,7 @@ ITERATIONS = 3
 
 
 def run_test(i, no_attrs, no_datasets, log_name):
-    writer = CWriter(h5_path=H5PATH, timings_log="logs/%s_%d.csv" % (log_name, i))
+    writer = CWriterService(h5_path=H5PATH, timings_log="logs/%s_%d.csv" % (log_name, i))
     writer.logger.info("Running test for %s, iteration %d." % (log_name, i))
     image_pattern, spectra_pattern = writer.get_path_patterns()
     writer.process_metadata(no_attrs=no_attrs, no_datasets=no_datasets)

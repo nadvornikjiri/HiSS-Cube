@@ -5,7 +5,7 @@ import warnings
 import h5py
 
 from hisscube.MLProcessor import MLProcessor
-from hisscube.Writer import Writer
+from hisscube.utils.io import SerialH5Connector
 
 H5_DUMP_CMD_PATH = "../../ext_lib/hdf5-1.12.0/hdf5/bin/h5dump"
 H5_DIFF_CMD_PATH = "../../ext_lib/hdf5-1.12.0/hdf5/bin/h5diff"
@@ -21,10 +21,10 @@ class TestHiSSCube:
         image_pattern = "frame-*-004136-*-0129.fits"
         test_spectra = "../../data/raw/galaxy_small/spectra"
         spectra_pattern = "*.fits"
-        self.writer = Writer(h5_path=H5PATH)
+        self.writer = SerialH5Connector(h5_path=H5PATH)
         self.writer.CREATE_REFERENCES = True
         self.writer.CREATE_DENSE_CUBE = True
-        self.writer.open_h5_file_serial(truncate=True)
+        self.writer.open_h5_file(truncate_file=True)
         self.writer.ingest(test_images, test_spectra, image_pattern, spectra_pattern)
         self.writer.close_h5_file()
         self.h5_file = h5py.File(H5PATH, 'r+', track_order=True, libver="latest")
@@ -64,10 +64,10 @@ class TestHiSSCube:
         image_pattern = "frame-*-004136-*-0129.fits"
         test_spectra = "../../data/raw/galaxy_small/spectra"
         spectra_pattern = "*.fits"
-        self.writer = Writer(h5_path=H5PATH)
+        self.writer = SerialH5Connector(h5_path=H5PATH)
         self.writer.CREATE_REFERENCES = True
         self.writer.CREATE_DENSE_CUBE = True
-        self.writer.open_h5_file_serial(truncate=True)
+        self.writer.open_h5_file(truncate_file=True)
         self.writer.ingest(test_images, test_spectra, image_pattern, spectra_pattern)
         self.writer.close_h5_file()
         self.h5_file = h5py.File(H5PATH, 'r+', track_order=True, libver="latest")

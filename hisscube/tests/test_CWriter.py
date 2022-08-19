@@ -7,14 +7,14 @@ from tqdm.auto import tqdm
 
 import h5py
 
-from hisscube.Writer import Writer
+from hisscube.utils.io import SerialH5Connector
 
 try:
     from reprlib import repr
 except ImportError:
     pass
 
-from hisscube.CWriter import CWriter
+from hisscube.CWriterService import CWriterService
 
 FITS_IMAGE_PATH = "../../data/raw/galaxy_small/images"
 FITS_SPECTRA_PATH = "../../data/raw/galaxy_small/spectra"
@@ -23,8 +23,8 @@ H5_PATH = "../../results/SDSS_cube_c_par.h5"
 
 @pytest.fixture(scope="session", autouse=False)
 def truncate_test_file(request):
-    writer = Writer(h5_path=H5_PATH)
-    writer.open_h5_file_serial(truncate=True)
+    writer = SerialH5Connector(h5_path=H5_PATH)
+    writer.open_h5_file(truncate_file=True)
     writer.reingest_fits_tables(FITS_IMAGE_PATH, FITS_SPECTRA_PATH)
     writer.close_h5_file()
 
@@ -32,23 +32,23 @@ def truncate_test_file(request):
 class TestCWriter:
     @pytest.mark.usefixtures("truncate_test_file")
     def test_write_images_metadata(self):
-        writer = CWriter(h5_path=H5_PATH)
+        writer = CWriterService(h5_path=H5_PATH)
         writer.write_images_metadata(no_attrs=False, no_datasets=False)
         assert True
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_write_spectra_metadata(self):
-        writer = CWriter(h5_path=H5_PATH)
+        writer = CWriterService(h5_path=H5_PATH)
         writer.write_spectra_metadata()
         assert True
 
     @pytest.mark.usefixtures("truncate_test_file")
     def test_process_metadata(self):
-        writer = Writer(h5_path=H5_PATH, timings_log="logs/test_log_writer.csv")
-        writer.open_h5_file_serial(truncate=True)
+        writer = SerialH5Connector(h5_path=H5_PATH, timings_log="logs/test_log_writer.csv")
+        writer.open_h5_file(truncate_file=True)
         writer.reingest_fits_tables(FITS_IMAGE_PATH, FITS_SPECTRA_PATH)
         writer.close_h5_file()
-        c_writer = CWriter(h5_path=H5_PATH, timings_log="logs/test_log_c_writer.csv")
+        c_writer = CWriterService(h5_path=H5_PATH, timings_log="logs/test_log_c_writer.csv")
         c_writer.process_metadata(no_attrs=False, no_datasets=False)
 
         h5_file = h5py.File(H5_PATH, libver="latest")
@@ -62,7 +62,7 @@ class TestCWriter:
         assert (orig_res_ds_name == test_ds_name)
 
     def test_add_spec_refs_multiple(self):
-        writer = CWriter(h5_path=H5_PATH, timings_log="logs/test_log.csv")
+        writer = CWriterService(h5_path=H5_PATH, timings_log="logs/test_log.csv")
         writer.add_region_references()
         assert True
 

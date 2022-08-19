@@ -4,15 +4,19 @@ import numpy as np
 from astropy.io.votable import from_table, writeto
 from astropy.table import QTable
 
-from hisscube.Processor import Processor
+from hisscube.utils.io import read_serialized_fits_header, H5Connector
+from hisscube.utils.astrometry import get_cutout_bounds_from_spectrum, get_cutout_pixel_coords
+from hisscube.utils.logging import HiSSCubeLogger
 
 
-class VisualizationProcessor(Processor):
+class VisualizationProcessor:
 
-    def __init__(self, h5_file):
-        super().__init__(h5_file)
-        if self.config.getboolean("Handler",
-                                  "INCLUDE_ADDITIONAL_METADATA"):  # TODO add the grouprefs to the images and spectra from dense cube
+    def __init__(self, config):
+        self.h5_connector = None
+        self.f = None
+        self.config = config
+        self.logger = HiSSCubeLogger.logger
+        if self.config.INCLUDE_ADDITIONAL_METADATA:  # TODO add the grouprefs to the images and spectra from dense cube
             self.array_type = [('heal_id', '<i8'), ('ra', '<f4'), ('dec', '<f4'), ('time', '<f4'), ('wl', '<f4'),
                                ('mean', '<f4'), ('sigma', '<f4'), ('spec_ra', '<f4'), ('spec_dec', '<f4'),
                                ('fits_name', 'S32'), ('spec_fits_name', 'S32')]
@@ -22,6 +26,23 @@ class VisualizationProcessor(Processor):
         self.output_counter = 0
         self.spectral_cube = None
         self.output_res = None
+
+    def create_visualization_cube(self, h5_connector):
+        self.h5_connector = h5_connector
+        self.f = h5_connector.f
+        dense_cube_grp = self.f.require_group(self.config.DENSE_CUBE_NAME)
+        for zoom in range(
+                min(self.config.SPEC_ZOOM_CNT, self.config.IMG_ZOOM_CNT)):
+            spectral_cube = self.construct_spectral_cube_table(zoom)
+            res_grp = dense_cube_grp.require_group(str(zoom))
+            visualization = res_grp.require_group("visualization")
+            ds = visualization.require_dataset("dense_cube_zoom_%d" % zoom,
+                                               spectral_cube.shape,
+                                               spectral_cube.dtype,
+                                               compression=self.config.COMPRESSION,
+                                               compression_opts=self.config.COMPRESSION_OPTS,
+                                               shuffle=self.config.SHUFFLE)
+            ds.write_direct(spectral_cube)
 
     def read_spectral_cube_table(self, res):
         """
@@ -35,7 +56,7 @@ class VisualizationProcessor(Processor):
 
         """
         spectral_cube_path = "%s/%d/%s/dense_cube_zoom_%d" % (
-            self.DENSE_CUBE_NAME, res, "visualization", res)
+            self.config.DENSE_CUBE_NAME, res, "visualization", res)
         self.spectral_cube = self.f[spectral_cube_path][()]
         return self.spectral_cube
 
@@ -55,7 +76,7 @@ class VisualizationProcessor(Processor):
 
         """
         self.output_counter = 0
-        self.spectral_cube = np.empty((self.INIT_ARRAY_SIZE,), dtype=self.array_type)
+        self.spectral_cube = np.empty((self.config.INIT_ARRAY_SIZE,), dtype=self.array_type)
         self.output_res = zoom
         self.construct_multires_spectral_cube_table(self.f)
         truncated_cube = self.spectral_cube[:self.output_counter]
@@ -85,11 +106,11 @@ class VisualizationProcessor(Processor):
         """
         try:
             if spectrum_ds.attrs["orig_res_link"]:
-                self.metadata = self.read_serialized_fits_header(self.f[spectrum_ds.attrs["orig_res_link"]])
+                self.metadata = self.h5_connector.read_serialized_fits_header(self.f[spectrum_ds.attrs["orig_res_link"]])
             else:
-                self.metadata = self.read_serialized_fits_header(spectrum_ds)
+                self.metadata = self.h5_connector.read_serialized_fits_header(spectrum_ds)
         except KeyError:
-            self.metadata = self.read_serialized_fits_header(spectrum_ds)
+            self.metadata = self.h5_connector.read_serialized_fits_header(spectrum_ds)
         spectrum_5d = self.get_table_pixels_from_spectrum(spectrum_ds.name, spectrum_ds)
         self.resize_output_if_necessary(spectrum_5d)
         self.spectral_cube[self.output_counter:self.output_counter + spectrum_5d.shape[0]] = spectrum_5d
@@ -132,7 +153,7 @@ class VisualizationProcessor(Processor):
         return self.get_table_pixels_from_spectrum_generic(dec, ra, res, spectrum_fits_name, spectrum_part)
 
     def get_table_pixels_from_spectrum_generic(self, dec, ra, res, spectrum_fits_name, spectrum_part):
-        heal_id = hp.ang2pix(hp.order2nside(self.OUTPUT_HEAL_ORDER),
+        heal_id = hp.ang2pix(hp.order2nside(self.config.OUTPUT_HEAL_ORDER),
                              ra, dec,
                              nest=True,
                              lonlat=True)
@@ -141,7 +162,7 @@ class VisualizationProcessor(Processor):
         ra_column = np.repeat([ra], res, axis=0)
         dec_column = np.repeat([dec], res, axis=0)
         time_column = np.repeat([time], res, axis=0)
-        if self.INCLUDE_ADDITIONAL_METADATA is False:
+        if self.config.INCLUDE_ADDITIONAL_METADATA is False:
             spectrum_column_names = 'heal, ra, dec, time, wl, mean, sigma'
             spectrum_columns = [heal_id_column,
                                 ra_column,
@@ -186,25 +207,26 @@ class VisualizationProcessor(Processor):
         image_path = image_ds.name
         image_region = image_ds[region_ref]
 
-        cutout_bounds, time, w, wl = self.get_cutout_bounds_from_spectrum(image_ds, res_idx, spectrum_ds)
+        cutout_bounds, time, w, wl = get_cutout_bounds_from_spectrum(self.h5_connector, image_ds, res_idx, spectrum_ds,
+                                                                     self.config.IMAGE_CUTOUT_SIZE)
         return self.get_table_image_pixels_from_cutout_bounds(cutout_bounds, image_path, image_region, spectrum_path,
                                                               time, w,
                                                               wl)
 
     def get_table_image_pixels_from_cutout_bounds(self, cutout_bounds, image_path, image_region, spectrum_path, time, w,
                                                   wl):
-        ra, dec = self.get_cutout_pixel_coords(cutout_bounds, w)
+        ra, dec = get_cutout_pixel_coords(cutout_bounds, w)
         no_pixels = ra.size
-        spectrum_healpix = hp.ang2pix(hp.order2nside(self.OUTPUT_HEAL_ORDER),
-                              self.metadata["PLUG_RA"], self.metadata["PLUG_DEC"],
-                              nest=True, lonlat=True)
+        spectrum_healpix = hp.ang2pix(hp.order2nside(self.config.OUTPUT_HEAL_ORDER),
+                                      self.metadata["PLUG_RA"], self.metadata["PLUG_DEC"],
+                                      nest=True, lonlat=True)
         spec_healpix_column = np.repeat([spectrum_healpix], no_pixels, axis=0)
         ra_column = ra.reshape(no_pixels, )
         dec_column = dec.reshape(no_pixels, )
         data_columns = np.reshape(image_region, (no_pixels, 2))
         wl_column = np.repeat([wl], no_pixels, axis=0)
         time_column = np.repeat([time], no_pixels, axis=0)
-        if self.INCLUDE_ADDITIONAL_METADATA is False:
+        if self.config.INCLUDE_ADDITIONAL_METADATA is False:
             image_column_names = 'heal, ra, dec, time, wl, mean, sigma'
             image_columns = [spec_healpix_column, ra_column, dec_column, time_column, wl_column,
                              data_columns[:, 0].reshape(no_pixels, 1),
@@ -250,7 +272,7 @@ class VisualizationProcessor(Processor):
         table.write(output_path, overwrite=True, format='fits')
 
     def get_q_table(self):
-        if not self.INCLUDE_ADDITIONAL_METADATA:
+        if not self.config.INCLUDE_ADDITIONAL_METADATA:
             table = QTable(self.spectral_cube, names=("HealPix ID", "RA", "DEC", "Time", "Wavelength", "Mean", "Sigma"),
                            meta={'name': 'SDSS Cube'})
         else:
