@@ -2,9 +2,11 @@ import h5py
 
 import numpy as np
 
-from hisscube.processors.metadata import get_orig_header
+
 from hisscube.processors.metadata_spectrum import get_time_from_spectrum
+
 from hisscube.utils.astrometry import get_cutout_pixel_coords, get_cutout_bounds_from_spectrum
+from hisscube.utils.io import get_orig_header
 from hisscube.utils.logging import HiSSCubeLogger
 
 
@@ -62,9 +64,13 @@ def aggregate_3d_cube(cutout_data, cutout_dims, spec_data, spec_dims):
 
 
 class SparseTreeCube:
-    def __init__(self, data={}, dims={}):
+    def __init__(self, data=None, dims=None):
         self.data = data
         self.dims = dims
+        if self.data is None:
+            self.data = {}
+        if self.dims is None:
+            self.dims = {}
 
 
 class MLProcessor:
@@ -79,42 +85,42 @@ class MLProcessor:
 
     def create_3d_cube(self, h5_connector):
         self.h5_connector = h5_connector
-        self.f = h5_connector.f
-        dense_grp = self.f[self.config.DENSE_CUBE_NAME]
+        self.f = h5_connector.file
+        dense_grp = self.f.require_group(self.config.DENSE_CUBE_NAME)
         semi_sparse_grp = self.f[self.config.ORIG_CUBE_NAME]
-        no_targets = self.count_spatial_groups_with_depth(semi_sparse_grp,
+        target_count = self.count_spatial_groups_with_depth(semi_sparse_grp,
                                                           self.config.SPEC_SPAT_INDEX_ORDER)
-        dense_grp.attrs["no_targets"] = no_targets
+        dense_grp.attrs["target_count"] = target_count
 
         for zoom in range(min(self.config.IMG_ZOOM_CNT,
                               self.config.SPEC_ZOOM_CNT)):
-            self.create_datasets_for_zoom(self.config.IMAGE_CUTOUT_SIZE, dense_grp, no_targets,
+            self.create_datasets_for_zoom(self.config.IMAGE_CUTOUT_SIZE, dense_grp, target_count,
                                           self.config.REBIN_SAMPLES, zoom)
 
         self.append_target_3d_cube(semi_sparse_grp)
 
-    def create_datasets_for_zoom(self, cutout_size, dense_grp, no_targets, rebin_samples, zoom):
-        spectral_dshape = (no_targets,
+    def create_datasets_for_zoom(self, cutout_size, dense_grp, target_count, rebin_samples, zoom):
+        spectral_dshape = (target_count,
                            int(rebin_samples / 2 ** zoom),
                            2)
-        image_dshape = (no_targets,
+        image_dshape = (target_count,
                         5,  # no image bands that can cover spectrum.
                         int(cutout_size / 2 ** zoom),
                         int(cutout_size / 2 ** zoom),
                         2)
         dtype = np.dtype('<f4')  # both mean and sigma values are float
-        res_grp = dense_grp[str(zoom)]
+        res_grp = dense_grp.require_group(str(zoom))
         ml_grp = res_grp.require_group("ml")
         self.spec_3d_cube_datasets["spectral"][zoom] = ml_grp.require_dataset("spectral_1d_cube_zoom_%d" % zoom,
                                                                               spectral_dshape, dtype)
         self.spec_3d_cube_datasets["image"][zoom] = ml_grp.require_dataset("cutout_3d_cube_zoom_%d" % zoom,
                                                                            image_dshape, dtype)
-        spec_dimensions = {"spatial": (no_targets, 2),
-                           "wl": (no_targets, int(rebin_samples / 2 ** zoom)),
-                           "time": (no_targets, 1)}
-        image_dimensions = {"spatial": (no_targets, int(cutout_size / 2 ** zoom), int(cutout_size / 2 ** zoom), 2),
-                            "wl": (no_targets, 5),  # image bands that can cover spectrum.,
-                            "time": (no_targets, 5)}  # time is 1D but grouped by wl
+        spec_dimensions = {"spatial": (target_count, 2),
+                           "wl": (target_count, int(rebin_samples / 2 ** zoom)),
+                           "time": (target_count, 1)}
+        image_dimensions = {"spatial": (target_count, int(cutout_size / 2 ** zoom), int(cutout_size / 2 ** zoom), 2),
+                            "wl": (target_count, 5),  # image bands that can cover spectrum.,
+                            "time": (target_count, 5)}  # time is 1D but grouped by wl
         self.create_dimension_scales(ml_grp, zoom, "spectral", spec_dimensions)
         self.create_dimension_scales(ml_grp, zoom, "image", image_dimensions)
         self.target_cnt[zoom] = 0
@@ -124,8 +130,8 @@ class MLProcessor:
         spec_1d_cube = self.f["dense_cube/%d/ml/spectral_1d_cube_zoom_%d" % (zoom, zoom)]
         return cutout_3d_cube, spec_1d_cube
 
-    def get_no_targets(self):
-        return self.f["dense_cube"].attrs["no_targets"]
+    def get_target_count(self):
+        return self.f["dense_cube"].attrs["target_count"]
 
     def create_dimension_scales(self, ml_grp, zoom, dim_type, dim_names):
         dim_ddtype = np.dtype('<f4')

@@ -1,17 +1,20 @@
 from abc import ABC, abstractmethod
-from ast import literal_eval as make_tuple, literal_eval
+from ast import literal_eval
 from collections import deque
+from datetime import datetime
 from itertools import chain
 from sys import getsizeof, stderr
-from timeit import default_timer as timer
 
 import h5py
 import mpi4py.MPI
 import ujson
-from h5writer import write_hdf5_metadata
+from astropy.time import Time
 
 from hisscube.processors.data import get_property_list
 from hisscube.utils.logging import get_c_timings_path
+
+size = mpi4py.MPI.COMM_WORLD.Get_size()
+rank = mpi4py.MPI.COMM_WORLD.Get_rank()
 
 
 def total_size(o, handlers={}, verbose=False):
@@ -64,12 +67,9 @@ def get_path_patterns(config, image_pattern=None, spectra_pattern=None):
 
 
 def truncate(h5_path):
-    f = h5py.File(h5_path, 'w', libver="latest")
-    f.close()
-
-
-class FITSHandler:
-    pass
+    if rank == 0:
+        f = h5py.File(h5_path, 'w', fs_strategy="page", fs_page_size=4096, libver="latest")
+        f.close()
 
 
 class H5Connector(ABC):
@@ -77,12 +77,14 @@ class H5Connector(ABC):
         self.h5_path = h5_path
         self.config = config
         self.grp_cnt = 0
-        self.f = None
+        self.fits_total_cnt = 0
+        self.file = None
 
     def __enter__(self):
         self.open_h5_file()
+        return self
 
-    def __exit__(self):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self.close_h5_file()
 
     @abstractmethod
@@ -90,10 +92,10 @@ class H5Connector(ABC):
         raise NotImplementedError
 
     def close_h5_file(self):
-        self.f.close()
+        self.file.close()
 
     def require_raw_cube_grp(self):
-        return self.require_group(self.f, self.config.ORIG_CUBE_NAME)
+        return self.require_group(self.file, self.config.ORIG_CUBE_NAME)
 
     def require_group(self, parent_grp, name, track_order=False):
         if not name in parent_grp:
@@ -121,7 +123,7 @@ class H5Connector(ABC):
         return ds
 
     @staticmethod
-    def get_name(self, grp):
+    def get_name(grp):
         return grp.name
 
     @staticmethod
@@ -153,38 +155,40 @@ class H5Connector(ABC):
         return ds.shape
 
 
-class SerialH5Connector(H5Connector):
+class SerialH5Writer(H5Connector):
 
-    def __init__(self, h5_path):
-        super().__init__(h5_path)
+    def __init__(self, h5_path, config):
+        super().__init__(h5_path, config)
 
     def open_h5_file(self, truncate_file=False):
-        if truncate_file:
-            self.f = h5py.File(self.h5_path, 'w', fs_strategy="page", fs_page_size=4096, libver="latest")
-        else:
-            self.f = h5py.File(self.h5_path, 'r+', libver="latest")
+        self.file = h5py.File(self.h5_path, 'r+', libver="latest")
 
 
-class ParallelH5Connector(H5Connector):
-    def __init__(self, h5_path, mpi_comm=None):
-        super().__init__(h5_path)
+class SerialH5Reader(H5Connector):
+
+    def __init__(self, h5_path, config):
+        super().__init__(h5_path, config)
+
+    def open_h5_file(self, truncate_file=False):
+        self.file = h5py.File(self.h5_path, 'r', libver="latest")
+
+
+class ParallelH5Writer(H5Connector):
+    def __init__(self, h5_path, config, mpi_comm=None):
+        super().__init__(h5_path, config)
         self.comm = mpi_comm
         if not self.comm:
             self.comm = mpi4py.MPI.COMM_WORLD
 
     def open_h5_file(self, truncate_file=False):
-        if truncate_file and not self.config.C_BOOSTER:
-            self.f = h5py.File(self.h5_path, 'w', fs_strategy="page", fs_page_size=4096, driver='mpio',
-                               comm=self.comm, libver="latest")
-        else:
-            self.f = h5py.File(self.h5_path, 'r+', driver='mpio',
-                               comm=self.comm, libver="latest")
+        self.file = h5py.File(self.h5_path, 'r+', driver='mpio',
+                              comm=self.comm, libver="latest")
 
 
-class CBoostedMetadataBuildConnector(SerialH5Connector):
+class CBoostedMetadataBuildWriter(SerialH5Writer):
 
-    def __init__(self, h5_path):
-        super().__init__(h5_path)
+    def __init__(self, h5_path, config):
+        super().__init__(h5_path, config)
         self.c_timing_log = get_c_timings_path()
         self.h5_file_structure = {"name": ""}
 
@@ -202,7 +206,8 @@ class CBoostedMetadataBuildConnector(SerialH5Connector):
         return child_grp
 
     def set_attr(self, obj, key, val):
-        if obj is None:
+
+        if obj is None or isinstance(obj, h5py._hl.files.File):
             obj = self.h5_file_structure
         if "attrs" not in obj:
             obj["attrs"] = {}
@@ -261,3 +266,55 @@ class CBoostedMetadataBuildConnector(SerialH5Connector):
         obj["attrs"][key] = obj2["path"]  # the obj2["path"] is not needed ATM.
 
 
+def read_serialized_fits_header():
+    return None
+
+
+def get_orig_header(h5_connector, ds):
+    try:
+        if ds.attrs["orig_res_link"]:
+            orig_image_header = h5_connector.read_serialized_fits_header(h5_connector.file[ds.attrs["orig_res_link"]])
+        else:
+            orig_image_header = h5_connector.read_serialized_fits_header(ds)
+    except KeyError:
+        orig_image_header = h5_connector.read_serialized_fits_header(ds)
+    return orig_image_header
+
+
+def get_image_header_dataset(h5_connector):
+    return h5_connector.file["fits_images_metadata"]
+
+
+def get_spectrum_header_dataset(h5_connector):
+    return h5_connector.file["fits_spectra_metadata"]
+
+
+def get_str_paths(ds):
+    paths = ds[:]["path"]
+    for path in paths:
+        if path:
+            path = path.decode('utf-8')
+            yield path
+        else:
+            break
+
+
+def get_spectra_str_paths(h5_connector):
+    spec_path_ds = get_spectrum_header_dataset(h5_connector)
+    spec_path_list = list(get_str_paths(spec_path_ds))
+    return spec_path_list
+
+
+def get_image_str_paths(h5_connector):
+    image_path_ds = get_image_header_dataset(h5_connector)
+    image_path_list = list(get_str_paths(image_path_ds))
+    return image_path_list
+
+
+def get_time_from_image(orig_image_header):
+    time_attr = orig_image_header["DATE-OBS"]
+    try:
+        time = Time(time_attr, format='isot', scale='tai').mjd
+    except ValueError:
+        time = Time(datetime.strptime(time_attr, "%d/%m/%y")).mjd
+    return time

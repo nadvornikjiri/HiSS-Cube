@@ -23,7 +23,7 @@ class FITSError(Exception):
 
 def read_header_bytes(f, max_header_blocks=80):
     """returns the bytes beloning to a FITS header starting at the current
-    position within the file f.
+    position within the file file.
 
     If the header is not complete after reading maxHeaderBlocks blocks,
     a FITSError is raised.
@@ -48,9 +48,9 @@ def read_header_bytes(f, max_header_blocks=80):
 
 
 def read_primary_header_quick(f, max_header_blocks=80):
-    """returns a pyfits header for the primary hdu of the opened file f.
+    """returns a pyfits header for the primary hdu of the opened file file.
 
-    f must be opened in binary mode.
+    file must be opened in binary mode.
 
     This is mostly code lifted from pyfits._File._readHDU.  The way
     that class is made, it's hard to use it with stuff from a gzipped

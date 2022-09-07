@@ -9,12 +9,14 @@ from astropy.time import Time
 from hisscube.processors.cube_visualization import VisualizationProcessor
 from hisscube.utils import astrometry
 from hisscube.utils.astrometry import NoCoverageFoundError, is_cutout_whole
+from hisscube.utils.config import Config
 
 
-class FITSReader(VisualizationProcessor):
+class FITSProcessor(VisualizationProcessor):
 
-    def __init__(self, spectra_path, image_path, spectra_regex="*.fits", image_regex="*.fits*"):
-        super(FITSReader, self).__init__(None)
+    def __init__(self, config, photometry, spectra_path, image_path, spectra_regex="*.fits", image_regex="*.fits*"):
+        super().__init__(config)
+        self.photometry = photometry
         self.spectra_path = spectra_path
         self.spectra_regex = spectra_regex
         self.image_regex = image_regex
@@ -22,7 +24,7 @@ class FITSReader(VisualizationProcessor):
         self.image_metadata = None
 
     def get_spectral_cube_from_orig_for_res(self, res_idx=0):
-        self.spectral_cube = np.empty((self.config.INIT_ARRAY_SIZE, 1), dtype=self.array_type)
+        self.spectral_cube = np.empty((self.config.INIT_ARRAY_SIZE,), dtype=self.array_type)
         self.output_res = res_idx
         self.get_spectral_cube_from_orig()
         truncated_cube = self.spectral_cube[:self.output_counter]
@@ -42,8 +44,7 @@ class FITSReader(VisualizationProcessor):
         spectrum_5d = self.get_pixels_from_spectrum(spectrum_hdul[0].header, spectrum_hdul, spectrum_fits_name)
         self.resize_output_if_necessary(spectrum_5d)
         self.spectral_cube[self.output_counter:self.output_counter + spectrum_5d.shape[0]] = np.reshape(spectrum_5d,
-                                                                                                        spectrum_5d.shape + (
-                                                                                                            1,))
+                                                                                                        spectrum_5d.shape)
         self.output_counter += spectrum_5d.shape[0]
 
         for image_path in Path(self.image_path).rglob(self.image_regex):
@@ -85,8 +86,9 @@ class FITSReader(VisualizationProcessor):
         image_size = np.array((orig_image_header["NAXIS2"], orig_image_header["NAXIS1"]))
         cutout_bounds = astrometry.process_cutout_bounds(w, image_size, orig_spectrum_header,
                                                          self.config.IMAGE_CUTOUT_SIZE)
-        return self.get_table_image_pixels_from_cutout_bounds(cutout_bounds, image_path, image_region, spectrum_path, time,
-                                                        w, wl)
+        return self.get_table_image_pixels_from_cutout_bounds(cutout_bounds, image_path, image_region, spectrum_path,
+                                                              time,
+                                                              w, wl)
 
     def get_region_from_fits(self, spectrum_header, image_path):
         with fits.open(image_path, memmap=True) as image_hdul:

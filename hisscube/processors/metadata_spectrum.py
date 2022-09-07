@@ -5,27 +5,24 @@ import h5py
 import numpy as np
 import ujson
 
-from hisscube.processors.data import get_property_list
 from hisscube.utils import astrometry
 from hisscube.utils.astrometry import get_region_ref, NoCoverageFoundError, get_heal_path_from_coords
-from hisscube.utils.config import Config
-from hisscube.utils.io import get_path_patterns, read_serialized_fits_header, H5Connector
+from hisscube.utils.io import get_path_patterns, get_spectrum_header_dataset
 from hisscube.utils.logging import HiSSCubeLogger, log_timing
-
-
-def get_spectrum_header_dataset(h5_connector):
-    return h5_connector.f["fits_spectra_metadata"]
 
 
 class SpectrumMetadataProcessor:
     def __init__(self, config, metadata_handler):
-        self.metadata_handler = metadata_handler
+        self.metadata_processor = metadata_handler
         self.h5_connector = None
-        self.metadata = metadata_handler.metadata
         self.config = config
         self.logger = HiSSCubeLogger.logger
         self.spec_cnt = 0
         self.spectrum_length = 0
+
+    def set_connector(self, h5_connector):
+        self.h5_connector = h5_connector
+        self.metadata_processor.h5_connector = h5_connector
 
     def require_res_grps(self, parent_grp):
         res_grp_list = []
@@ -40,18 +37,19 @@ class SpectrumMetadataProcessor:
         return res_grp_list
 
     def update_spectra_headers(self, h5_connector, spec_path, spec_pattern=None):
-        self.h5_connector = h5_connector
+        self.set_connector(h5_connector)
         spec_pattern, spectra_pattern = get_path_patterns(self.config, None, spec_pattern)
         try:
-            self.spec_cnt = self.h5_connector.f.attrs["spectra_count"]  # header datasets not created yet
+            self.spec_cnt = self.h5_connector.file.attrs["spectra_count"]  # header datasets not created yet
         except KeyError:
             self.spec_cnt = 0
-            self.metadata_handler.create_fits_header_datasets()
+            self.metadata_processor.create_fits_header_datasets()
         spec_header_ds = get_spectrum_header_dataset(h5_connector)
-        self.spec_cnt += self.metadata_handler.write_fits_headers(spec_header_ds, spec_header_ds.dtype, spec_path,
-                                                                  spectra_pattern,
-                                                                  self.config.LIMIT_SPECTRA_COUNT, offset=self.spec_cnt)
-        self.h5_connector.f.attrs["spectra_count"] = self.spec_cnt
+        self.spec_cnt += self.metadata_processor.write_fits_headers(spec_header_ds, spec_header_ds.dtype, spec_path,
+                                                                    spectra_pattern,
+                                                                    self.config.LIMIT_SPECTRA_COUNT,
+                                                                    offset=self.spec_cnt)
+        self.h5_connector.file.attrs["spectra_count"] = self.spec_cnt
 
     def create_spectrum_index_tree(self):
         """
@@ -77,9 +75,9 @@ class SpectrumMetadataProcessor:
         -------
 
         """
-        spectrum_coord = (self.metadata['PLUG_RA'], self.metadata['PLUG_DEC'])
+        spectrum_coord = (self.metadata_processor.metadata['PLUG_RA'], self.metadata_processor.metadata['PLUG_DEC'])
         for order in range(self.config.SPEC_SPAT_INDEX_ORDER):
-            child_grp = self.metadata_handler.require_spatial_grp(order, child_grp, spectrum_coord)
+            child_grp = self.metadata_processor.require_spatial_grp(order, child_grp, spectrum_coord)
 
         for img_zoom in range(self.config.IMG_ZOOM_CNT):
             self.h5_connector.require_dataset(child_grp, "image_cutouts_%d" % img_zoom,
@@ -89,7 +87,7 @@ class SpectrumMetadataProcessor:
         return child_grp
 
     def require_spectrum_time_grp(self, parent_grp):
-        time = get_time_from_spectrum(self.metadata)
+        time = get_time_from_spectrum(self.metadata_processor.metadata)
         grp = self.h5_connector.require_group(parent_grp, str(time), track_order=True)
         self.h5_connector.set_attr(grp, "type", "time")
         return grp
@@ -99,21 +97,23 @@ class SpectrumMetadataProcessor:
         for group in parent_grp_list:
             if self.config.C_BOOSTER:
                 if "spectrum_dataset" in group:
-                    raise ValueError(
+                    raise RuntimeError(
                         "There is already an image dataset %s within this resolution group. Trying to insert image %s." % (
-                            list(group["spectrum_dataset"]), self.metadata_handler.file_name))
+                            list(group["spectrum_dataset"]), self.metadata_processor.file_name))
             elif len(group) > 0:
-                raise ValueError(
+                raise RuntimeError(
                     "There is already a spectrum dataset %s within this resolution group. Trying to insert spectrum %s." % (
-                        list(group), self.metadata_handler.file_name))
+                        list(group), self.metadata_processor.file_name))
             res = int(self.h5_connector.get_name(group).split('/')[-1])
             spec_data_shape = (res,) + (3,)
-            ds = self.h5_connector.create_spectrum_h5_dataset(group, self.metadata_handler.file_name, spec_data_shape)
+            ds = self.h5_connector.create_spectrum_h5_dataset(group, self.metadata_processor.file_name, spec_data_shape)
             self.h5_connector.set_attr(ds, "mime-type", "spectrum")
             spec_datasets.append(ds)
         return spec_datasets
 
-
+    def link_spectra_to_images(self, h5_connector):
+        self.h5_connector = h5_connector
+        self.add_image_refs(h5_connector.file)
 
     def add_image_refs(self, h5_grp, depth=-1):
         if "type" in h5_grp.attrs and \
@@ -153,20 +153,20 @@ class SpectrumMetadataProcessor:
 
         image_refs = {}
         image_min_zoom_idx = 0
-        self.metadata = self.h5_connector.read_serialized_fits_header(spec_datasets[0])
+        self.metadata_processor.metadata = self.h5_connector.read_serialized_fits_header(spec_datasets[0])
         for image_res_idx, image_ds in self.find_images_overlapping_spectrum():
             if not image_res_idx in image_refs:
                 image_refs[image_res_idx] = []
             try:
                 image_refs[image_res_idx].append(
-                    get_region_ref(self.h5_connector, image_res_idx, image_ds, self.metadata,
+                    get_region_ref(self.h5_connector, image_res_idx, image_ds, self.metadata_processor.metadata,
                                    self.config.IMAGE_CUTOUT_SIZE))
                 if image_res_idx > image_min_zoom_idx:
                     image_min_zoom_idx = image_res_idx
             except NoCoverageFoundError as e:
                 self.logger.debug(
                     "No coverage found for spectrum %s and image %s, reason %s" % (
-                        self.metadata_handler.file_name, image_ds, str(e)))
+                        self.metadata_processor.file_name, image_ds, str(e)))
                 pass
 
         for res in image_refs:
@@ -193,13 +193,13 @@ class SpectrumMetadataProcessor:
         -------
         """
         overlapping_pixel_paths = astrometry.get_potential_overlapping_image_spatial_paths(
-            self.metadata,
+            self.metadata_processor.metadata,
             self.config.IMG_DIAMETER_ANG_MIN,
             self.config.IMG_SPAT_INDEX_ORDER)
         heal_paths = self.get_absolute_heal_paths(overlapping_pixel_paths)
         for heal_path in heal_paths:
             try:
-                heal_path_group = self.h5_connector.f[heal_path]
+                heal_path_group = self.h5_connector.file[heal_path]
                 for time_grp in heal_path_group.values():
                     if isinstance(time_grp, h5py.Group):
                         for band_grp in time_grp.values():
@@ -213,37 +213,38 @@ class SpectrumMetadataProcessor:
                 pass
 
     def write_spectra_metadata(self, h5_connector, no_attrs=False, no_datasets=False):
-        self.h5_connector = h5_connector
-        fits_headers = self.h5_connector.f["/fits_spectra_metadata"]
-        self.write_spectra_metadata_from_cache(fits_headers, no_attrs, no_datasets)
+        self.set_connector(h5_connector)
+        fits_headers = self.h5_connector.file["/fits_spectra_metadata"]
+        self.write_spectra_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets)
 
-    def write_spectra_metadata_from_cache(self, fits_headers, no_attrs, no_datasets):
+    def write_spectra_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
         self.spec_cnt = 0
-        self.metadata_handler.fits_total_cnt = 0
+        self.h5_connector.fits_total_cnt = 0
         for fits_path, header in fits_headers:
             if not fits_path:  # end of data
                 break
-            self.write_spectrum_metadata_from_header(fits_path, header, no_attrs, no_datasets)
+            self.write_spectrum_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
             if self.spec_cnt >= self.config.LIMIT_SPECTRA_COUNT:
                 break
-        self.h5_connector.set_attr(self.h5_connector.f, "spectra_count", self.spec_cnt)
+        self.h5_connector.set_attr(self.h5_connector.file, "spectra_count", self.spec_cnt)
 
     @log_timing("process_spectrum_metadata")
-    def write_spectrum_metadata_from_header(self, fits_path, header, no_attrs, no_datasets):
+    def write_spectrum_metadata_from_header(self, h5_connector, fits_path, header, no_attrs, no_datasets):
         fits_path = fits_path.decode('utf-8')
+        self.set_connector(h5_connector)
         if self.spec_cnt % 100 == 0 and self.spec_cnt / 100 > 0:
             self.logger.info("Spectra cnt: %05d" % self.spec_cnt)
         try:
-            self.write_spectrum_metadata(fits_path, header, no_attrs, no_datasets)
+            self.write_spectrum_metadata(h5_connector, fits_path, header, no_attrs, no_datasets)
             self.spec_cnt += 1
-            self.metadata_handler.fits_total_cnt += 1
+            self.h5_connector.fits_total_cnt += 1
         except ValueError as e:
             self.logger.warning(
                 "Unable to ingest spectrum %s, message: %s" % (fits_path, str(e)))
 
     def write_spectrum_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
-        self.h5_connector = h5_connector
-        self.metadata = ujson.loads(fits_header)
+        self.set_connector(h5_connector)
+        self.metadata_processor.metadata = ujson.loads(fits_header)
         self.write_parsed_spectrum_metadata(fits_path, no_attrs, no_datasets)
 
     def write_parsed_spectrum_metadata(self, fits_path, no_attrs, no_datasets):
@@ -251,24 +252,24 @@ class SpectrumMetadataProcessor:
             self.spectrum_length = fitsio.read_header(fits_path, 1)["NAXIS2"]
         else:
             self.spectrum_length = self.config.REBIN_SAMPLES
-        self.metadata_handler.file_name = os.path.basename(fits_path)
+        self.metadata_processor.file_name = os.path.basename(fits_path)
         res_grps = self.create_spectrum_index_tree()
         spec_datasets = []
         if not no_datasets:
             spec_datasets = self.create_spec_datasets(res_grps)
         if not no_attrs:
-            self.metadata_handler.add_metadata(spec_datasets)
+            self.metadata_processor.add_metadata(spec_datasets)
 
     def get_resolution_groups(self, h5_connector):
-        self.h5_connector = h5_connector
-        spatial_path = get_heal_path_from_coords(self.metadata, self.config,
+        self.set_connector(h5_connector)
+        spatial_path = get_heal_path_from_coords(self.metadata_processor.metadata, self.config,
                                                  order=self.config.SPEC_SPAT_INDEX_ORDER)
         try:
-            time = self.metadata["TAI"]
+            time = self.metadata_processor.metadata["TAI"]
         except KeyError:
-            time = self.metadata["MJD"]
+            time = self.metadata_processor.metadata["MJD"]
         path = "/".join([spatial_path, str(time)])
-        time_grp = self.h5_connector.f[path]
+        time_grp = self.h5_connector.file[path]
         for res_grp in time_grp:
             yield time_grp[res_grp]
 

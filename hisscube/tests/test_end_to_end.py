@@ -1,93 +1,91 @@
 import os
 import subprocess
+import unittest
 import warnings
+from unittest.mock import Mock
+import pytest
 
-import h5py
-
-from hisscube.MLProcessor import MLProcessor
-from hisscube.utils.io import SerialH5Connector
+from hisscube.tests.test_serial_builders import get_test_director
 
 H5_DUMP_CMD_PATH = "../../ext_lib/hdf5-1.12.0/hdf5/bin/h5dump"
 H5_DIFF_CMD_PATH = "../../ext_lib/hdf5-1.12.0/hdf5/bin/h5diff"
 
 
-class TestHiSSCube:
+def get_dump_strip_cmd(path):
+    return "sed '/OFFSET/d' %s |sed '/HDF5/d'" % path
+
+
+class TestHiSSCube(unittest.TestCase):
     def test_serial_metadata(self):
-        H5PATH = "../../results/SDSS_cube.h5"
-        H5_DUMP_PATH = "../../results/SDSS_cube_dump.txt"
-        H5_TESTDUMP_PATH = "../../results/SDSS_cube_test_dump.txt"
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        test_images = "../../data/raw/galaxy_small/images"
-        image_pattern = "frame-*-004136-*-0129.fits"
-        test_spectra = "../../data/raw/galaxy_small/spectra"
-        spectra_pattern = "*.fits"
-        self.writer = SerialH5Connector(h5_path=H5PATH)
-        self.writer.CREATE_REFERENCES = True
-        self.writer.CREATE_DENSE_CUBE = True
-        self.writer.open_h5_file(truncate_file=True)
-        self.writer.ingest(test_images, test_spectra, image_pattern, spectra_pattern)
-        self.writer.close_h5_file()
-        self.h5_file = h5py.File(H5PATH, 'r+', track_order=True, libver="latest")
-        writer = MLProcessor(self.h5_file)
-        writer.create_3d_cube()
-        writer.close_h5_file()
-        subprocess.call("%s -pBH %s > %s" % (H5_DUMP_CMD_PATH, H5PATH, H5_DUMP_PATH), shell=True,
-                        executable='/bin/bash')
-        diff_output = subprocess.run(
-            "diff <(tail -n +2 %s) <(tail -n +2 %s)" % (H5_TESTDUMP_PATH, H5_DUMP_PATH), shell=True,
-            executable='/bin/bash', capture_output=True, text=True).stdout  # check diff from second line
-
-        assert (diff_output == "")
-
-    def test_parallel_metadata(self):
-        INPUT_PATH = "../../data/raw/galaxy_small/"
-        H5_DUMP_PATH = "../../results/SDSS_cube_c_par_dump.txt"
-        H5_TESTDUMP_PATH = "../../results/SDSS_cube_c_par_test_dump.txt"
-        OUTPUT_PATH = "../../results/SDSS_cube_c_par.h5"
-        PYTHON_PATH = "../../venv_par/bin/python"
-        output = os.popen(
-            "mpiexec -n 8 %s ../../hisscube.py --truncate %s %s ingest" % (PYTHON_PATH, INPUT_PATH, OUTPUT_PATH)).read()
-        print(output)
-        subprocess.call("%s -pBH %s > %s" % (H5_DUMP_CMD_PATH, OUTPUT_PATH, H5_DUMP_PATH), shell=True,
-                        executable='/bin/bash')
-        diff_output = subprocess.run(
-            "diff <(tail -n +2 %s) <(tail -n +2 %s)" % (H5_TESTDUMP_PATH, H5_DUMP_PATH), shell=True,
-            executable='/bin/bash', capture_output=True, text=True).stdout  # check diff from second line
+        h5_dump_path = "../../results/SDSS_cube_dump.txt"
+        h5_testdump_path = "../../results/SDSS_cube_test_dump.txt"
+        h5_path = self.construct_serial()
+        diff_output = self.diff_dump(h5_dump_path, h5_path, h5_testdump_path)
 
         assert (diff_output == "")
 
     def test_serial_whole(self):
-        H5PATH = "../../results/SDSS_cube.h5"
-        H5_TESTPATH = "../../results/SDSS_cube_test.h5"
+        h5_test_path = "../../results/SDSS_cube_test.h5"
+        h5_path = self.construct_serial()
+        diff_output = self.h5diff_whole(h5_path, h5_test_path)
+        assert (diff_output == "")
+
+    @pytest.mark.skip(reason="Long run")
+    def test_parallel_metadata(self):
+        h5_dump_path = "../../results/SDSS_cube_c_par_dump.txt"
+        h5_testdump_path = "../../results/SDSS_cube_c_par_test_dump.txt"
+        h5_path = self.construct_parallel()
+
+        diff_output = self.diff_dump(h5_dump_path, h5_path, h5_testdump_path)
+        assert (diff_output == "")
+        return h5_dump_path, h5_testdump_path, h5_path
+
+    @pytest.mark.skip(reason="Long run")
+    def test_parallel_whole(self):
+        h5_test_path = "../../results/SDSS_cube_c_par_test.h5"
+        h5_path = self.construct_parallel()
+        diff_output = self.h5diff_whole(h5_path, h5_test_path)
+        assert (diff_output == "")
+
+    @staticmethod
+    def construct_serial():
+        h5_path = "../../results/SDSS_cube.h5"
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         test_images = "../../data/raw/galaxy_small/images"
         image_pattern = "frame-*-004136-*-0129.fits"
         test_spectra = "../../data/raw/galaxy_small/spectra"
         spectra_pattern = "*.fits"
-        self.writer = SerialH5Connector(h5_path=H5PATH)
-        self.writer.CREATE_REFERENCES = True
-        self.writer.CREATE_DENSE_CUBE = True
-        self.writer.open_h5_file(truncate_file=True)
-        self.writer.ingest(test_images, test_spectra, image_pattern, spectra_pattern)
-        self.writer.close_h5_file()
-        self.h5_file = h5py.File(H5PATH, 'r+', track_order=True, libver="latest")
-        writer = MLProcessor(self.h5_file)
-        writer.create_3d_cube()
-        writer.close_h5_file()
+        args = Mock()
+        args.command = "create"
+        args.output_path = h5_path
+        dependency_provider, director = get_test_director(args, test_images, test_spectra, image_pattern,
+                                                          spectra_pattern)
+        director.construct()
+        return h5_path
 
-        diff_output = subprocess.run("%s %s %s" % (H5_DIFF_CMD_PATH, H5PATH, H5_TESTPATH), shell=True,
-                                     executable='/bin/bash', capture_output=True, text=True).stdout
-        assert (diff_output == "")
+    @staticmethod
+    def construct_parallel():
+        input_path = "../../data/raw/galaxy_small/"
+        h5_path = "../../results/SDSS_cube_c_par.h5"
+        python_path = "../../venv_par/bin/python"
+        cmd = "mpiexec -n 8 %s ../../hisscube.py %s %s create" % (python_path, input_path, h5_path)
+        print("Running command: %s" % cmd)
+        output = os.popen(cmd).read()
+        return h5_path
 
-    def test_parallel_whole(self):
-        INPUT_PATH = "../../data/raw/galaxy_small/"
-        OUTPUT_PATH = "../../results/SDSS_cube_c_par.h5"
-        H5_TESTPATH = "../../results/SDSS_cube_c_par_test.h5"
-        PYTHON_PATH = "../../venv_par/bin/python"
-        output = os.popen(
-            "mpiexec -n 8 %s ../../hisscube.py --truncate %s %s ingest" % (
-                PYTHON_PATH, INPUT_PATH, OUTPUT_PATH)).read()
-        print(output)
-        diff_output = subprocess.run("%s %s %s" % (H5_DIFF_CMD_PATH, OUTPUT_PATH, H5_TESTPATH), shell=True,
+    @staticmethod
+    def diff_dump(h5_dump_path, h5_path, h5_testdump_path):
+        subprocess.call("%s -pBH %s > %s" % (H5_DUMP_CMD_PATH, h5_path, h5_dump_path), shell=True,
+                        executable='/bin/bash')
+        diff_cmd = "diff <(%s) <(%s)" % (get_dump_strip_cmd(h5_testdump_path), get_dump_strip_cmd(h5_dump_path))
+        print(diff_cmd)
+        diff_output = subprocess.run(diff_cmd, shell=True,
+                                     executable='/bin/bash', capture_output=True,
+                                     text=True).stdout  # check diff from second line
+        return diff_output
+
+    @staticmethod
+    def h5diff_whole(h5_path, h5_test_path):
+        diff_output = subprocess.run("%s %s %s" % (H5_DIFF_CMD_PATH, h5_path, h5_test_path), shell=True,
                                      executable='/bin/bash', capture_output=True, text=True).stdout
-        assert (diff_output == "")
+        return diff_output

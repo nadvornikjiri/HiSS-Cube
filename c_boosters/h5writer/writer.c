@@ -15,7 +15,6 @@ long ds_cnt, grp_cnt;
 clock_t start, end;
 double elapsed_time;
 FILE *logfp;
-
 int open_grp_cnt = 0, open_ds_cnt = 0;
 
 void log_timing();

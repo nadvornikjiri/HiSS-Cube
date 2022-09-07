@@ -6,7 +6,7 @@ class Config:
     def __init__(self):
         lib_path = pathlib.Path(__file__).parent.absolute()
         self.config = configparser.ConfigParser(allow_no_value=True)
-        self.config.read("%s/config.ini" % lib_path)
+        self.config.read("%s/../config.ini" % lib_path)
         self.parse_config()
 
     def parse_config(self):

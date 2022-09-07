@@ -7,9 +7,7 @@ from astropy.wcs.utils import skycoord_to_pixel
 import healpy as hp
 from numpy import arange
 
-from hisscube.processors.metadata import get_orig_header
-from hisscube.utils.io import read_serialized_fits_header, H5Connector
-from hisscube.processors.metadata_image import get_time_from_image
+from hisscube.utils.io import get_orig_header, get_time_from_image
 
 
 def get_boundary_coords(fits_header):
@@ -158,7 +156,7 @@ def get_region_ref(h5_connector, res_idx, image_ds, spec_fits_header, image_cuto
         raise NoCoverageFoundError("Cutout not whole.")
     region_ref = image_ds.regionref[cutout_bounds[0][1][1]:cutout_bounds[1][1][1],
                  cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
-    cutout_shape = h5_connector.f[region_ref][region_ref].shape
+    cutout_shape = h5_connector.file[region_ref][region_ref].shape
     try:
         if not (0 <= cutout_shape[0] <= (64 / 2 ** res_idx) and
                 0 <= cutout_shape[1] <= (64 / 2 ** res_idx) and
@@ -169,7 +167,7 @@ def get_region_ref(h5_connector, res_idx, image_ds, spec_fits_header, image_cuto
     return region_ref
 
 
-def write_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx=0):
+def get_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx=0):
     """
     Modifies the FITS WCS parameters for lower resolutions of the image so it is still correct.
     Parameters

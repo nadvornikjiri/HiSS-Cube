@@ -1,12 +1,9 @@
 import cProfile
+import csv
 import logging
-import csv
-import time
 import os
-from pathlib import Path
-import numpy as np
-import csv
-import re
+import time
+from os.path import abspath
 
 from mpi4py import MPI
 
@@ -121,7 +118,7 @@ def log_timing(prefix, timings_path="logs/timings.csv"):
             start_time = time.time()
             result = func(self, *args, **kwargs)
             elapsed_time = time.time() - start_time
-            logger.log_timing([self.metadata_processor.fits_total_cnt, self.metadata_processor.grp_cnt, elapsed_time])
+            logger.log_timing([self.h5_connector.fits_total_cnt, self.h5_connector.grp_cnt, elapsed_time])
             return result
 
         return wrapper
@@ -138,47 +135,6 @@ def get_timings_logger(timings_path, prefix):
     logger = TimingsCSVLogger(timing_log_path)
     logger.log_timing(["Image/Spectrum count", "Group count", "Time"])
     return logger
-
-
-def get_stats(pid):
-    stat_vals = list()
-    with open("/proc/%s/io" % pid, "r") as stats:
-        lines = stats.readlines()
-        stat_vals.append(rank)
-        for line in lines:
-            stat_val = int(re.findall(r'\b\d+\b', line)[0])
-            stat_vals.append(stat_val)
-    return stat_vals
-
-
-def write_proc_stats():
-    buf = np.zeros(8, np.int64)  # 7 stat values + rank
-    if rank == 0:
-        stats = list()
-        stats.append(get_stats(os.getpid()))  # get rank 0 stats
-        for i in range(1, size):
-            MPI.COMM_WORLD.Recv(buf, source=i, tag=123)
-            stats.append(buf.copy())
-    if rank != 0:
-        pid = os.getpid()
-        buf = np.asarray(get_stats(pid), np.int64)
-        MPI.COMM_WORLD.Send((buf, 8), dest=0, tag=123)  # sending my worker stats
-    if rank == 0:
-        with open("proc_stats.txt", "w", newline='') as proc_stat_file:
-            proc_stat_writer = csv.writer(proc_stat_file, delimiter=',', quotechar='|',
-                                          quoting=csv.QUOTE_MINIMAL)
-            proc_stat_writer.writerow(
-                ["Rank", "rchar", "wchar", "syscr", "syscw", "read_bytes", "write_bytes", "cancelled_write_bytes"])
-
-            for stat_line in stats:
-                proc_stat_writer.writerow(stat_line)
-
-
-def log_proc_stats():
-    MPI.barrier(MPI.COMM_WORLD)
-    write_proc_stats()
-    MPI.barrier(MPI.COMM_WORLD)
-
 
 def get_application_logger():
     config = Config()

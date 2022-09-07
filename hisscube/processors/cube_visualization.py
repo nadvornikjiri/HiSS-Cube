@@ -4,7 +4,6 @@ import numpy as np
 from astropy.io.votable import from_table, writeto
 from astropy.table import QTable
 
-from hisscube.utils.io import read_serialized_fits_header, H5Connector
 from hisscube.utils.astrometry import get_cutout_bounds_from_spectrum, get_cutout_pixel_coords
 from hisscube.utils.logging import HiSSCubeLogger
 
@@ -13,7 +12,6 @@ class VisualizationProcessor:
 
     def __init__(self, config):
         self.h5_connector = None
-        self.f = None
         self.config = config
         self.logger = HiSSCubeLogger.logger
         if self.config.INCLUDE_ADDITIONAL_METADATA:  # TODO add the grouprefs to the images and spectra from dense cube
@@ -29,8 +27,8 @@ class VisualizationProcessor:
 
     def create_visualization_cube(self, h5_connector):
         self.h5_connector = h5_connector
-        self.f = h5_connector.f
-        dense_cube_grp = self.f.require_group(self.config.DENSE_CUBE_NAME)
+        self.h5_connector.file = h5_connector.file
+        dense_cube_grp = self.h5_connector.file.require_group(self.config.DENSE_CUBE_NAME)
         for zoom in range(
                 min(self.config.SPEC_ZOOM_CNT, self.config.IMG_ZOOM_CNT)):
             spectral_cube = self.construct_spectral_cube_table(zoom)
@@ -44,7 +42,7 @@ class VisualizationProcessor:
                                                shuffle=self.config.SHUFFLE)
             ds.write_direct(spectral_cube)
 
-    def read_spectral_cube_table(self, res):
+    def read_spectral_cube_table(self, zoom):
         """
         This method just reads the dense cube dataset and returns it as numpy array.
         Parameters
@@ -56,8 +54,8 @@ class VisualizationProcessor:
 
         """
         spectral_cube_path = "%s/%d/%s/dense_cube_zoom_%d" % (
-            self.config.DENSE_CUBE_NAME, res, "visualization", res)
-        self.spectral_cube = self.f[spectral_cube_path][()]
+            self.config.DENSE_CUBE_NAME, zoom, "visualization", zoom)
+        self.spectral_cube = self.h5_connector.file[spectral_cube_path][()]
         return self.spectral_cube
 
     def construct_spectral_cube_table(self, zoom):
@@ -78,7 +76,7 @@ class VisualizationProcessor:
         self.output_counter = 0
         self.spectral_cube = np.empty((self.config.INIT_ARRAY_SIZE,), dtype=self.array_type)
         self.output_res = zoom
-        self.construct_multires_spectral_cube_table(self.f)
+        self.construct_multires_spectral_cube_table(self.h5_connector.file)
         truncated_cube = self.spectral_cube[:self.output_counter]
         self.spectral_cube = truncated_cube
         return self.spectral_cube
@@ -106,7 +104,7 @@ class VisualizationProcessor:
         """
         try:
             if spectrum_ds.attrs["orig_res_link"]:
-                self.metadata = self.h5_connector.read_serialized_fits_header(self.f[spectrum_ds.attrs["orig_res_link"]])
+                self.metadata = self.h5_connector.read_serialized_fits_header(self.h5_connector.file[spectrum_ds.attrs["orig_res_link"]])
             else:
                 self.metadata = self.h5_connector.read_serialized_fits_header(spectrum_ds)
         except KeyError:
@@ -203,7 +201,7 @@ class VisualizationProcessor:
 
         """
         spectrum_path = spectrum_ds.name
-        image_ds = self.f[region_ref]
+        image_ds = self.h5_connector.file[region_ref]
         image_path = image_ds.name
         image_region = image_ds[region_ref]
 

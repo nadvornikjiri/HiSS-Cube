@@ -7,7 +7,7 @@ from pathlib import Path
 from astropy.utils.exceptions import AstropyWarning
 from tqdm.auto import tqdm
 from hisscube.utils.photometry import Photometry
-from hisscube.utils.io import SerialH5Connector
+from hisscube.utils.io import SerialH5Writer
 from hisscube.MLProcessor import MLProcessor
 import h5py
 from timeit import default_timer as timer
@@ -26,7 +26,7 @@ cube_utils = Photometry()
 
 with h5py.File(H5PATH, 'w') as h5_file:  # truncate file
     start1 = timer()
-    writer = SerialH5Connector(h5_file)
+    writer = SerialH5Writer(h5_file)
     image_paths = list(Path(image_folder).rglob(image_pattern))
     for image in tqdm(image_paths, desc="Images completed: "):
         writer.ingest_image(image)

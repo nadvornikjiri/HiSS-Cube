@@ -6,27 +6,13 @@ import healpy
 import numpy as np
 import ujson
 
-from hisscube.utils.astrometry import write_image_lower_res_wcs
-from hisscube.utils.config import Config
-from hisscube.utils.io import get_path_patterns, H5Connector
+from hisscube.utils.astrometry import get_image_lower_res_wcs
+from hisscube.utils.io import get_path_patterns, H5Connector, get_orig_header
 from hisscube.utils.logging import log_timing, HiSSCubeLogger
-
-
-def get_orig_header(h5_connector, ds):
-    try:
-        if ds.attrs["orig_res_link"]:
-            orig_image_header = h5_connector.read_serialized_fits_header(h5_connector.f[ds.attrs["orig_res_link"]])
-        else:
-            orig_image_header = h5_connector.read_serialized_fits_header(ds)
-    except KeyError:
-        orig_image_header = h5_connector.read_serialized_fits_header(ds)
-    return orig_image_header
 
 
 class MetadataProcessor:
     def __init__(self, config, photometry):
-        self.grp_cnt = 0
-        self.fits_total_cnt = 0
         self.config = config
         self.h5_connector: H5Connector = None
         self.metadata = None
@@ -74,24 +60,25 @@ class MetadataProcessor:
         -------
 
         """
-        # unicode_dt = h5py.special_dtype(vlen=str)
-        fits_header = dict(self.metadata)
+        unicode_dt = h5py.special_dtype(vlen=str)
+        image_fits_header = dict(self.metadata)
         for res_idx, ds in enumerate(datasets):
             if res_idx > 0:
                 self.h5_connector.set_attr_ref(ds, "orig_res_link", datasets[0])
+                orig_image_fits_header = self.h5_connector.read_serialized_fits_header(datasets[0])
                 if self.h5_connector.get_attr(ds, "mime-type") == "image":
-                    fits_header = write_image_lower_res_wcs(fits_header, res_idx)
+                    image_fits_header = get_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx)
             naxis = len(self.h5_connector.get_shape(ds))
-            fits_header["NAXIS"] = naxis
+            image_fits_header["NAXIS"] = naxis
             for axis in range(naxis):
-                fits_header["NAXIS%d" % (axis)] = self.h5_connector.get_shape(ds)[axis]
-            self.h5_connector.write_serialized_fits_header(ds, fits_header)
+                image_fits_header["NAXIS%d" % (axis)] = self.h5_connector.get_shape(ds)[axis]
+            self.h5_connector.write_serialized_fits_header(ds, image_fits_header)
 
     def clean_fits_header_tables(self):
-        if "fits_images_metadata" in self.h5_connector.f:
-            del self.h5_connector.f["fits_images_metadata"]
-        if "fits_spectra_metadata" in self.h5_connector.f:
-            del self.h5_connector.f["fits_spectra_metadata"]
+        if "fits_images_metadata" in self.h5_connector.file:
+            del self.h5_connector.file["fits_images_metadata"]
+        if "fits_spectra_metadata" in self.h5_connector.file:
+            del self.h5_connector.file["fits_spectra_metadata"]
 
     def reingest_fits_tables(self, h5_connector, image_path, spectra_path, image_pattern=None, spectra_pattern=None):
         self.h5_connector = h5_connector
@@ -103,10 +90,10 @@ class MetadataProcessor:
         image_header_ds, image_header_ds_dtype, spec_header_ds, spec_header_ds_dtype = self.create_fits_header_datasets()
         img_cnt = self.write_fits_headers(image_header_ds, image_header_ds_dtype, image_path, image_pattern,
                                           self.config.LIMIT_IMAGE_COUNT)
-        self.h5_connector.f.attrs["image_count"] = img_cnt
+        self.h5_connector.file.attrs["image_count"] = img_cnt
         spec_cnt = self.write_fits_headers(spec_header_ds, spec_header_ds_dtype, spectra_path, spectra_pattern,
                                            self.config.LIMIT_SPECTRA_COUNT)
-        self.h5_connector.f.attrs["spectra_count"] = spec_cnt
+        self.h5_connector.file.attrs["spectra_count"] = spec_cnt
 
     def write_fits_headers(self, header_ds, header_ds_dtype, fits_path, fits_pattern, max_fits_cnt, offset=0):
         buf = np.zeros(shape=(self.config.FITS_HEADER_BUF_SIZE,), dtype=header_ds_dtype)
@@ -117,7 +104,8 @@ class MetadataProcessor:
             buf_i, fits_cnt, offset = self.write_fits_header(buf, buf_i, fits_cnt, fits_path, header_ds, offset)
             if fits_cnt >= max_fits_cnt:
                 break
-        header_ds.write_direct(buf, source_sel=np.s_[0:buf_i], dest_sel=np.s_[offset:offset + buf_i])
+        if fits_cnt > 0:
+            header_ds.write_direct(buf, source_sel=np.s_[0:buf_i], dest_sel=np.s_[offset:offset + buf_i])
         return fits_cnt
 
     @log_timing("fits_headers")
@@ -132,7 +120,7 @@ class MetadataProcessor:
         buf[buf_i] = (str(fits_path), serialized_header)
         buf_i += 1
         fits_cnt += 1
-        self.fits_total_cnt += 1
+        self.h5_connector.fits_total_cnt += 1
         return buf_i, fits_cnt, offset
 
     def create_fits_header_datasets(self):
@@ -145,12 +133,12 @@ class MetadataProcessor:
         path_dtype = h5py.string_dtype(encoding="utf-8", length=self.config.FITS_MAX_PATH_SIZE)
         image_header_dtype = h5py.string_dtype(encoding="utf-8", length=self.config.FITS_IMAGE_MAX_HEADER_SIZE)
         image_header_ds_dtype = [("path", path_dtype), ("header", image_header_dtype)]
-        image_header_ds = self.h5_connector.f.create_dataset('fits_images_metadata', (max_images,),
-                                                             dtype=image_header_ds_dtype)
+        image_header_ds = self.h5_connector.file.create_dataset('fits_images_metadata', (max_images,),
+                                                                dtype=image_header_ds_dtype)
         spectrum_header_dtype = h5py.string_dtype(encoding="utf-8", length=self.config.FITS_SPECTRUM_MAX_HEADER_SIZE)
         spec_header_ds_dtype = [("path", path_dtype), ("header", spectrum_header_dtype)]
-        spec_header_ds = self.h5_connector.f.create_dataset('fits_spectra_metadata', (max_spectra,),
-                                                            dtype=spec_header_ds_dtype)
-        self.h5_connector.f.attrs["image_count"] = 0
-        self.h5_connector.f.attrs["spectra_count"] = 0
+        spec_header_ds = self.h5_connector.file.create_dataset('fits_spectra_metadata', (max_spectra,),
+                                                               dtype=spec_header_ds_dtype)
+        self.h5_connector.file.attrs["image_count"] = 0
+        self.h5_connector.file.attrs["spectra_count"] = 0
         return image_header_ds, image_header_ds_dtype, spec_header_ds, spec_header_ds_dtype
