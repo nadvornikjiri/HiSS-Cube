@@ -21,7 +21,7 @@ rank = mpi4py.MPI.COMM_WORLD.Get_rank()
 
 
 # import pydevd_pycharm
-# port_mapping = [39133, 42561]
+# port_mapping = [43375, 44353]
 # pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
 # print(os.getpid())
 
@@ -84,7 +84,7 @@ class MPIHelper:
 
     def send_work_finished(self, dest):
         tag = self.KILL_TAG
-        self.logger.info("Rank %02d: Terminating worker: %0d" % (self.rank, dest))
+        self.logger.debug("Rank %02d: Terminating worker: %0d" % (self.rank, dest))
         self.comm.send(obj=None, dest=dest, tag=tag)
 
     def wait_for_message(self, source, tag, status):

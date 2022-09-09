@@ -11,6 +11,7 @@ import pytest
 
 from hisscube.builders import HiSSCubeConstructionDirector
 from hisscube.dependency_injector import HiSSCubeProvider
+from hisscube.processors.cube_ml import MLProcessor
 from hisscube.processors.cube_visualization import VisualizationProcessor
 from hisscube.utils.config import Config
 from hisscube.utils.io import SerialH5Writer
@@ -65,7 +66,7 @@ class TestExport:
             processor = VisualizationProcessor(self.config)
             processor.h5_connector = h5_connector
             self.output_path = "../../results/output.fits"
-            processor.construct_spectral_cube_table(self.resolution)
+            processor.read_spectral_cube_table(self.resolution)
             processor.write_FITS(self.output_path)
             # self.send_samp("table.load.fits")
             assert processor.spectral_cube.shape == (276100,)
@@ -80,6 +81,14 @@ class TestExport:
             processor.write_FITS(self.output_path)
             # self.send_samp("table.load.fits")
             assert processor.spectral_cube.shape == (9867,)
+
+    def test_get_3d_cube(self):
+        with self.dependency_provider.h5_serial_reader as h5_connector:
+            processor = MLProcessor(self.config)
+            processor.h5_connector = h5_connector
+            cube_3d = processor.get_spectrum_3d_cube(zoom=2)
+            assert cube_3d[0].shape == (2, 5, 16, 16, 2)
+            assert cube_3d[1].shape == (2, 1155, 2)
 
     def send_samp(self, message_type):
         client = SAMPIntegratedClient()

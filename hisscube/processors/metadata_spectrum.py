@@ -14,6 +14,7 @@ from hisscube.utils.logging import HiSSCubeLogger, log_timing
 class SpectrumMetadataProcessor:
     def __init__(self, config, metadata_handler):
         self.metadata_processor = metadata_handler
+        self.metadata = None
         self.h5_connector = None
         self.config = config
         self.logger = HiSSCubeLogger.logger
@@ -75,7 +76,7 @@ class SpectrumMetadataProcessor:
         -------
 
         """
-        spectrum_coord = (self.metadata_processor.metadata['PLUG_RA'], self.metadata_processor.metadata['PLUG_DEC'])
+        spectrum_coord = (self.metadata['PLUG_RA'], self.metadata['PLUG_DEC'])
         for order in range(self.config.SPEC_SPAT_INDEX_ORDER):
             child_grp = self.metadata_processor.require_spatial_grp(order, child_grp, spectrum_coord)
 
@@ -87,7 +88,7 @@ class SpectrumMetadataProcessor:
         return child_grp
 
     def require_spectrum_time_grp(self, parent_grp):
-        time = get_time_from_spectrum(self.metadata_processor.metadata)
+        time = get_time_from_spectrum(self.metadata)
         grp = self.h5_connector.require_group(parent_grp, str(time), track_order=True)
         self.h5_connector.set_attr(grp, "type", "time")
         return grp
@@ -153,13 +154,13 @@ class SpectrumMetadataProcessor:
 
         image_refs = {}
         image_min_zoom_idx = 0
-        self.metadata_processor.metadata = self.h5_connector.read_serialized_fits_header(spec_datasets[0])
+        self.metadata = self.h5_connector.read_serialized_fits_header(spec_datasets[0])
         for image_res_idx, image_ds in self.find_images_overlapping_spectrum():
             if not image_res_idx in image_refs:
                 image_refs[image_res_idx] = []
             try:
                 image_refs[image_res_idx].append(
-                    get_region_ref(self.h5_connector, image_res_idx, image_ds, self.metadata_processor.metadata,
+                    get_region_ref(self.h5_connector, image_res_idx, image_ds, self.metadata,
                                    self.config.IMAGE_CUTOUT_SIZE))
                 if image_res_idx > image_min_zoom_idx:
                     image_min_zoom_idx = image_res_idx
@@ -193,7 +194,7 @@ class SpectrumMetadataProcessor:
         -------
         """
         overlapping_pixel_paths = astrometry.get_potential_overlapping_image_spatial_paths(
-            self.metadata_processor.metadata,
+            self.metadata,
             self.config.IMG_DIAMETER_ANG_MIN,
             self.config.IMG_SPAT_INDEX_ORDER)
         heal_paths = self.get_absolute_heal_paths(overlapping_pixel_paths)
@@ -244,7 +245,7 @@ class SpectrumMetadataProcessor:
 
     def write_spectrum_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
         self.set_connector(h5_connector)
-        self.metadata_processor.metadata = ujson.loads(fits_header)
+        self.metadata = ujson.loads(fits_header)
         self.write_parsed_spectrum_metadata(fits_path, no_attrs, no_datasets)
 
     def write_parsed_spectrum_metadata(self, fits_path, no_attrs, no_datasets):
@@ -258,16 +259,16 @@ class SpectrumMetadataProcessor:
         if not no_datasets:
             spec_datasets = self.create_spec_datasets(res_grps)
         if not no_attrs:
-            self.metadata_processor.add_metadata(spec_datasets)
+            self.metadata_processor.add_metadata(self.metadata, spec_datasets)
 
     def get_resolution_groups(self, h5_connector):
         self.set_connector(h5_connector)
-        spatial_path = get_heal_path_from_coords(self.metadata_processor.metadata, self.config,
+        spatial_path = get_heal_path_from_coords(self.metadata, self.config,
                                                  order=self.config.SPEC_SPAT_INDEX_ORDER)
         try:
-            time = self.metadata_processor.metadata["TAI"]
+            time = self.metadata["TAI"]
         except KeyError:
-            time = self.metadata_processor.metadata["MJD"]
+            time = self.metadata["MJD"]
         path = "/".join([spatial_path, str(time)])
         time_grp = self.h5_connector.file[path]
         for res_grp in time_grp:

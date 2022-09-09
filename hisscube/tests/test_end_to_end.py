@@ -24,6 +24,7 @@ class TestHiSSCube(unittest.TestCase):
 
         assert (diff_output == "")
 
+    @pytest.mark.skip(reason="H5 Files not versioned with git.")
     def test_serial_whole(self):
         h5_test_path = "../../results/SDSS_cube_test.h5"
         h5_path = self.construct_serial()
@@ -40,7 +41,7 @@ class TestHiSSCube(unittest.TestCase):
         assert (diff_output == "")
         return h5_dump_path, h5_testdump_path, h5_path
 
-    @pytest.mark.skip(reason="Long run")
+    @pytest.mark.skip(reason="H5 Files not versioned with git. Long run")
     def test_parallel_whole(self):
         h5_test_path = "../../results/SDSS_cube_c_par_test.h5"
         h5_path = self.construct_parallel()

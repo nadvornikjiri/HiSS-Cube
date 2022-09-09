@@ -15,7 +15,6 @@ class MetadataProcessor:
     def __init__(self, config, photometry):
         self.config = config
         self.h5_connector: H5Connector = None
-        self.metadata = None
         self.file_name = None
         self.fits_path = None
         self.photometry = photometry
@@ -47,7 +46,7 @@ class MetadataProcessor:
                 if not child_name in parent:
                     parent[child_name] = child_groups[child_name]
 
-    def add_metadata(self, datasets):
+    def add_metadata(self, metadata,  datasets):
         """
         Adds metadata to the HDF5 data sets of the same image or spectrum in multiple resolutions. It also modifies the
         metadata for image where needed and adds the COMMENT and HISTORY attributes as datasets for optimization
@@ -61,7 +60,7 @@ class MetadataProcessor:
 
         """
         unicode_dt = h5py.special_dtype(vlen=str)
-        image_fits_header = dict(self.metadata)
+        image_fits_header = dict(metadata)
         for res_idx, ds in enumerate(datasets):
             if res_idx > 0:
                 self.h5_connector.set_attr_ref(ds, "orig_res_link", datasets[0])

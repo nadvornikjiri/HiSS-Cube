@@ -2,7 +2,6 @@ import h5py
 
 import numpy as np
 
-
 from hisscube.processors.metadata_spectrum import get_time_from_spectrum
 
 from hisscube.utils.astrometry import get_cutout_pixel_coords, get_cutout_bounds_from_spectrum
@@ -76,7 +75,6 @@ class SparseTreeCube:
 class MLProcessor:
     def __init__(self, config):
         self.h5_connector = None
-        self.f = None
         self.config = config
         self.logger = HiSSCubeLogger.logger
         self.spectral_3d_cube = None
@@ -85,11 +83,11 @@ class MLProcessor:
 
     def create_3d_cube(self, h5_connector):
         self.h5_connector = h5_connector
-        self.f = h5_connector.file
-        dense_grp = self.f.require_group(self.config.DENSE_CUBE_NAME)
-        semi_sparse_grp = self.f[self.config.ORIG_CUBE_NAME]
+        self.h5_connector.file = h5_connector.file
+        dense_grp = self.h5_connector.file.require_group(self.config.DENSE_CUBE_NAME)
+        semi_sparse_grp = self.h5_connector.file[self.config.ORIG_CUBE_NAME]
         target_count = self.count_spatial_groups_with_depth(semi_sparse_grp,
-                                                          self.config.SPEC_SPAT_INDEX_ORDER)
+                                                            self.config.SPEC_SPAT_INDEX_ORDER)
         dense_grp.attrs["target_count"] = target_count
 
         for zoom in range(min(self.config.IMG_ZOOM_CNT,
@@ -126,12 +124,12 @@ class MLProcessor:
         self.target_cnt[zoom] = 0
 
     def get_spectrum_3d_cube(self, zoom):
-        cutout_3d_cube = self.f["dense_cube/%d/ml/cutout_3d_cube_zoom_%d" % (zoom, zoom)]
-        spec_1d_cube = self.f["dense_cube/%d/ml/spectral_1d_cube_zoom_%d" % (zoom, zoom)]
+        cutout_3d_cube = self.h5_connector.file["dense_cube/%d/ml/cutout_3d_cube_zoom_%d" % (zoom, zoom)]
+        spec_1d_cube = self.h5_connector.file["dense_cube/%d/ml/spectral_1d_cube_zoom_%d" % (zoom, zoom)]
         return cutout_3d_cube, spec_1d_cube
 
     def get_target_count(self):
-        return self.f["dense_cube"].attrs["target_count"]
+        return self.h5_connector.file["dense_cube"].attrs["target_count"]
 
     def create_dimension_scales(self, ml_grp, zoom, dim_type, dim_names):
         dim_ddtype = np.dtype('<f4')
@@ -214,10 +212,11 @@ class MLProcessor:
         for region_ref in cutout_refs:
             if region_ref:
                 try:
-                    image_ds = self.f[region_ref]
+                    image_ds = self.h5_connector.file[region_ref]
                     image_region = image_ds[region_ref]
 
-                    cutout_bounds, time, w, cutout_wl = get_cutout_bounds_from_spectrum(self.h5_connector, image_ds, zoom,
+                    cutout_bounds, time, w, cutout_wl = get_cutout_bounds_from_spectrum(self.h5_connector, image_ds,
+                                                                                        zoom,
                                                                                         spec_ds,
                                                                                         self.config.IMAGE_CUTOUT_SIZE)
                     ra, dec = get_cutout_pixel_coords(cutout_bounds, w)

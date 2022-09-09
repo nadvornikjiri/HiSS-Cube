@@ -126,7 +126,7 @@ class SingleImageBuilder(Builder):
         return img_datasets
 
     def build_data(self, h5_connector, image_path, image_metadata_processor, data_processor, fits_file_name):
-        image_metadata_processor.metadata_processor.metadata, data_processor.data = self.photometry.get_multiple_resolution_image(
+        image_metadata_processor.metadata, data_processor.data = self.photometry.get_multiple_resolution_image(
             image_path,
             self.config.IMG_ZOOM_CNT)
         res_grp_list = image_metadata_processor.get_resolution_groups(h5_connector)
@@ -175,7 +175,7 @@ class SingleSpectrumBuilder(Builder):
         return spec_datasets
 
     def build_data(self, h5_connector, spec_path, spectrum_metadata_processor, data_processor, fits_file_name):
-        spectrum_metadata_processor.metadata_processor.metadata, data_processor.data = self.photometry.get_multiple_resolution_spectrum(
+        spectrum_metadata_processor.metadata, data_processor.data = self.photometry.get_multiple_resolution_spectrum(
             spec_path, self.config.SPEC_ZOOM_CNT,
             apply_rebin=self.config.APPLY_REBIN,
             rebin_min=self.config.REBIN_MIN,
@@ -471,12 +471,12 @@ class ParallelSWMRDataBuilder(ParallelDataBuilder):
     @staticmethod
     def add_to_result_batch(fits_path, processed_image_batch, metadata_processor, data_processor):
         file_name = Path(fits_path).name
-        if "COMMENT" in metadata_processor.metadata_processor.metadata:
-            del metadata_processor.metadata_processor.metadata["COMMENT"]  # TODO fix this serialization hack.
-        if "HISTORY" in metadata_processor.metadata_processor.metadata:
-            del metadata_processor.metadata_processor.metadata["HISTORY"]
+        if "COMMENT" in metadata_processor.metadata:
+            del metadata_processor.metadata["COMMENT"]  # TODO fix this serialization hack.
+        if "HISTORY" in metadata_processor.metadata:
+            del metadata_processor.metadata["HISTORY"]
         processed_image_batch.append(
-            {"metadata": dict(metadata_processor.metadata_processor.metadata), "data": data_processor.data,
+            {"metadata": dict(metadata_processor.metadata), "data": data_processor.data,
              "file_name": str(file_name)})
 
 

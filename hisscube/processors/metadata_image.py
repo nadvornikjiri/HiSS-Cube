@@ -12,6 +12,7 @@ from hisscube.utils.logging import HiSSCubeLogger, log_timing
 class ImageMetadataProcessor:
     def __init__(self, config, metadata_handler):
         self.h5_connector = None
+        self.metadata = None
         self.metadata_processor = metadata_handler
         self.config = config
         self.logger = HiSSCubeLogger.logger
@@ -23,8 +24,8 @@ class ImageMetadataProcessor:
 
     def require_res_grps(self, parent_grp):
         res_grp_list = []
-        x_lower_res = int(self.metadata_processor.metadata["NAXIS1"])
-        y_lower_res = int(self.metadata_processor.metadata["NAXIS2"])
+        x_lower_res = int(self.metadata["NAXIS1"])
+        y_lower_res = int(self.metadata["NAXIS2"])
         for res_zoom in range(self.config.IMG_ZOOM_CNT):
             res_grp_name = str((x_lower_res, y_lower_res))
             grp = self.h5_connector.require_group(parent_grp, res_grp_name)
@@ -77,7 +78,7 @@ class ImageMetadataProcessor:
 
         """
         orig_parent = parent_grp
-        image_coords = astrometry.get_image_center_coords(self.metadata_processor.metadata)
+        image_coords = astrometry.get_image_center_coords(self.metadata)
 
         parent_grp = orig_parent
         for order in range(self.config.IMG_SPAT_INDEX_ORDER):
@@ -86,14 +87,14 @@ class ImageMetadataProcessor:
                 return parent_grp
 
     def require_image_time_grp(self, parent_grp):
-        tai_time = self.metadata_processor.metadata["TAI"]
+        tai_time = self.metadata["TAI"]
         grp = self.h5_connector.require_group(parent_grp, str(tai_time))
         self.h5_connector.set_attr(grp, "type", "time")
         return grp
 
     def require_image_spectral_grp(self, parent_grp):
         grp = self.h5_connector.require_group(parent_grp, str(
-            self.metadata_processor.photometry.filter_midpoints[self.metadata_processor.metadata["FILTER"]]),
+            self.metadata_processor.photometry.filter_midpoints[self.metadata["FILTER"]]),
                                               track_order=True)
         self.h5_connector.set_attr(grp, "type", "spectral")
         return grp
@@ -131,7 +132,7 @@ class ImageMetadataProcessor:
 
     def write_image_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
         self.set_connector(h5_connector)
-        self.metadata_processor.metadata = ujson.loads(fits_header)
+        self.metadata = ujson.loads(fits_header)
         self.write_parsed_image_metadata(fits_path, no_attrs, no_datasets)
 
 
@@ -143,15 +144,15 @@ class ImageMetadataProcessor:
         if not no_datasets:
             img_datasets = self.create_img_datasets(res_grps)
         if not no_attrs:
-            self.metadata_processor.add_metadata(img_datasets)
+            self.metadata_processor.add_metadata(self.metadata, img_datasets)
 
     def get_resolution_groups(self, h5_connector):
         self.set_connector(h5_connector)
-        reference_coord = astrometry.get_image_center_coords(self.metadata_processor.metadata)
-        spatial_path = get_heal_path_from_coords(self.metadata_processor.metadata, self.config, ra=reference_coord[0],
+        reference_coord = astrometry.get_image_center_coords(self.metadata)
+        spatial_path = get_heal_path_from_coords(self.metadata, self.config, ra=reference_coord[0],
                                                  dec=reference_coord[1])
-        tai_time = self.metadata_processor.metadata["TAI"]
-        spectral_midpoint = self.metadata_processor.photometry.filter_midpoints[self.metadata_processor.metadata["FILTER"]]
+        tai_time = self.metadata["TAI"]
+        spectral_midpoint = self.metadata_processor.photometry.filter_midpoints[self.metadata["FILTER"]]
         path = "/".join([spatial_path, str(tai_time), str(spectral_midpoint)])
         spectral_grp = self.h5_connector.file[path]
         for res_grp in spectral_grp:
