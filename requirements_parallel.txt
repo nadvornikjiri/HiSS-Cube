@@ -1,0 +1,16 @@
+astropy~=4.2.1
+fitsio==1.1.1
+h5py~=3.6.0
+healpy==1.13.0
+numpy~=1.20.3
+opencv-python~=4.5.2.52
+pandas==1.1.4
+pytest==5.4.3
+scipy==1.4.1
+tqdm==4.48.2
+
+spectres~=2.1.1
+mpi4py~=3.0.3
+ujson~=5.1.0
+tables~=3.7.0
+msgpack~=1.0.3
