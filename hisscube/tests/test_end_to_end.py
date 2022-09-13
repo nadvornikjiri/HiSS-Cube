@@ -31,7 +31,7 @@ class TestHiSSCube(unittest.TestCase):
         diff_output = self.h5diff_whole(h5_path, h5_test_path)
         assert (diff_output == "")
 
-    @pytest.mark.skip(reason="Long run")
+    # @pytest.mark.skip(reason="Long run")
     def test_parallel_metadata(self):
         h5_dump_path = "../../results/SDSS_cube_c_par_dump.txt"
         h5_testdump_path = "../../results/SDSS_cube_c_par_test_dump.txt"

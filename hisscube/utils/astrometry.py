@@ -66,7 +66,7 @@ def get_cutout_bounds(image_fits_header, res_idx, spectrum_fits_header, cutout_s
 
     Parameters
     ----------
-    image_ds                HDF5 dataset
+    ds                HDF5 dataset
     res_idx                 Resolution index = zoom factor
     spectrum_fits_header    Dictionary-like header of the spectrum, mostly copied from the FITS.
 
@@ -139,12 +139,12 @@ def get_potential_overlapping_image_spatial_paths(fits_header, radius_arcmin, im
 
 def get_region_ref(h5_connector, res_idx, image_ds, spec_fits_header, image_cutout_size):
     """
-    Gets the region reference for a given resolution from an image_ds.
+    Gets the region reference for a given resolution from an ds.
 
     Parameters
     ----------
     res_idx     Resolution index = zoom factor, e.g., 0, 1, 2, ...
-    image_ds    HDF5 dataset
+    ds    HDF5 dataset
 
     Returns     HDF5 region reference
     -------

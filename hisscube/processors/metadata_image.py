@@ -7,6 +7,7 @@ from hisscube.utils import astrometry
 from hisscube.utils.astrometry import get_heal_path_from_coords
 from hisscube.utils.io import get_path_patterns, get_image_header_dataset
 from hisscube.utils.logging import HiSSCubeLogger, log_timing
+from hisscube.utils.nexus import set_nx_data
 
 
 class ImageMetadataProcessor:
@@ -31,6 +32,7 @@ class ImageMetadataProcessor:
             grp = self.h5_connector.require_group(parent_grp, res_grp_name)
             self.h5_connector.set_attr(grp, "type", "resolution")
             self.h5_connector.set_attr(grp, "res_zoom", res_zoom)
+            set_nx_data(grp, self.h5_connector)
             res_grp_list.append(grp)
             x_lower_res = int(x_lower_res / 2)
             y_lower_res = int(y_lower_res / 2)
@@ -57,7 +59,7 @@ class ImageMetadataProcessor:
         -------
 
         """
-        cube_grp = self.h5_connector.require_raw_cube_grp()
+        cube_grp = self.h5_connector.require_semi_sparse_cube_grp()
         spatial_grp = self.require_image_spatial_grp_structure(cube_grp)
         time_grp = self.require_image_time_grp(spatial_grp)
         img_spectral_grp = self.require_image_spectral_grp(time_grp)
@@ -174,6 +176,7 @@ class ImageMetadataProcessor:
             img_data_shape = tuple(reversed(literal_eval(res_tuple))) + (2,)
             ds = self.h5_connector.create_image_h5_dataset(group, self.metadata_processor.file_name, img_data_shape)
             self.h5_connector.set_attr(ds, "mime-type", "image")
+            self.h5_connector.set_attr(ds, "interpretation", "image")
             img_datasets.append(ds)
         return img_datasets
 

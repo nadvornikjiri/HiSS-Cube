@@ -38,9 +38,12 @@ class HiSSCubeConstructionDirector:
             self.builders.append(self.serial_builders.metadata_cache_builder)
             self.append_metadata_builder()
             self.append_data_builder()
-            self.builders.append(self.serial_builders.link_builder)
-            self.builders.append(self.serial_builders.visualization_cube_builder)
-            self.builders.append(self.serial_builders.ml_cube_builder)
+            if self.config.CREATE_REFERENCES:
+                self.builders.append(self.serial_builders.link_builder)
+            if self.config.CREATE_VISUALIZATION_CUBE:
+                self.builders.append(self.serial_builders.visualization_cube_builder)
+            if self.config.CREATE_ML_CUBE:
+                self.builders.append(self.serial_builders.ml_cube_builder)
 
         elif self.args.command == "update":
             if self.args.fits_tables:
@@ -488,7 +491,7 @@ class LinkBuilder(SerialBuilder):
 
     def _build(self):
         with self.h5_connector as h5_connector:
-            self.logger.info("Creating spectrum to image cutout region references.")
+            self.logger.info("Creating region references to link spectra to image cutouts.")
             self.spectrum_metadata_processor.link_spectra_to_images(h5_connector)
 
 

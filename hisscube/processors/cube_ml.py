@@ -7,6 +7,8 @@ from hisscube.processors.metadata_spectrum import get_time_from_spectrum
 from hisscube.utils.astrometry import get_cutout_pixel_coords, get_cutout_bounds_from_spectrum
 from hisscube.utils.io import get_orig_header
 from hisscube.utils.logging import HiSSCubeLogger
+from hisscube.utils.nexus import add_nexus_navigation_metadata, set_nx_data, set_nx_interpretation, set_nx_signal, \
+    set_nx_axes
 
 
 def aggregate_inverse_variance_weighting(arr, axis=0):  # TODO rescale by 1e-17 to make the calculations easier?
@@ -84,7 +86,8 @@ class MLProcessor:
     def create_3d_cube(self, h5_connector):
         self.h5_connector = h5_connector
         self.h5_connector.file = h5_connector.file
-        dense_grp = self.h5_connector.file.require_group(self.config.DENSE_CUBE_NAME)
+        dense_grp = self.h5_connector.require_dense_group()
+
         semi_sparse_grp = self.h5_connector.file[self.config.ORIG_CUBE_NAME]
         target_count = self.count_spatial_groups_with_depth(semi_sparse_grp,
                                                             self.config.SPEC_SPAT_INDEX_ORDER)
@@ -96,37 +99,57 @@ class MLProcessor:
                                           self.config.REBIN_SAMPLES, zoom)
 
         self.append_target_3d_cube(semi_sparse_grp)
+        add_nexus_navigation_metadata(self.h5_connector, self.config)
 
     def create_datasets_for_zoom(self, cutout_size, dense_grp, target_count, rebin_samples, zoom):
         spectral_dshape = (target_count,
-                           int(rebin_samples / 2 ** zoom),
-                           2)
+                           int(rebin_samples / 2 ** zoom))
         image_dshape = (target_count,
                         5,  # no image bands that can cover spectrum.
                         int(cutout_size / 2 ** zoom),
-                        int(cutout_size / 2 ** zoom),
-                        2)
+                        int(cutout_size / 2 ** zoom))
         dtype = np.dtype('<f4')  # both mean and sigma values are float
         res_grp = dense_grp.require_group(str(zoom))
-        ml_grp = res_grp.require_group("ml")
-        self.spec_3d_cube_datasets["spectral"][zoom] = ml_grp.require_dataset("spectral_1d_cube_zoom_%d" % zoom,
-                                                                              spectral_dshape, dtype)
-        self.spec_3d_cube_datasets["image"][zoom] = ml_grp.require_dataset("cutout_3d_cube_zoom_%d" % zoom,
-                                                                           image_dshape, dtype)
-        spec_dimensions = {"spatial": (target_count, 2),
-                           "wl": (target_count, int(rebin_samples / 2 ** zoom)),
-                           "time": (target_count, 1)}
-        image_dimensions = {"spatial": (target_count, int(cutout_size / 2 ** zoom), int(cutout_size / 2 ** zoom), 2),
-                            "wl": (target_count, 5),  # image bands that can cover spectrum.,
-                            "time": (target_count, 5)}  # time is 1D but grouped by wl
-        self.create_dimension_scales(ml_grp, zoom, "spectral", spec_dimensions)
-        self.create_dimension_scales(ml_grp, zoom, "image", image_dimensions)
+        image_ml_grp = res_grp.require_group("ml_image")
+        set_nx_data(image_ml_grp, self.h5_connector)
+
+        # set_nx_axes(image_ml_grp, "image_time,image_wl,image_spatial_1,image_spatial_2", self.h5_connector)
+        spec_ml_grp = res_grp.require_group("ml_spectrum")
+
+        # set_nx_axes(spec_ml_grp, ".,Y,.", self.h5_connector)
+        set_nx_data(spec_ml_grp, self.h5_connector)
+        ds_name = "cutout_3d_cube_zoom_%d" % zoom
+
+        image_ds = image_ml_grp.require_dataset(ds_name, image_dshape, dtype)
+        set_nx_interpretation(image_ds, "image", self.h5_connector)
+        self.spec_3d_cube_datasets["image"][zoom] = image_ds
+        self.create_error_ds(image_ml_grp, image_ds, image_dshape, dtype)
+        set_nx_signal(image_ml_grp, ds_name, self.h5_connector)
+        # image_dimensions = {"time": (target_count,),
+        #                     "wl": (5,),  # image bands that can cover spectrum.,
+        #                     "spatial": (target_count, int(cutout_size / 2 ** zoom), int(cutout_size / 2 ** zoom))
+        #                     }  # time is 1D but grouped by wl
+        # self.create_dimension_scales(image_ml_grp, zoom, "image", image_dimensions)
+
+        ds_name = "spectral_1d_cube_zoom_%d" % zoom
+        spec_ds = spec_ml_grp.require_dataset(ds_name, spectral_dshape, dtype)
+        set_nx_interpretation(spec_ds, "spectrum", self.h5_connector)
+        self.spec_3d_cube_datasets["spectral"][zoom] = spec_ds
+        self.create_error_ds(spec_ml_grp, spec_ds, spectral_dshape, dtype)
+        set_nx_signal(spec_ml_grp, ds_name, self.h5_connector)
+        # spec_dimensions = {"spatial": (target_count, 2),
+        #                    "wl": (target_count, int(rebin_samples / 2 ** zoom)),
+        #                    "time": (target_count, 1)}
+        # self.create_dimension_scales(spec_ml_grp, zoom, "spectral", spec_dimensions)
+
         self.target_cnt[zoom] = 0
 
     def get_spectrum_3d_cube(self, zoom):
-        cutout_3d_cube = self.h5_connector.file["dense_cube/%d/ml/cutout_3d_cube_zoom_%d" % (zoom, zoom)]
-        spec_1d_cube = self.h5_connector.file["dense_cube/%d/ml/spectral_1d_cube_zoom_%d" % (zoom, zoom)]
-        return cutout_3d_cube, spec_1d_cube
+        cutout_3d_cube = self.h5_connector.file["dense_cube/%d/ml_image/cutout_3d_cube_zoom_%d" % (zoom, zoom)]
+        cutout_3d_cube_errors = self.h5_connector.file["dense_cube/%d/ml_image/errors" % zoom]
+        spec_1d_cube = self.h5_connector.file["dense_cube/%d/ml_spectrum/spectral_1d_cube_zoom_%d" % (zoom, zoom)]
+        spec_1d_cube_errors = self.h5_connector.file["dense_cube/%d/ml_spectrum/errors" % zoom]
+        return cutout_3d_cube,cutout_3d_cube_errors, spec_1d_cube, spec_1d_cube_errors
 
     def get_target_count(self):
         return self.h5_connector.file["dense_cube"].attrs["target_count"]
@@ -179,26 +202,34 @@ class MLProcessor:
                 spec_cube_ds = self.spec_3d_cube_datasets["spectral"][zoom]
                 image_cube_ds = self.spec_3d_cube_datasets["image"][zoom]
 
-                target_image_3d_cube, target_spectra_1d_cube1d_cube = aggregate_3d_cube(cutout_data, cutout_dims,
-                                                                                        spec_data, spec_dims)
-                spec_cube_ds[self.target_cnt[zoom]] = target_spectra_1d_cube1d_cube
-                image_cube_ds[self.target_cnt[zoom]] = target_image_3d_cube
-                self.write_dimensions(spec_cube_ds, image_cube_ds, cutout_dims, spec_dims, zoom)
+                target_image_3d_cube, target_spectra_1d_cube = aggregate_3d_cube(cutout_data, cutout_dims,
+                                                                                 spec_data, spec_dims)
+                image_cube_ds[self.target_cnt[zoom]] = target_image_3d_cube[:, :, :, 0]  # Writing values
+                image_error_ds_ref = image_cube_ds.attrs["error_ds"]
+                image_error_ds = self.h5_connector.file[image_error_ds_ref]
+                image_error_ds[self.target_cnt[zoom]] = target_image_3d_cube[:, :, :, 1]  # Writing errors
+
+                spec_cube_ds[self.target_cnt[zoom]] = target_spectra_1d_cube[:, 0]  # Writing values
+                spec_error_ds_ref = spec_cube_ds.attrs["error_ds"]
+                spec_error_ds = self.h5_connector.file[spec_error_ds_ref]
+                spec_error_ds[self.target_cnt[zoom]] = target_spectra_1d_cube[:, 1]  # Writing errors
+
+                # self.write_dimensions(spec_cube_ds, image_cube_ds, cutout_dims, spec_dims, zoom)
                 self.target_cnt[zoom] += 1
 
     def write_dimensions(self, spec_cube_ds, image_cube_ds, cutout_dims, spec_dims, zoom):
-        for dim_idx, spec_dim in enumerate(spec_dims.items()):
-            dim_name, coords = spec_dim
-            coords = np.array(coords)
-            spec_cube_ds.dims[dim_idx][dim_name][self.target_cnt[zoom]] = coords
+        # for dim_idx, spec_dim in enumerate(spec_dims.items()):
+        #     dim_name, coords = spec_dim
+        #     coords = np.array(coords)
+        #     spec_cube_ds.dims[dim_idx][dim_name][self.target_cnt[zoom]] = coords
         spat_coords = cutout_dims["spatial"]
-        image_cube_ds.dims[0]["spatial"][self.target_cnt[zoom]] = spat_coords
+        image_cube_ds.dims[2]["spatial"][self.target_cnt[zoom]] = spat_coords
         wl_coords = np.array(list((cutout_dims["child_dim"].keys()))).astype('i')
-        image_cube_ds.dims[1]["wl"][self.target_cnt[zoom]] = wl_coords
+        image_cube_ds.dims[1]["wl"][:] = wl_coords
         time_coords = []
         for wl_dim in cutout_dims["child_dim"]:
             time_coords.append(float(cutout_dims["child_dim"][wl_dim]["child_dim"]["time"]))
-        image_cube_ds.dims[2]["time"][self.target_cnt[zoom]] = np.array(time_coords)  # time is reduced to 1D
+        image_cube_ds.dims[0]["time"][self.target_cnt[zoom]] = np.array(time_coords)  # time is reduced to 1D
 
     def construct_target_dense_cubes(self, zoom, spec_datasets):
         spec_ds, spectra = get_spectral_cube(self.h5_connector, spec_datasets)
@@ -252,3 +283,7 @@ class MLProcessor:
                 cutout_dims["child_dim"][wl]["child_dim"]["time"] = np.array(
                     cutout_dims["child_dim"][wl]["child_dim"]["time"])
         return image_cutouts
+
+    def create_error_ds(self, ml_grp, ds, dshape, dtype):
+        error_ds = ml_grp.require_dataset("errors", dshape, dtype)
+        ds.attrs["error_ds"] = error_ds.ref

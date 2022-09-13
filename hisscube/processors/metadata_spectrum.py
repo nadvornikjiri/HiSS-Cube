@@ -59,7 +59,7 @@ class SpectrumMetadataProcessor:
         -------
 
         """
-        spec_grp = self.h5_connector.require_raw_cube_grp()
+        spec_grp = self.h5_connector.require_semi_sparse_cube_grp()
         spatial_grp = self.require_spectrum_spatial_grp_structure(spec_grp)
         time_grp = self.require_spectrum_time_grp(spatial_grp)
         res_grps = self.require_res_grps(time_grp)

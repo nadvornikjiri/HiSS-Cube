@@ -28,6 +28,7 @@ void process_h5_dict(PyObject *self, PyObject *args) {
     PyObject *pyDict;
     char *h5_path;
     char *timing_log_path;
+    const char *child_grp_name;
     bool is_image_ds_chunked = 0;
     int chunk_dim_0, chunk_dim_1, chunk_dim_2;
     hsize_t chunk_sizes[3];
@@ -69,6 +70,8 @@ void process_h5_dict(PyObject *self, PyObject *args) {
             if (parent_grp < 0) {
                 H5Eprint(H5E_DEFAULT, stderr);
             }
+            PyObject *attr_node = get_attr_node(value);
+            write_attrs(parent_grp, attr_node, 0);
             child_grp = process_tree(value, parent_grp, NULL, -1, &orig_res_ds, is_image_ds_chunked, chunk_sizes);
             H5Gclose(child_grp);
             open_grp_cnt--;

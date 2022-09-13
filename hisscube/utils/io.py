@@ -12,6 +12,7 @@ from astropy.time import Time
 
 from hisscube.processors.data import get_property_list
 from hisscube.utils.logging import get_c_timings_path
+from hisscube.utils.nexus import set_nx_entry
 
 size = mpi4py.MPI.COMM_WORLD.Get_size()
 rank = mpi4py.MPI.COMM_WORLD.Get_rank()
@@ -94,8 +95,15 @@ class H5Connector(ABC):
     def close_h5_file(self):
         self.file.close()
 
-    def require_raw_cube_grp(self):
-        return self.require_group(self.file, self.config.ORIG_CUBE_NAME)
+    def require_semi_sparse_cube_grp(self):
+        grp = self.require_group(self.file, self.config.ORIG_CUBE_NAME)
+        set_nx_entry(grp, self)
+        return
+
+    def require_dense_group(self):
+        grp = self.require_group(self.file, self.config.DENSE_CUBE_NAME)
+        set_nx_entry(grp, self)
+        return grp
 
     def require_group(self, parent_grp, name, track_order=False):
         if not name in parent_grp:
@@ -192,8 +200,15 @@ class CBoostedMetadataBuildWriter(SerialH5Writer):
         self.c_timing_log = get_c_timings_path()
         self.h5_file_structure = {"name": ""}
 
-    def require_raw_cube_grp(self):
-        return self.require_group(self.h5_file_structure, self.config.ORIG_CUBE_NAME)
+    def require_semi_sparse_cube_grp(self):
+        grp = self.require_group(self.h5_file_structure, self.config.ORIG_CUBE_NAME)
+        set_nx_entry(grp, self)
+        return grp
+
+    def require_dense_group(self):
+        grp = self.require_group(self.h5_file_structure, self.config.DENSE_CUBE_NAME)
+        set_nx_entry(grp, self)
+        return grp
 
     def require_group(self, parent_grp, name, track_order=False):
         if not name in parent_grp:
