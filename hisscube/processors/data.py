@@ -85,14 +85,13 @@ class ImageDataProcessor:
     def __init__(self, config, data_handler):
         self.config = config
         self.data_handler = data_handler
-        self.data = None
         pass
 
-    def write_datasets(self, res_grp_list, file_name):
+    def write_datasets(self, res_grp_list, data, file_name):
         img_datasets = []
         for group in res_grp_list:
             res_tuple = group.name.split('/')[-1]
-            wanted_res = next(img for img in self.data if str(tuple(img["zoom"])) == res_tuple)  # parsing 2D resolution
+            wanted_res = next(img for img in data if str(tuple(img["zoom"])) == res_tuple)  # parsing 2D resolution
             img_data = np.dstack((wanted_res["flux_mean"], wanted_res["flux_sigma"]))
             img_data[img_data == np.inf] = np.nan
             if self.config.FLOAT_COMPRESS:
@@ -109,11 +108,11 @@ class SpectrumDataProcessor:
         self.data_handler = data_handler
         self.data = None
 
-    def write_datasets(self, res_grp_list, file_name):
+    def write_datasets(self, res_grp_list, data, file_name):
         spec_datasets = []
         for group in res_grp_list:
             res = group.name.split('/')[-1]
-            wanted_res = next(spec for spec in self.data if str(spec["zoom"]) == res)
+            wanted_res = next(spec for spec in data if str(spec["zoom"]) == res)
             spec_data = np.column_stack((wanted_res["wl"], wanted_res["flux_mean"], wanted_res["flux_sigma"]))
             spec_data[spec_data == np.inf] = np.nan
             if self.config.FLOAT_COMPRESS:

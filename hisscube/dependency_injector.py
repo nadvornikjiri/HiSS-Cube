@@ -10,6 +10,9 @@ from hisscube.processors.data import DataProcessor, ImageDataProcessor, Spectrum
 from hisscube.processors.metadata import MetadataProcessor
 from hisscube.processors.metadata_image import ImageMetadataProcessor
 from hisscube.processors.metadata_spectrum import SpectrumMetadataProcessor
+from hisscube.processors.metadata_strategy import TreeStrategy, DatasetStrategy
+from hisscube.processors.metadata_strategy_image import TreeImageStrategy, DatasetImageStrategy
+from hisscube.processors.metadata_strategy_spectrum import TreeSpectrumStrategy, DatasetSpectrumStrategy
 from hisscube.utils.config import Config
 from hisscube.utils.io import SerialH5Writer, ParallelH5Writer, CBoostedMetadataBuildWriter, SerialH5Reader
 from hisscube.utils.mpi_helper import MPIHelper
@@ -45,9 +48,22 @@ class HiSSCubeProvider:
 
 class ProcessorProvider:
     def __init__(self, photometry, config):
-        self.metadata_processor = MetadataProcessor(config, photometry)
-        self.image_metadata_processor = ImageMetadataProcessor(config, self.metadata_processor)
-        self.spectrum_metadata_processor = SpectrumMetadataProcessor(config, self.metadata_processor)
+        if config.METADATA_STRATEGY == "TREE":
+            self.metadata_strategy = TreeStrategy(config)
+            self.image_metadata_strategy = TreeImageStrategy(self.metadata_strategy, config, photometry)
+            self.spectrum_metadata_strategy = TreeSpectrumStrategy(self.metadata_strategy, config, photometry)
+        elif config.METADATA_STRATEGY == "DATASET":
+            self.metadata_strategy = DatasetStrategy(config)
+            self.image_metadata_strategy = DatasetImageStrategy(self.metadata_strategy, config, photometry)
+            self.spectrum_metadata_strategy = DatasetSpectrumStrategy(self.metadata_strategy, config, photometry)
+        else:
+            raise AttributeError(
+                "Unsupported METADATA_STRATEGY %s, supported options are: TREE, DATASET." % config.METADATA_STRATEGY)
+        self.metadata_processor = MetadataProcessor(config, photometry, self.metadata_strategy)
+        self.image_metadata_processor = ImageMetadataProcessor(config, self.metadata_processor,
+                                                               self.image_metadata_strategy)
+        self.spectrum_metadata_processor = SpectrumMetadataProcessor(config, self.metadata_processor,
+                                                                     self.spectrum_metadata_strategy)
         self.data_processor = DataProcessor(config)
         self.image_data_processor = ImageDataProcessor(config, self.data_processor)
         self.spectrum_data_processor = SpectrumDataProcessor(config, self.data_processor)

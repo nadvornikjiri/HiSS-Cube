@@ -1,42 +1,23 @@
-import os
-from ast import literal_eval
-
 import ujson
 
-from hisscube.utils import astrometry
-from hisscube.utils.astrometry import get_heal_path_from_coords
+from hisscube.processors.metadata_strategy_image import ImageMetadataStrategy
 from hisscube.utils.io import get_path_patterns, get_image_header_dataset
 from hisscube.utils.logging import HiSSCubeLogger, log_timing
-from hisscube.utils.nexus import set_nx_data
 
 
 class ImageMetadataProcessor:
-    def __init__(self, config, metadata_handler):
+    def __init__(self, config, metadata_handler, metadata_strategy: ImageMetadataStrategy):
         self.h5_connector = None
-        self.metadata = None
         self.metadata_processor = metadata_handler
         self.config = config
         self.logger = HiSSCubeLogger.logger
+        self.metadata_strategy = metadata_strategy
         self.img_cnt = 0
 
     def set_connector(self, h5_connector):
         self.h5_connector = h5_connector
         self.metadata_processor.h5_connector = h5_connector
-
-    def require_res_grps(self, parent_grp):
-        res_grp_list = []
-        x_lower_res = int(self.metadata["NAXIS1"])
-        y_lower_res = int(self.metadata["NAXIS2"])
-        for res_zoom in range(self.config.IMG_ZOOM_CNT):
-            res_grp_name = str((x_lower_res, y_lower_res))
-            grp = self.h5_connector.require_group(parent_grp, res_grp_name)
-            self.h5_connector.set_attr(grp, "type", "resolution")
-            self.h5_connector.set_attr(grp, "res_zoom", res_zoom)
-            set_nx_data(grp, self.h5_connector)
-            res_grp_list.append(grp)
-            x_lower_res = int(x_lower_res / 2)
-            y_lower_res = int(y_lower_res / 2)
-        return res_grp_list
+        self.metadata_strategy.h5_connector = h5_connector
 
     def update_image_headers(self, h5_connector, image_path, image_pattern=None):
         self.set_connector(h5_connector)
@@ -51,55 +32,6 @@ class ImageMetadataProcessor:
                                                                    image_pattern,
                                                                    self.config.LIMIT_IMAGE_COUNT, offset=self.img_cnt)
         self.h5_connector.file.attrs["image_count"] = self.img_cnt
-
-    def create_image_index_tree(self):
-        """
-        Creates the index tree for an image.
-        Returns HDF5 group - the one where the image dataset should be placed.
-        -------
-
-        """
-        cube_grp = self.h5_connector.require_semi_sparse_cube_grp()
-        spatial_grp = self.require_image_spatial_grp_structure(cube_grp)
-        time_grp = self.require_image_time_grp(spatial_grp)
-        img_spectral_grp = self.require_image_spectral_grp(time_grp)
-        res_grps = self.require_res_grps(img_spectral_grp)
-        return res_grps
-
-    def require_image_spatial_grp_structure(self, parent_grp):
-        """
-        creates the spatial part of index for the image. Returns all of the leaf nodes (resolutions) that we want to
-        construct.
-
-        Parameters
-        ----------
-        parent_grp  HDF5 Group
-
-        Returns     [HDF5 Group]
-        -------
-
-        """
-        orig_parent = parent_grp
-        image_coords = astrometry.get_image_center_coords(self.metadata)
-
-        parent_grp = orig_parent
-        for order in range(self.config.IMG_SPAT_INDEX_ORDER):
-            parent_grp = self.metadata_processor.require_spatial_grp(order, parent_grp, image_coords)
-            if order == self.config.IMG_SPAT_INDEX_ORDER - 1:
-                return parent_grp
-
-    def require_image_time_grp(self, parent_grp):
-        tai_time = self.metadata["TAI"]
-        grp = self.h5_connector.require_group(parent_grp, str(tai_time))
-        self.h5_connector.set_attr(grp, "type", "time")
-        return grp
-
-    def require_image_spectral_grp(self, parent_grp):
-        grp = self.h5_connector.require_group(parent_grp, str(
-            self.metadata_processor.photometry.filter_midpoints[self.metadata["FILTER"]]),
-                                              track_order=True)
-        self.h5_connector.set_attr(grp, "type", "spectral")
-        return grp
 
     def write_images_metadata(self, h5_connector, no_attrs=False, no_datasets=False):
         self.set_connector(h5_connector)
@@ -134,50 +66,15 @@ class ImageMetadataProcessor:
 
     def write_image_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
         self.set_connector(h5_connector)
-        self.metadata = ujson.loads(fits_header)
-        self.write_parsed_image_metadata(fits_path, no_attrs, no_datasets)
+        metadata = ujson.loads(fits_header)
+        self.write_parsed_image_metadata(metadata, fits_path, no_attrs, no_datasets)
+
+    def write_parsed_image_metadata(self, metadata, fits_path, no_attrs, no_datasets):
+        self.metadata_strategy.write_parsed_image_metadata(metadata, fits_path, no_attrs, no_datasets)
+
+    def get_resolution_groups(self, metadata, h5_connector):
+        return self.metadata_strategy.get_resolution_groups(metadata, h5_connector)
 
 
-
-    def write_parsed_image_metadata(self, fits_path, no_attrs, no_datasets):
-        img_datasets = []
-        self.metadata_processor.file_name = os.path.basename(fits_path)
-        res_grps = self.create_image_index_tree()
-        if not no_datasets:
-            img_datasets = self.create_img_datasets(res_grps)
-        if not no_attrs:
-            self.metadata_processor.add_metadata(self.metadata, img_datasets)
-
-    def get_resolution_groups(self, h5_connector):
-        self.set_connector(h5_connector)
-        reference_coord = astrometry.get_image_center_coords(self.metadata)
-        spatial_path = get_heal_path_from_coords(self.metadata, self.config, ra=reference_coord[0],
-                                                 dec=reference_coord[1])
-        tai_time = self.metadata["TAI"]
-        spectral_midpoint = self.metadata_processor.photometry.filter_midpoints[self.metadata["FILTER"]]
-        path = "/".join([spatial_path, str(tai_time), str(spectral_midpoint)])
-        spectral_grp = self.h5_connector.file[path]
-        for res_grp in spectral_grp:
-            yield spectral_grp[res_grp]
-
-    def create_img_datasets(self, parent_grp_list):
-        img_datasets = []
-        for group in parent_grp_list:
-            if self.config.C_BOOSTER:
-                if "image_dataset" in group:
-                    raise RuntimeError(
-                        "There is already an image dataset %s within this resolution group. Trying to insert image %s." % (
-                            list(group["image_dataset"]), self.metadata_processor.file_name))
-            elif len(group) > 0:
-                raise RuntimeError(
-                    "There is already an image dataset %s within this resolution group. Trying to insert image %s." % (
-                        list(group), self.metadata_processor.file_name))
-            res_tuple = self.h5_connector.get_name(group).split('/')[-1]
-            img_data_shape = tuple(reversed(literal_eval(res_tuple))) + (2,)
-            ds = self.h5_connector.create_image_h5_dataset(group, self.metadata_processor.file_name, img_data_shape)
-            self.h5_connector.set_attr(ds, "mime-type", "image")
-            self.h5_connector.set_attr(ds, "interpretation", "image")
-            img_datasets.append(ds)
-        return img_datasets
 
 

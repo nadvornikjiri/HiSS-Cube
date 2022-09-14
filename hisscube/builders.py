@@ -102,7 +102,7 @@ class SingleImageBuilder(Builder):
 
     def build(self):
         if not self.image_path:
-            raise RuntimeError("You need to set the image_path first.")
+            raise RuntimeError("You need to set the fits_path first.")
         with self.h5_connector as h5_connector:
             return self.build_image(h5_connector, self.image_path, self.image_metadata_processor,
                                     self.image_data_processor)
@@ -112,7 +112,7 @@ class SingleImageBuilder(Builder):
         Method that writes an image to the opened HDF5 file (self.file).
         Parameters
         ----------
-        image_path  String
+        fits_path  String
 
         Returns     HDF5 Dataset (already written to the file)
         -------
@@ -129,11 +129,9 @@ class SingleImageBuilder(Builder):
         return img_datasets
 
     def build_data(self, h5_connector, image_path, image_metadata_processor, data_processor, fits_file_name):
-        image_metadata_processor.metadata, data_processor.data = self.photometry.get_multiple_resolution_image(
-            image_path,
-            self.config.IMG_ZOOM_CNT)
-        res_grp_list = image_metadata_processor.get_resolution_groups(h5_connector)
-        img_datasets = data_processor.write_datasets(res_grp_list, fits_file_name)
+        metadata, data = self.photometry.get_multiple_resolution_image(image_path, self.config.IMG_ZOOM_CNT)
+        res_grp_list = image_metadata_processor.get_resolution_groups(metadata, h5_connector)
+        img_datasets = data_processor.write_datasets(res_grp_list, data, fits_file_name)
         return img_datasets
 
 
@@ -178,15 +176,15 @@ class SingleSpectrumBuilder(Builder):
         return spec_datasets
 
     def build_data(self, h5_connector, spec_path, spectrum_metadata_processor, data_processor, fits_file_name):
-        spectrum_metadata_processor.metadata, data_processor.data = self.photometry.get_multiple_resolution_spectrum(
+        metadata, data = self.photometry.get_multiple_resolution_spectrum(
             spec_path, self.config.SPEC_ZOOM_CNT,
             apply_rebin=self.config.APPLY_REBIN,
             rebin_min=self.config.REBIN_MIN,
             rebin_max=self.config.REBIN_MAX,
             rebin_samples=self.config.REBIN_SAMPLES,
             apply_transmission=self.config.APPLY_TRANSMISSION_CURVE)
-        res_grp_list = spectrum_metadata_processor.get_resolution_groups(h5_connector)
-        spec_datasets = data_processor.write_datasets(res_grp_list, fits_file_name)
+        res_grp_list = spectrum_metadata_processor.get_resolution_groups(metadata, h5_connector)
+        spec_datasets = data_processor.write_datasets(res_grp_list, data, fits_file_name)
         return spec_datasets
 
 
@@ -364,10 +362,10 @@ class ParallelMWMRDataBuilder(ParallelDataBuilder):
                          spectrum_data_processor, photometry)
 
     @staticmethod
-    def write_data(h5_connector, image_path, metadata_processor, data_processor):
-        res_grps = metadata_processor.get_resolution_groups(h5_connector)
-        file_name = Path(image_path).name
-        data_processor.write_datasets(res_grps, file_name)
+    def write_data(metadata, data, h5_connector, fits_path, metadata_processor, data_processor):
+        res_grps = metadata_processor.get_resolution_groups(metadata, h5_connector)
+        file_name = Path(fits_path).name
+        data_processor.write_datasets(res_grps, data, file_name)
 
     def process_image_data(self, h5_connector):
         status = self.mpi_helper.MPI.Status()
@@ -377,10 +375,11 @@ class ParallelMWMRDataBuilder(ParallelDataBuilder):
             for image_path in image_path_list:
                 try:
                     self.logger.debug("Rank %02d: Processing image %s." % (self.mpi_helper.rank, image_path))
-                    self.image_metadata_processor.metadata, self.image_data_processor.data = self.photometry.get_multiple_resolution_image(
+                    metadata, data = self.photometry.get_multiple_resolution_image(
                         image_path,
                         self.config.IMG_ZOOM_CNT)
-                    self.write_data(h5_connector, image_path, self.image_metadata_processor, self.image_data_processor)
+                    self.write_data(metadata, data, h5_connector, image_path, self.image_metadata_processor,
+                                    self.image_data_processor)
                 except Exception as e:
                     self.logger.warning("Could not process image %s, message: %s" % (image_path, str(e)))
             self.mpi_helper.comm.send(obj=None, tag=self.mpi_helper.FINISHED_TAG, dest=0)
@@ -393,14 +392,14 @@ class ParallelMWMRDataBuilder(ParallelDataBuilder):
             for spec_path in spectra_path_list:
                 try:
                     self.logger.debug("Rank %02d: Processing spectrum %s." % (self.mpi_helper.rank, spec_path))
-                    self.spectrum_metadata_processor.metadata, self.spectrum_data_processor.data = self.photometry.get_multiple_resolution_spectrum(
+                    metadata, data = self.photometry.get_multiple_resolution_spectrum(
                         spec_path, self.config.SPEC_ZOOM_CNT,
                         apply_rebin=self.config.APPLY_REBIN,
                         rebin_min=self.config.REBIN_MIN,
                         rebin_max=self.config.REBIN_MAX,
                         rebin_samples=self.config.REBIN_SAMPLES,
                         apply_transmission=self.config.APPLY_TRANSMISSION_CURVE)
-                    self.write_data(h5_connector, spec_path, self.spectrum_metadata_processor,
+                    self.write_data(metadata, data, h5_connector, spec_path, self.spectrum_metadata_processor,
                                     self.spectrum_data_processor)
                 except Exception as e:
                     self.logger.warning("Could not process spectrum %s, message: %s" % (spec_path, str(e)))
@@ -436,11 +435,8 @@ class ParallelSWMRDataBuilder(ParallelDataBuilder):
             processed_image_batch = []
             for image_path in image_path_list:
                 self.logger.info("Rank %02d: Processing image %s." % (self.mpi_helper.rank, image_path))
-                self.image_metadata_processor, self.image_data_processor = self.photometry.get_multiple_resolution_image(
-                    image_path,
-                    self.config.IMG_ZOOM_CNT)
-                self.add_to_result_batch(image_path, processed_image_batch, self.image_metadata_processor,
-                                         self.image_data_processor)
+                metadata, data = self.photometry.get_multiple_resolution_image(image_path, self.config.IMG_ZOOM_CNT)
+                self.add_to_result_batch(metadata, data, image_path, processed_image_batch)
             self.mpi_helper.comm.send(obj=processed_image_batch, dest=0)
             image_path_list = self.mpi_helper.receive_work(status)
 
@@ -451,35 +447,34 @@ class ParallelSWMRDataBuilder(ParallelDataBuilder):
             processed_spectra_batch = []
             for spec_path in spectra_path_list:
                 self.logger.info("Rank %02d: Processing spectrum %s." % (self.mpi_helper.rank, spec_path))
-                self.spectrum_metadata_processor.metadata, self.spectrum_data_processor.data = self.photometry.get_multiple_resolution_spectrum(
+                metadata, data = self.photometry.get_multiple_resolution_spectrum(
                     spec_path, self.config.SPEC_ZOOM_CNT,
                     apply_rebin=self.config.APPLY_REBIN,
                     rebin_min=self.config.REBIN_MIN,
                     rebin_max=self.config.REBIN_MAX,
                     rebin_samples=self.config.REBIN_SAMPLES,
                     apply_transmission=self.config.APPLY_TRANSMISSION_CURVE)
-                self.add_to_result_batch(spec_path, processed_spectra_batch, self.spectrum_metadata_processor,
-                                         self.spectrum_data_processor)
+                self.add_to_result_batch(metadata, data, spec_path, processed_spectra_batch)
             self.mpi_helper.comm.send(obj=processed_spectra_batch, dest=0)
             spectra_path_list = self.mpi_helper.receive_work(status)
 
     def process_response(self, h5_connector, metadata_processor, data_processor, status):
         for response in self.comm_buffer:
-            metadata_processor.metadata = response["metadata"]
-            data_processor.data = response["data"]
+            metadata = response["metadata"]
+            data = response["data"]
             file_name = response["file_name"]
-            res_grps = metadata_processor.get_resolution_groups(h5_connector)
-            data_processor.write_datasets(res_grps, file_name)
+            res_grps = metadata_processor.get_resolution_groups(metadata, h5_connector)
+            data_processor.write_datasets(res_grps, data, file_name)
 
     @staticmethod
-    def add_to_result_batch(fits_path, processed_image_batch, metadata_processor, data_processor):
+    def add_to_result_batch(metadata, data, fits_path, processed_image_batch):
         file_name = Path(fits_path).name
-        if "COMMENT" in metadata_processor.metadata:
-            del metadata_processor.metadata["COMMENT"]  # TODO fix this serialization hack.
-        if "HISTORY" in metadata_processor.metadata:
-            del metadata_processor.metadata["HISTORY"]
+        if "COMMENT" in metadata:
+            del metadata["COMMENT"]  # TODO fix this serialization hack.
+        if "HISTORY" in metadata:
+            del metadata["HISTORY"]
         processed_image_batch.append(
-            {"metadata": dict(metadata_processor.metadata), "data": data_processor.data,
+            {"metadata": dict(metadata), "data": data,
              "file_name": str(file_name)})
 
 

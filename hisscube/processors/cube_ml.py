@@ -2,7 +2,7 @@ import h5py
 
 import numpy as np
 
-from hisscube.processors.metadata_spectrum import get_time_from_spectrum
+from hisscube.processors.metadata_strategy_spectrum import get_time_from_spectrum
 
 from hisscube.utils.astrometry import get_cutout_pixel_coords, get_cutout_bounds_from_spectrum
 from hisscube.utils.io import get_orig_header

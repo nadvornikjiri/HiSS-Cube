@@ -6,45 +6,23 @@ import healpy
 import numpy as np
 import ujson
 
+from hisscube.processors.metadata_strategy import MetadataStrategy
 from hisscube.utils.astrometry import get_image_lower_res_wcs
 from hisscube.utils.io import get_path_patterns, H5Connector, get_orig_header
 from hisscube.utils.logging import log_timing, HiSSCubeLogger
 
 
 class MetadataProcessor:
-    def __init__(self, config, photometry):
+    def __init__(self, config, photometry, metadata_strategy: MetadataStrategy):
         self.config = config
         self.h5_connector: H5Connector = None
-        self.file_name = None
         self.fits_path = None
         self.photometry = photometry
         self.logger = HiSSCubeLogger.logger
+        self.metadata_strategy = metadata_strategy
 
     def require_spatial_grp(self, order, prev, coord):
-        """
-        Returns the HEALPix group structure.
-        Parameters
-        ----------
-        order   int
-        prev    HDF5 group
-        coord   (float, float)
-
-        Returns
-        -------
-
-        """
-        nside = 2 ** order
-        healID = healpy.ang2pix(nside, coord[0], coord[1], lonlat=True, nest=True)
-        grp = self.h5_connector.require_group(prev, str(healID))  # TODO optimize to 8-byte string?
-        self.h5_connector.set_attr(grp, "type", "spatial")
-        return grp
-
-    @staticmethod
-    def add_hard_links(parent_groups, child_groups):
-        for parent in parent_groups:
-            for child_name in child_groups:
-                if not child_name in parent:
-                    parent[child_name] = child_groups[child_name]
+        return self.metadata_strategy.require
 
     def add_metadata(self, metadata,  datasets):
         """

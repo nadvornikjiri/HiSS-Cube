@@ -281,10 +281,6 @@ class CBoostedMetadataBuildWriter(SerialH5Writer):
         obj["attrs"][key] = obj2["path"]  # the obj2["path"] is not needed ATM.
 
 
-def read_serialized_fits_header():
-    return None
-
-
 def get_orig_header(h5_connector, ds):
     try:
         if ds.attrs["orig_res_link"]:
