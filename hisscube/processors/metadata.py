@@ -2,13 +2,11 @@ import pathlib
 
 import fitsio
 import h5py
-import healpy
 import numpy as np
 import ujson
 
 from hisscube.processors.metadata_strategy import MetadataStrategy
-from hisscube.utils.astrometry import get_image_lower_res_wcs
-from hisscube.utils.io import get_path_patterns, H5Connector, get_orig_header
+from hisscube.utils.io import get_path_patterns, H5Connector
 from hisscube.utils.logging import log_timing, HiSSCubeLogger
 
 

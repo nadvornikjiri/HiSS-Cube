@@ -2,11 +2,16 @@ import os
 from abc import ABC, abstractmethod
 from ast import literal_eval
 
+import numpy as np
+import ujson
+
+from hisscube.processors.data import float_compress
 from hisscube.processors.metadata_strategy import MetadataStrategy
 from hisscube.utils import astrometry
 from hisscube.utils.astrometry import get_heal_path_from_coords
 from hisscube.utils.config import Config
 from hisscube.utils.io import H5Connector
+from hisscube.utils.logging import log_timing, HiSSCubeLogger
 from hisscube.utils.nexus import set_nx_data
 from hisscube.utils.photometry import Photometry
 
@@ -17,26 +22,26 @@ class ImageMetadataStrategy(ABC):
         self.config = config
         self.photometry = photometry
         self.h5_connector: H5Connector = None
+        self.logger = HiSSCubeLogger.logger
 
     @abstractmethod
     def get_resolution_groups(self, metadata, h5_connector):
         raise NotImplementedError
 
     @abstractmethod
-    def write_parsed_image_metadata(self, metadata, fits_path, no_attrs, no_datasets):
+    def write_images_metadata(self, h5_connector, no_attrs=False, no_datasets=False):
+        raise NotImplementedError
+
+    @abstractmethod
+    def write_image_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
+        raise NotImplementedError
+
+    @abstractmethod
+    def write_datasets(self, res_grp_list, data, file_name):
         raise NotImplementedError
 
 
 class TreeImageStrategy(ImageMetadataStrategy):
-
-    def write_parsed_image_metadata(self, metadata, fits_path, no_attrs, no_datasets):
-        img_datasets = []
-        file_name = os.path.basename(fits_path)
-        res_grps = self._create_image_index_tree(metadata)
-        if not no_datasets:
-            img_datasets = self._create_img_datasets(file_name, res_grps)
-        if not no_attrs:
-            self.metadata_strategy.add_metadata(self.h5_connector, metadata, img_datasets)
 
     def get_resolution_groups(self, metadata, h5_connector):
         h5_connector = h5_connector
@@ -49,6 +54,68 @@ class TreeImageStrategy(ImageMetadataStrategy):
         spectral_grp = h5_connector.file[path]
         for res_grp in spectral_grp:
             yield spectral_grp[res_grp]
+
+    def write_image_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
+        self._set_connector(h5_connector)
+        metadata = ujson.loads(fits_header)
+        self._write_parsed_image_metadata(metadata, fits_path, no_attrs, no_datasets)
+
+    def write_images_metadata(self, h5_connector, no_attrs=False, no_datasets=False):
+        self._set_connector(h5_connector)
+        fits_headers = self.h5_connector.file["/fits_images_metadata"]
+        self._write_image_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets)
+
+    def write_datasets(self, res_grp_list, data, file_name):
+        img_datasets = []
+        for group in res_grp_list:
+            res_tuple = group.name.split('/')[-1]
+            wanted_res = next(img for img in data if str(tuple(img["zoom"])) == res_tuple)  # parsing 2D resolution
+            img_data = np.dstack((wanted_res["flux_mean"], wanted_res["flux_sigma"]))
+            img_data[img_data == np.inf] = np.nan
+            if self.config.FLOAT_COMPRESS:
+                img_data = float_compress(img_data)
+            ds = group[file_name]
+            ds.write_direct(img_data)
+            img_datasets.append(ds)
+        return img_datasets
+
+    def _set_connector(self, h5_connector):
+        self.h5_connector = h5_connector
+
+    def _write_image_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
+        self.img_cnt = 0
+        self.h5_connector.fits_total_cnt = 0
+        for fits_path, header in fits_headers:
+            if not fits_path:  # end of data
+                break
+            self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
+            if self.img_cnt >= self.config.LIMIT_IMAGE_COUNT:
+                break
+        self.h5_connector.set_attr(self.h5_connector.file, "image_count", self.img_cnt)
+
+    @log_timing("process_image_metadata")
+    def _write_metadata_from_header(self, h5_connector, fits_path, header, no_attrs, no_datasets):
+        self._set_connector(h5_connector)
+        fits_path = fits_path.decode('utf-8')
+        if self.img_cnt % 100 == 0 and self.img_cnt / 100 > 0:
+            self.logger.info("Image cnt: %05d" % self.img_cnt)
+        try:
+            self.write_image_metadata(h5_connector, fits_path, header, no_attrs=no_attrs, no_datasets=no_datasets)
+            self.img_cnt += 1
+            self.h5_connector.fits_total_cnt += 1
+        except RuntimeError as e:
+            self.logger.warning(
+                "Unable to ingest image %s, message: %s" % (fits_path, str(e)))
+            raise e
+
+    def _write_parsed_image_metadata(self, metadata, fits_path, no_attrs, no_datasets):
+        img_datasets = []
+        file_name = os.path.basename(fits_path)
+        res_grps = self._create_image_index_tree(metadata)
+        if not no_datasets:
+            img_datasets = self._create_img_datasets(file_name, res_grps)
+        if not no_attrs:
+            self.metadata_strategy.add_metadata(self.h5_connector, metadata, img_datasets)
 
     def _create_image_index_tree(self, metadata):
         """
@@ -137,7 +204,7 @@ class TreeImageStrategy(ImageMetadataStrategy):
 
 class DatasetImageStrategy(ImageMetadataStrategy):
 
-    def write_parsed_image_metadata(self, metadata, fits_path, no_attrs, no_datasets):
+    def _write_parsed_image_metadata(self, metadata, fits_path, no_attrs, no_datasets):
         pass
 
     def get_resolution_groups(self, metadata, h5_connector):

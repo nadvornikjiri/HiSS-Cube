@@ -6,10 +6,9 @@ from hisscube.builders import SingleImageBuilder, SingleSpectrumBuilder, Metadat
     ParallelSWMRDataBuilder
 from hisscube.processors.cube_ml import MLProcessor
 from hisscube.processors.cube_visualization import VisualizationProcessor
-from hisscube.processors.data import DataProcessor, ImageDataProcessor, SpectrumDataProcessor
 from hisscube.processors.metadata import MetadataProcessor
-from hisscube.processors.metadata_image import ImageMetadataProcessor
-from hisscube.processors.metadata_spectrum import SpectrumMetadataProcessor
+from hisscube.processors.image import ImageProcessor
+from hisscube.processors.spectrum import SpectrumProcessor
 from hisscube.processors.metadata_strategy import TreeStrategy, DatasetStrategy
 from hisscube.processors.metadata_strategy_image import TreeImageStrategy, DatasetImageStrategy
 from hisscube.processors.metadata_strategy_spectrum import TreeSpectrumStrategy, DatasetSpectrumStrategy
@@ -60,13 +59,10 @@ class ProcessorProvider:
             raise AttributeError(
                 "Unsupported METADATA_STRATEGY %s, supported options are: TREE, DATASET." % config.METADATA_STRATEGY)
         self.metadata_processor = MetadataProcessor(config, photometry, self.metadata_strategy)
-        self.image_metadata_processor = ImageMetadataProcessor(config, self.metadata_processor,
-                                                               self.image_metadata_strategy)
-        self.spectrum_metadata_processor = SpectrumMetadataProcessor(config, self.metadata_processor,
-                                                                     self.spectrum_metadata_strategy)
-        self.data_processor = DataProcessor(config)
-        self.image_data_processor = ImageDataProcessor(config, self.data_processor)
-        self.spectrum_data_processor = SpectrumDataProcessor(config, self.data_processor)
+        self.image_metadata_processor = ImageProcessor(config, self.metadata_processor,
+                                                       self.image_metadata_strategy)
+        self.spectrum_metadata_processor = SpectrumProcessor(config, self.metadata_processor,
+                                                             self.spectrum_metadata_strategy)
         self.ml_cube_processor = MLProcessor(config)
         self.visualization_cube_processor = VisualizationProcessor(config)
 
@@ -77,10 +73,9 @@ class SerialBuilderProvider:
                  processors: ProcessorProvider,
                  photometry: Photometry, fits_image_pattern=None, fits_spectra_pattern=None):
         self.single_image_builder = SingleImageBuilder(config, h5_connector, processors.image_metadata_processor,
-                                                       processors.image_data_processor, photometry)
+                                                       photometry)
         self.single_spectrum_builder = SingleSpectrumBuilder(config, h5_connector,
-                                                             processors.spectrum_metadata_processor,
-                                                             processors.spectrum_data_processor, photometry)
+                                                             processors.spectrum_metadata_processor, photometry)
         self.metadata_cache_builder = MetadataCacheBuilder(fits_image_path, fits_spectra_path, config,
                                                            h5_connector, processors.metadata_processor,
                                                            fits_image_pattern=fits_image_pattern,
@@ -92,7 +87,6 @@ class SerialBuilderProvider:
                                                                   processors.spectrum_metadata_processor)
         self.data_builder = DataBuilder(config, h5_connector, processors.image_metadata_processor,
                                         processors.spectrum_metadata_processor,
-                                        processors.image_data_processor, processors.spectrum_data_processor,
                                         self.single_image_builder, self.single_spectrum_builder)
         self.link_builder = LinkBuilder(config, h5_connector, processors.spectrum_metadata_processor)
         self.ml_cube_builder = MLCubeBuilder(config, h5_connector, processors.ml_cube_processor)
@@ -108,14 +102,10 @@ class ParallelBuilderProvider:
         self.data_builder_MWMR = ParallelMWMRDataBuilder(config, h5_connector, mpi_helper,
                                                          processors.metadata_processor,
                                                          processors.image_metadata_processor,
-                                                         processors.image_data_processor,
                                                          processors.spectrum_metadata_processor,
-                                                         processors.spectrum_data_processor,
                                                          photometry)
         self.data_builder_SWMR = ParallelSWMRDataBuilder(config, h5_connector, mpi_helper,
                                                          processors.metadata_processor,
                                                          processors.image_metadata_processor,
-                                                         processors.image_data_processor,
                                                          processors.spectrum_metadata_processor,
-                                                         processors.spectrum_data_processor,
                                                          photometry)
