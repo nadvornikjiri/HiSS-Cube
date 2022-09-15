@@ -76,22 +76,31 @@ class VisualizationProcessor:
         self.output_counter = 0
         self.spectral_cube = np.empty((self.config.INIT_ARRAY_SIZE,), dtype=self.array_type)
         self.output_res = zoom
-        self.construct_multires_spectral_cube_table(self.h5_connector.file)
+        self._construct_multires_spectral_cube_table(self.h5_connector.file)
         truncated_cube = self.spectral_cube[:self.output_counter]
         self.spectral_cube = truncated_cube
         return self.spectral_cube
 
-    def construct_multires_spectral_cube_table(self, h5_parent):
+    def write_VOTable(self, output_path):
+        table = self._get_q_table()
+        votable = from_table(table)
+        writeto(votable, output_path, tabledata_format="binary")
+
+    def write_FITS(self, output_path):
+        table = self._get_q_table()
+        table.write(output_path, overwrite=True, format='fits')
+
+    def _construct_multires_spectral_cube_table(self, h5_parent):
         if "mime-type" in h5_parent.attrs and h5_parent.attrs["mime-type"] == "spectrum":
             if h5_parent.parent.attrs["res_zoom"] == self.output_res:
-                self.construct_spectrum_table(h5_parent)
+                self._construct_spectrum_table(h5_parent)
 
         if isinstance(h5_parent, h5py.Group):
             for h5_child in h5_parent.keys():
-                self.construct_multires_spectral_cube_table(h5_parent[h5_child])
+                self._construct_multires_spectral_cube_table(h5_parent[h5_child])
         return
 
-    def construct_spectrum_table(self, spectrum_ds):
+    def _construct_spectrum_table(self, spectrum_ds):
         """
         Reads the spectral dataset and writes it ot self.spectral_cube.
         Parameters
@@ -104,13 +113,14 @@ class VisualizationProcessor:
         """
         try:
             if spectrum_ds.attrs["orig_res_link"]:
-                self.metadata = self.h5_connector.read_serialized_fits_header(self.h5_connector.file[spectrum_ds.attrs["orig_res_link"]])
+                self.metadata = self.h5_connector.read_serialized_fits_header(
+                    self.h5_connector.file[spectrum_ds.attrs["orig_res_link"]])
             else:
                 self.metadata = self.h5_connector.read_serialized_fits_header(spectrum_ds)
         except KeyError:
             self.metadata = self.h5_connector.read_serialized_fits_header(spectrum_ds)
-        spectrum_5d = self.get_table_pixels_from_spectrum(spectrum_ds.name, spectrum_ds)
-        self.resize_output_if_necessary(spectrum_5d)
+        spectrum_5d = self._get_table_pixels_from_spectrum(spectrum_ds.name, spectrum_ds)
+        self._resize_output_if_necessary(spectrum_5d)
         self.spectral_cube[self.output_counter:self.output_counter + spectrum_5d.shape[0]] = spectrum_5d
         self.output_counter += spectrum_5d.shape[0]
         cutout_refs = spectrum_ds.parent.parent.parent["image_cutouts_%s" % spectrum_ds.parent.attrs["res_zoom"]]
@@ -119,8 +129,8 @@ class VisualizationProcessor:
             for region_ref in cutout_refs:
                 if region_ref:
                     try:
-                        image_5d = self.get_table_pixels_from_image_cutout(spectrum_ds, self.output_res, region_ref)
-                        self.resize_output_if_necessary(image_5d)
+                        image_5d = self._get_table_pixels_from_image_cutout(spectrum_ds, self.output_res, region_ref)
+                        self._resize_output_if_necessary(image_5d)
                         self.spectral_cube[self.output_counter:self.output_counter + image_5d.shape[0]] = image_5d
                         self.output_counter += image_5d.shape[0]
                     except ValueError as e:
@@ -128,11 +138,11 @@ class VisualizationProcessor:
                 else:
                     break  # necessary because of how null object references are tested in h5py dataset
 
-    def resize_output_if_necessary(self, spectrum_5d):
+    def _resize_output_if_necessary(self, spectrum_5d):
         if self.output_counter + spectrum_5d.shape[0] > self.spectral_cube.shape[0]:
             self.spectral_cube.resize((self.spectral_cube.shape[0] * 2,), refcheck=False)
 
-    def get_table_pixels_from_spectrum(self, spectrum_h5_path, spectrum_ds):
+    def _get_table_pixels_from_spectrum(self, spectrum_h5_path, spectrum_ds):
         """
         Gets array of pixels from the spectrum, also containing their coordinates.
         Parameters
@@ -148,9 +158,9 @@ class VisualizationProcessor:
         spectrum_fits_name = spectrum_ds.name.split('/')[-1]
         ra, dec = self.metadata["PLUG_RA"], self.metadata["PLUG_DEC"]
         spectrum_part = spectrum_ds
-        return self.get_table_pixels_from_spectrum_generic(dec, ra, res, spectrum_fits_name, spectrum_part)
+        return self._get_table_pixels_from_spectrum_generic(dec, ra, res, spectrum_fits_name, spectrum_part)
 
-    def get_table_pixels_from_spectrum_generic(self, dec, ra, res, spectrum_fits_name, spectrum_part):
+    def _get_table_pixels_from_spectrum_generic(self, dec, ra, res, spectrum_fits_name, spectrum_part):
         heal_id = hp.ang2pix(hp.order2nside(self.config.OUTPUT_HEAL_ORDER),
                              ra, dec,
                              nest=True,
@@ -172,8 +182,8 @@ class VisualizationProcessor:
         else:
             spectrum_column_names = 'heal, ra, dec, time, wl, mean, sigma, spectrum_ra, spectrum_dec, fits_name, ' \
                                     'spectrum_fits_name '
-            spectrum_ra_column, spectrum_dec_column, spectrum_name_column = self.get_spectrum_table_columns(res,
-                                                                                                            spectrum_fits_name)
+            spectrum_ra_column, spectrum_dec_column, spectrum_name_column = self._get_spectrum_table_columns(res,
+                                                                                                             spectrum_fits_name)
             spectrum_columns = [heal_id_column,
                                 ra_column,
                                 dec_column,
@@ -187,7 +197,7 @@ class VisualizationProcessor:
                                 spectrum_name_column]
         return np.rec.fromarrays(spectrum_columns, names=spectrum_column_names)
 
-    def get_table_pixels_from_image_cutout(self, spectrum_ds, res_idx, region_ref):
+    def _get_table_pixels_from_image_cutout(self, spectrum_ds, res_idx, region_ref):
         """
         Gets all of the image pixels for the given cutout, along with its coordinates.
         Parameters
@@ -207,12 +217,13 @@ class VisualizationProcessor:
 
         cutout_bounds, time, w, wl = get_cutout_bounds_from_spectrum(self.h5_connector, image_ds, res_idx, spectrum_ds,
                                                                      self.config.IMAGE_CUTOUT_SIZE)
-        return self.get_table_image_pixels_from_cutout_bounds(cutout_bounds, image_path, image_region, spectrum_path,
-                                                              time, w,
-                                                              wl)
+        return self._get_table_image_pixels_from_cutout_bounds(cutout_bounds, image_path, image_region, spectrum_path,
+                                                               time, w,
+                                                               wl)
 
-    def get_table_image_pixels_from_cutout_bounds(self, cutout_bounds, image_path, image_region, spectrum_path, time, w,
-                                                  wl):
+    def _get_table_image_pixels_from_cutout_bounds(self, cutout_bounds, image_path, image_region, spectrum_path, time,
+                                                   w,
+                                                   wl):
         ra, dec = get_cutout_pixel_coords(cutout_bounds, w)
         no_pixels = ra.size
         spectrum_healpix = hp.ang2pix(hp.order2nside(self.config.OUTPUT_HEAL_ORDER),
@@ -236,8 +247,8 @@ class VisualizationProcessor:
             image_fits_name_casted = np.array([image_fits_name]).astype(np.dtype('S32'))
             image_fits_name_column = np.repeat(image_fits_name_casted, no_pixels, axis=0)
             spectrum_fits_name = str(spectrum_path).split('/')[-1]
-            spectrum_ra_column, spectrum_dec_column, spectrum_name_column = self.get_spectrum_table_columns(no_pixels,
-                                                                                                            spectrum_fits_name)
+            spectrum_ra_column, spectrum_dec_column, spectrum_name_column = self._get_spectrum_table_columns(no_pixels,
+                                                                                                             spectrum_fits_name)
 
             image_columns = [spec_healpix_column,
                              ra_column,
@@ -253,23 +264,14 @@ class VisualizationProcessor:
         return np.rec.fromarrays(image_columns,
                                  names=image_column_names)
 
-    def get_spectrum_table_columns(self, no_pixels, spectrum_fits_name):
+    def _get_spectrum_table_columns(self, no_pixels, spectrum_fits_name):
         spectrum_fits_name_casted = np.array([spectrum_fits_name]).astype(np.dtype('S32'))
         spectrum_ra_column = np.repeat([self.metadata["PLUG_RA"]], no_pixels, axis=0)
         spectrum_dec_column = np.repeat([self.metadata["PLUG_DEC"]], no_pixels, axis=0)
         spectrum_name_column = np.repeat(spectrum_fits_name_casted, no_pixels, axis=0)
         return spectrum_ra_column, spectrum_dec_column, spectrum_name_column
 
-    def write_VOTable(self, output_path):
-        table = self.get_q_table()
-        votable = from_table(table)
-        writeto(votable, output_path, tabledata_format="binary")
-
-    def write_FITS(self, output_path):
-        table = self.get_q_table()
-        table.write(output_path, overwrite=True, format='fits')
-
-    def get_q_table(self):
+    def _get_q_table(self):
         if not self.config.INCLUDE_ADDITIONAL_METADATA:
             table = QTable(self.spectral_cube, names=("HealPix ID", "RA", "DEC", "Time", "Wavelength", "Mean", "Sigma"),
                            meta={'name': 'SDSS Cube'})

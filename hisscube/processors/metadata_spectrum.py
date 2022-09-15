@@ -17,16 +17,11 @@ class SpectrumMetadataProcessor:
         self.spec_cnt = 0
         self.spectrum_length = 0
 
-    def set_connector(self, h5_connector):
-        self.h5_connector = h5_connector
-        self.metadata_processor.h5_connector = h5_connector
-        self.metadata_strategy.h5_connector = h5_connector
+    def get_resolution_groups(self, metadata, h5_connector):
+        return self.metadata_strategy.get_resolution_groups(metadata, h5_connector)
 
-    def link_spectra_to_images(self, h5_connector):
-        self.metadata_strategy.link_spectra_to_images(h5_connector)
-
-    def update_spectra_headers(self, h5_connector, spec_path, spec_pattern=None):
-        self.set_connector(h5_connector)
+    def update_fits_metadata_cache(self, h5_connector, spec_path, spec_pattern=None):
+        self._set_connector(h5_connector)
         spec_pattern, spectra_pattern = get_path_patterns(self.config, None, spec_pattern)
         try:
             self.spec_cnt = self.h5_connector.file.attrs["spectra_count"]  # header datasets not created yet
@@ -41,25 +36,38 @@ class SpectrumMetadataProcessor:
         self.h5_connector.file.attrs["spectra_count"] = self.spec_cnt
 
     def write_spectra_metadata(self, h5_connector, no_attrs=False, no_datasets=False):
-        self.set_connector(h5_connector)
+        self._set_connector(h5_connector)
         fits_headers = self.h5_connector.file["/fits_spectra_metadata"]
-        self.write_spectra_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets)
+        self._write_spectra_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets)
 
-    def write_spectra_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
+    def write_spectrum_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
+        self._set_connector(h5_connector)
+        metadata = ujson.loads(fits_header)
+        self._write_parsed_spectrum_metadata(metadata, fits_path, no_attrs, no_datasets)
+
+    def link_spectra_to_images(self, h5_connector):
+        self.metadata_strategy.link_spectra_to_images(h5_connector)
+
+    def _set_connector(self, h5_connector):
+        self.h5_connector = h5_connector
+        self.metadata_processor.h5_connector = h5_connector
+        self.metadata_strategy.h5_connector = h5_connector
+
+    def _write_spectra_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
         self.spec_cnt = 0
         self.h5_connector.fits_total_cnt = 0
         for fits_path, header in fits_headers:
             if not fits_path:  # end of data
                 break
-            self.write_spectrum_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
+            self._write_spectrum_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
             if self.spec_cnt >= self.config.LIMIT_SPECTRA_COUNT:
                 break
         self.h5_connector.set_attr(self.h5_connector.file, "spectra_count", self.spec_cnt)
 
     @log_timing("process_spectrum_metadata")
-    def write_spectrum_metadata_from_header(self, h5_connector, fits_path, header, no_attrs, no_datasets):
+    def _write_spectrum_metadata_from_header(self, h5_connector, fits_path, header, no_attrs, no_datasets):
         fits_path = fits_path.decode('utf-8')
-        self.set_connector(h5_connector)
+        self._set_connector(h5_connector)
         if self.spec_cnt % 100 == 0 and self.spec_cnt / 100 > 0:
             self.logger.info("Spectra cnt: %05d" % self.spec_cnt)
         try:
@@ -70,12 +78,7 @@ class SpectrumMetadataProcessor:
             self.logger.warning(
                 "Unable to ingest spectrum %s, message: %s" % (fits_path, str(e)))
 
-    def write_spectrum_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
-        self.set_connector(h5_connector)
-        metadata = ujson.loads(fits_header)
-        self.write_parsed_spectrum_metadata(metadata, fits_path, no_attrs, no_datasets)
-
-    def write_parsed_spectrum_metadata(self, metadata, fits_path, no_attrs, no_datasets):
+    def _write_parsed_spectrum_metadata(self, metadata, fits_path, no_attrs, no_datasets):
         if self.config.APPLY_REBIN is False:
             spectrum_length = fitsio.read_header(fits_path, 1)["NAXIS2"]
         else:
@@ -83,5 +86,4 @@ class SpectrumMetadataProcessor:
         self.metadata_strategy.write_parsed_spectrum_metadata(metadata, spectrum_length, fits_path, no_attrs,
                                                               no_datasets)
 
-    def get_resolution_groups(self, metadata, h5_connector):
-        return self.metadata_strategy.get_resolution_groups(metadata, h5_connector)
+

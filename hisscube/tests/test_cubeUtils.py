@@ -39,6 +39,6 @@ class TestCubeUtils:
             assert (multiple_res_cube[i]["flux_sigma"].shape[1] == expected_image_resolutions[i][0])
 
     def test_merge_transmission_curves_max(self):
-        merged_curves = self.cube_utils.merge_transmission_curves_max(self.cube_utils.transmission_curves)
+        merged_curves = self.cube_utils._merge_transmission_curves_max(self.cube_utils.transmission_curves)
 
         assert(len(merged_curves) == 331)

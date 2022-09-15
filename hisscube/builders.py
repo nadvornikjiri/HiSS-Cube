@@ -121,7 +121,7 @@ class SingleImageBuilder(Builder):
         path = Path(image_path)
         fits_folder_path = path.parent
         fits_file_name = path.name
-        metadata_processor.update_image_headers(h5_connector, fits_folder_path, image_pattern=fits_file_name)
+        metadata_processor.update_fits_metadata_cache(h5_connector, fits_folder_path, image_pattern=fits_file_name)
         fits_header = get_image_header_dataset(h5_connector)[metadata_processor.img_cnt - 1][
             1]  # this is the JSON-like FITS header
         metadata_processor.write_image_metadata(h5_connector, image_path, fits_header)
@@ -167,7 +167,7 @@ class SingleSpectrumBuilder(Builder):
         path = pathlib.Path(spec_path)
         fits_folder_path = path.parent
         fits_file_name = path.name
-        spectrum_metadata_processor.update_spectra_headers(h5_connector, fits_folder_path, spec_pattern=fits_file_name)
+        spectrum_metadata_processor.update_fits_metadata_cache(h5_connector, fits_folder_path, spec_pattern=fits_file_name)
         fits_header = get_spectrum_header_dataset(h5_connector)[spectrum_metadata_processor.spec_cnt - 1][
             1]  # this is the JSON-like FITS header
         spectrum_metadata_processor.write_spectrum_metadata(h5_connector, spec_path, fits_header)

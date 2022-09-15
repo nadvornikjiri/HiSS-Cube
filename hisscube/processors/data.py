@@ -85,7 +85,6 @@ class ImageDataProcessor:
     def __init__(self, config, data_handler):
         self.config = config
         self.data_handler = data_handler
-        pass
 
     def write_datasets(self, res_grp_list, data, file_name):
         img_datasets = []
@@ -106,7 +105,6 @@ class SpectrumDataProcessor:
     def __init__(self, config, data_handler):
         self.config = config
         self.data_handler = data_handler
-        self.data = None
 
     def write_datasets(self, res_grp_list, data, file_name):
         spec_datasets = []
