@@ -20,12 +20,15 @@ from hisscube.utils.photometry import Photometry
 
 class HiSSCubeProvider:
     def __init__(self, h5_output_path, input_path=None, image_path=None, spectra_path=None, image_pattern=None,
-                 spectra_pattern=None):
+                 spectra_pattern=None, config=None):
         if not image_path and input_path:
             image_path = Path(input_path).joinpath("images")
         if not spectra_path and input_path:
             spectra_path = Path(input_path).joinpath("spectra")
-        self.config = Config()
+        if not config:
+            self.config = Config()
+        else:
+            self.config = config
         self.photometry = Photometry()
         self.h5_serial_writer = SerialH5Writer(h5_output_path, self.config)
         self.h5_serial_reader = SerialH5Reader(h5_output_path, self.config)

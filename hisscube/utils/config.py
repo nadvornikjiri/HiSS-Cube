@@ -15,6 +15,7 @@ class Config:
         self.PARALLEL_MODE = self.config.get('Builder', 'PARALLEL_MODE')
         self.C_BOOSTER = self.config.getboolean('Builder', 'C_BOOSTER')
         self.METADATA_STRATEGY = self.config.get('Builder', 'METADATA_STRATEGY')
+        self.DATASET_STRATEGY_CHUNKED = self.config.getboolean('Builder', 'DATASET_STRATEGY_CHUNKED')
 
         self.IMAGE_CUTOUT_SIZE = self.config.getint('Handler', 'IMAGE_CUTOUT_SIZE')
         self.IMG_ZOOM_CNT = self.config.getint('Handler', 'IMG_ZOOM_CNT')
@@ -52,8 +53,12 @@ class Config:
 
         self.APPLY_TRANSMISSION_ONLINE = self.config.get('Processor', 'APPLY_TRANSMISSION_ONLINE')
 
-        self.REBIN_MIN = self.config.getfloat('Preprocessing', 'REBIN_MIN')
-        self.REBIN_MAX = self.config.getfloat('Preprocessing', 'REBIN_MAX')
-        self.REBIN_SAMPLES = self.config.getint('Preprocessing', 'REBIN_SAMPLES')
-        self.APPLY_REBIN = self.config.getboolean('Preprocessing', 'APPLY_REBIN')
-        self.APPLY_TRANSMISSION_CURVE = self.config.getboolean('Preprocessing', 'APPLY_TRANSMISSION_CURVE')
+        self.REBIN_MIN = self.config.getfloat('SDSS', 'REBIN_MIN')
+        self.REBIN_MAX = self.config.getfloat('SDSS', 'REBIN_MAX')
+        self.REBIN_SAMPLES = self.config.getint('SDSS', 'REBIN_SAMPLES')
+        self.APPLY_REBIN = self.config.getboolean('SDSS', 'APPLY_REBIN')
+        self.APPLY_TRANSMISSION_CURVE = self.config.getboolean('SDSS', 'APPLY_TRANSMISSION_CURVE')
+        self.IMG_RES_X = self.config.getint('SDSS', 'IMG_RES_X')
+        self.IMG_RES_Y = self.config.getint('SDSS', 'IMG_RES_Y')
+
+

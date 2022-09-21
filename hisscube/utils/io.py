@@ -98,7 +98,7 @@ class H5Connector(ABC):
     def require_semi_sparse_cube_grp(self):
         grp = self.require_group(self.file, self.config.ORIG_CUBE_NAME)
         set_nx_entry(grp, self)
-        return
+        return grp
 
     def require_dense_group(self):
         grp = self.require_group(self.file, self.config.DENSE_CUBE_NAME)
@@ -112,23 +112,20 @@ class H5Connector(ABC):
         grp = parent_grp[name]
         return grp
 
-    def create_image_h5_dataset(self, group, file_name, img_data_shape):
+    def create_image_h5_dataset(self, group, file_name, img_data_shape, chunk_size=None):
+        return self.create_dataset(group, file_name, img_data_shape, chunk_size)
+
+    def create_dataset(self, group, file_name, img_data_shape, chunk_size):
         dcpl, space, img_data_dtype = get_property_list(self.config, img_data_shape)
-        if self.config.CHUNK_SIZE:
-            dcpl.set_chunk(literal_eval(self.config.CHUNK_SIZE))
+        if chunk_size:
+            dcpl.set_chunk(chunk_size)
         dsid = h5py.h5d.create(group.id, file_name.encode('utf-8'), img_data_dtype, space,
                                dcpl=dcpl)
         ds = h5py.Dataset(dsid)
         return ds
 
-    def create_spectrum_h5_dataset(self, group, file_name, spec_data_shape):
-        dcpl, space, spec_data_dtype = get_property_list(self.config, spec_data_shape)
-        if not file_name in group:
-            dsid = h5py.h5d.create(group.id, file_name.encode('utf-8'), spec_data_dtype, space, dcpl=dcpl)
-            ds = h5py.Dataset(dsid)
-        else:
-            ds = group[file_name]
-        return ds
+    def create_spectrum_h5_dataset(self, group, file_name, spec_data_shape, chunk_size=None):
+        return self.create_dataset(group, file_name, spec_data_shape, chunk_size)
 
     @staticmethod
     def get_name(grp):
@@ -156,7 +153,7 @@ class H5Connector(ABC):
 
     @staticmethod
     def require_dataset(grp, name, shape, dtype):
-        grp.require_dataset(name, shape, dtype)
+        return grp.require_dataset(name, shape, dtype)
 
     @staticmethod
     def get_shape(ds):
@@ -232,7 +229,7 @@ class CBoostedMetadataBuildWriter(SerialH5Writer):
     def get_attr(obj, key):
         return obj["attrs"][key]
 
-    def create_image_h5_dataset(self, group, file_name, img_data_shape):
+    def create_image_h5_dataset(self, group, file_name, img_data_shape, chunk_size=None):
         group["image_dataset"] = {}
         ds = group["image_dataset"]
         ds["name"] = file_name
@@ -240,7 +237,7 @@ class CBoostedMetadataBuildWriter(SerialH5Writer):
         ds["shape"] = img_data_shape
         return ds
 
-    def create_spectrum_h5_dataset(self, group, file_name, spec_data_shape):
+    def create_spectrum_h5_dataset(self, group, file_name, spec_data_shape, chunk_size=None):
         group["spectrum_dataset"] = {}
         ds = group["spectrum_dataset"]
         ds["name"] = file_name

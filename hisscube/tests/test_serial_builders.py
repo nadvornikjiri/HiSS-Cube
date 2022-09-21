@@ -12,6 +12,7 @@ from tqdm.auto import tqdm
 from hisscube.builders import SingleImageBuilder, HiSSCubeConstructionDirector
 from hisscube.dependency_injector import HiSSCubeProvider
 from hisscube.processors.data import float_compress
+from hisscube.utils.config import Config
 from hisscube.utils.io import SerialH5Writer, truncate
 from hisscube.utils.astrometry import is_cutout_whole
 
@@ -23,9 +24,19 @@ H5_PATH = "../../results/SDSS_cube.h5"
 INPUT_PATH = "../../data/raw"
 
 
-def get_test_director(args, test_images, test_spectra, image_pattern, spectra_pattern):
+def get_default_config():
+    config = Config()
+    config.MPIO = False
+    config.C_BOOSTER = False
+    config.METADATA_STRATEGY = "TREE"
+    return config
+
+
+def get_test_director(args, test_images, test_spectra, image_pattern, spectra_pattern, config=None):
+    if not config:
+        config = get_default_config()
     dependency_provider = HiSSCubeProvider(H5_PATH, image_path=test_images, spectra_path=test_spectra,
-                                           image_pattern=image_pattern, spectra_pattern=spectra_pattern)
+                                           image_pattern=image_pattern, spectra_pattern=spectra_pattern, config=config)
     dependency_provider.config.MPIO = False
     director = HiSSCubeConstructionDirector(args, dependency_provider.config, dependency_provider.serial_builders,
                                             dependency_provider.parallel_builders)
@@ -36,9 +47,9 @@ class TestSerialBuilder(unittest.TestCase):
 
     def setup_method(self, test_method):
         truncate(H5_PATH)
-        self.dependency_provider = HiSSCubeProvider(H5_PATH, input_path=INPUT_PATH)
-        self.dependency_provider.config.MPIO = False
-        self.dependency_provider.config.C_BOOSTER = False
+        self.config = get_default_config()
+        self.dependency_provider = HiSSCubeProvider(H5_PATH, input_path=INPUT_PATH, config=self.config)
+
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
     def test_build_image_single(self):
@@ -48,23 +59,56 @@ class TestSerialBuilder(unittest.TestCase):
         h5_datasets = builder.build()
         assert len(h5_datasets) == self.dependency_provider.config.IMG_ZOOM_CNT
 
-    def test_build_spetrum_single(self):
+    def test_build_image_single_dataset_strategy(self):
+        self.config.METADATA_STRATEGY = "DATASET"
+        self.dependency_provider = HiSSCubeProvider(H5_PATH, input_path=INPUT_PATH, config=self.config)
+        self.test_build_image_single()
+
+    def test_build_spectrum_single(self):
         test_path = "../../data/raw/problematic/spectra/spec-5290-55862-0984.fits"
         builder = self.dependency_provider.serial_builders.single_spectrum_builder
         builder.spectrum_path = test_path
         h5_datasets = builder.build()
         assert len(h5_datasets) == self.dependency_provider.config.SPEC_ZOOM_CNT
 
-    def test_add_image_multiple_same_run(self):
-        test_images = "../../data/raw/problematic/images_same_run"
-        image_pattern = "*.fits"
+    def test_build_spetrum_single_dataset_strategy(self):
+        self.config.METADATA_STRATEGY = "DATASET"
+        self.dependency_provider = HiSSCubeProvider(H5_PATH, input_path=INPUT_PATH, config=self.config)
+        self.test_build_spectrum_single()
+
+    @staticmethod
+    def get_image_test(image_pattern, test_images, config=None):
         test_spectra = ""
         spectra_pattern = ""
         args = Mock()
-        args.command = "create"
+        args.command = "update"
+        args.fits_metadata_cache = True
+        args.metadata = True
+        args.data = True
+        args.link_spectra_images = False
+        args.visualization_cube = False
+        args.ml_cube = False
         args.output_path = H5_PATH
         dependency_provider, director = get_test_director(args, test_images, test_spectra, image_pattern,
-                                                          spectra_pattern)
+                                                          spectra_pattern, config)
+        return dependency_provider, director
+
+    def test_add_image_multiple(self):
+        test_images = "../../data/raw/galaxy_small/images"
+        image_pattern = "frame-*-004136-*-0129.fits"
+        dependency_provider, director = self.get_image_test(image_pattern, test_images)
+        director.construct()
+
+    def test_add_image_multiple_dataset_strategy(self):
+        self.config.METADATA_STRATEGY = "DATASET"
+        test_images = "../../data/raw/galaxy_small/images"
+        image_pattern = "frame-*-004136-*-0129.fits"
+        dependency_provider, director = self.get_image_test(image_pattern, test_images, self.config)
+
+    def test_add_image_multiple_same_run(self):
+        test_images = "../../data/raw/problematic/images_same_run"
+        image_pattern = "*.fits"
+        dependency_provider, director = self.get_image_test(image_pattern, test_images)
 
         dependency_provider.config.IMG_SPAT_INDEX_ORDER = 8
         with self.assertRaises(RuntimeError):
@@ -84,7 +128,7 @@ class TestSerialBuilder(unittest.TestCase):
         test_spectra = "../../data/raw/galaxy_tiny/spectra"
         args = Mock()
         args.command = "update"
-        args.fits_header_cache = True
+        args.fits_metadata_cache = True
         args.metadata = True
         args.data = True
         args.link_images_spectra = True

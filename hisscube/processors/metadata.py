@@ -55,7 +55,7 @@ class MetadataProcessor:
         spec_header_ds = self.h5_connector.file.create_dataset('fits_spectra_metadata', (max_spectra,),
                                                                dtype=spec_header_ds_dtype)
         self.h5_connector.file.attrs["image_count"] = 0
-        self.h5_connector.file.attrs["spectra_count"] = 0
+        self.h5_connector.file.attrs["spectrum_count"] = 0
         return image_header_ds, image_header_ds_dtype, spec_header_ds, spec_header_ds_dtype
 
     def _clean_fits_header_tables(self):
@@ -71,7 +71,7 @@ class MetadataProcessor:
         self.h5_connector.file.attrs["image_count"] = img_cnt
         spec_cnt = self.write_fits_headers(spec_header_ds, spec_header_ds_dtype, spectra_path, spectra_pattern,
                                            self.config.LIMIT_SPECTRA_COUNT)
-        self.h5_connector.file.attrs["spectra_count"] = spec_cnt
+        self.h5_connector.file.attrs["spectrum_count"] = spec_cnt
 
     @log_timing("fits_headers")
     def _write_fits_header(self, buf, buf_i, fits_cnt, fits_path, header_ds, offset):

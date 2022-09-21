@@ -32,8 +32,10 @@ class TestExport:
         args.command = "create"
         args.output_path = H5PATH
         self.config = Config()
+        self.config.METADATA_STRATEGY = "TREE"
         self.dependency_provider = HiSSCubeProvider(H5PATH, image_path=test_images, spectra_path=test_spectra,
-                                                    image_pattern=image_pattern, spectra_pattern=spectra_pattern)
+                                                    image_pattern=image_pattern, spectra_pattern=spectra_pattern,
+                                                    config=self.config)
         self.dependency_provider.config.MPIO = False
         self.dependency_provider.config.INIT_ARRAY_SIZE = 10000
         director = HiSSCubeConstructionDirector(args, self.dependency_provider.config,
@@ -87,8 +89,8 @@ class TestExport:
             processor = MLProcessor(self.config)
             processor.h5_connector = h5_connector
             cube_3d = processor.get_spectrum_3d_cube(zoom=2)
-            assert cube_3d[0].shape == (2, 5, 16, 16, 2)
-            assert cube_3d[1].shape == (2, 1155, 2)
+            assert cube_3d[0].shape == (2, 5, 16, 16)
+            assert cube_3d[2].shape == (2, 1155)
 
     def send_samp(self, message_type):
         client = SAMPIntegratedClient()

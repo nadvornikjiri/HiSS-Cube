@@ -29,16 +29,16 @@ class ImageProcessor:
         self.h5_connector.file.attrs["image_count"] = self.img_cnt
 
     def get_resolution_groups(self, metadata, h5_connector):
-        return self.metadata_strategy.get_resolution_groups(metadata, h5_connector)
+        yield from self.metadata_strategy.get_resolution_groups(metadata, h5_connector)
 
     def write_image_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
-        self.metadata_strategy.write_image_metadata(h5_connector, fits_path, fits_header, no_attrs, no_datasets)
+        self.metadata_strategy.write_metadata(h5_connector, fits_path, fits_header, no_attrs, no_datasets)
 
     def write_images_metadata(self, h5_connector, no_attrs=False, no_datasets=False):
-        self.metadata_strategy.write_images_metadata(h5_connector, no_attrs, no_datasets)
+        self.metadata_strategy.write_metadata_multiple(h5_connector, no_attrs, no_datasets)
 
-    def write_datasets(self, res_grp_list, data, file_name):
-        self.metadata_strategy.write_datasets(res_grp_list, data, file_name)
+    def write_datasets(self, res_grp_list, data, file_name, offset=0):
+        return self.metadata_strategy.write_datasets(res_grp_list, data, file_name, offset)
 
     def _set_connector(self, h5_connector):
         self.h5_connector = h5_connector

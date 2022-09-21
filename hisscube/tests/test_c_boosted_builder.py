@@ -5,6 +5,7 @@ import unittest
 import h5py
 
 from hisscube.dependency_injector import HiSSCubeProvider
+from hisscube.utils.config import Config
 from hisscube.utils.io import truncate
 
 try:
@@ -21,8 +22,10 @@ class TestCBoostedBuilder(unittest.TestCase):
 
     def setup_method(self, test_method):
         truncate(H5_PATH)
+        config = Config()
+        config.METADATA_STRATEGY = "TREE"
         self.dependency_provider = HiSSCubeProvider(H5_PATH, image_path=FITS_IMAGE_PATH,
-                                                    spectra_path=FITS_SPECTRA_PATH)
+                                                    spectra_path=FITS_SPECTRA_PATH, config=config)
         self.dependency_provider.config.MPIO = False
         fits_cache_builder = self.dependency_provider.serial_builders.metadata_cache_builder
         fits_cache_builder.build()
@@ -40,4 +43,3 @@ class TestCBoostedBuilder(unittest.TestCase):
         orig_res_ds_name = orig_res_ds.name.split('/')[-1]
         test_ds_name = h5_file[orig_res_link].name.split('/')[-1]
         assert (orig_res_ds_name == test_ds_name)
-

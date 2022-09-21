@@ -2,7 +2,7 @@ import h5py
 
 import numpy as np
 
-from hisscube.processors.metadata_strategy_spectrum import get_time_from_spectrum
+from hisscube.processors.metadata_strategy_spectrum import get_spectrum_time
 
 from hisscube.utils.astrometry import get_cutout_pixel_coords, get_cutout_bounds_from_spectrum
 from hisscube.utils.io import get_orig_header
@@ -43,7 +43,7 @@ def get_spectral_cube(h5_connector, spec_datasets):
                                      spec_header["PLUG_DEC"]],  # spatial is the same for every spectrum
                          "wl": spec_ds[:, 0],  # wl is the same for every spectrum (binned)
                          "time": []}  # time is different for every spectrum
-        spec_dims["time"].append(get_time_from_spectrum(spec_header))
+        spec_dims["time"].append(get_spectrum_time(spec_header))
     spectra = SparseTreeCube(spec_datasets_mean_sigma, spec_dims)
     return spec_ds, spectra
 

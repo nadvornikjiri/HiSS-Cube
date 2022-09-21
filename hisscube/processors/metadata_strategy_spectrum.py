@@ -7,12 +7,16 @@ import numpy as np
 import ujson
 
 from hisscube.processors.data import float_compress
-from hisscube.processors.metadata_strategy import MetadataStrategy
+from hisscube.processors.metadata_strategy import MetadataStrategy, TreeStrategy, require_spatial_grp, \
+    get_data_datasets, require_zoom_grps, get_healpix_id, get_index_datasets, get_dataset_resolution_groups, \
+    write_dataset, create_metadata_index_ds
 from hisscube.utils import astrometry
-from hisscube.utils.astrometry import get_region_ref, NoCoverageFoundError, get_heal_path_from_coords
+from hisscube.utils.astrometry import get_region_ref, NoCoverageFoundError, get_heal_path_from_coords, \
+    get_spectrum_center_coords
 from hisscube.utils.config import Config
 from hisscube.utils.io import H5Connector
 from hisscube.utils.logging import HiSSCubeLogger, log_timing
+from hisscube.utils.nexus import set_nx_interpretation
 from hisscube.utils.photometry import Photometry
 
 
@@ -24,13 +28,42 @@ class SpectrumMetadataStrategy(ABC):
         self.h5_connector: H5Connector = None
         self.logger = HiSSCubeLogger.logger
 
-    @abstractmethod
-    def write_spectra_metadata(self, h5_connector, no_attrs=False, no_datasets=False):
-        raise NotImplementedError
+    def write_metadata_multiple(self, h5_connector, no_attrs=False, no_datasets=False):
+        self._set_connector(h5_connector)
+        fits_headers = self.h5_connector.file["/fits_spectra_metadata"]
+        self._write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets)
 
-    @abstractmethod
-    def write_spectrum_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
-        raise NotImplementedError
+    def write_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
+        self._set_connector(h5_connector)
+        metadata = ujson.loads(fits_header)
+        self._write_parsed_spectrum_metadata(metadata, fits_path, no_attrs, no_datasets)
+
+    def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
+        self.spec_cnt = 0
+        self.h5_connector.fits_total_cnt = 0
+        for fits_path, header in fits_headers:
+            if not fits_path:  # end of data
+                break
+            self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
+            if self.spec_cnt >= self.config.LIMIT_SPECTRA_COUNT:
+                break
+
+    @log_timing("process_spectrum_metadata")
+    def _write_metadata_from_header(self, h5_connector, fits_path, header, no_attrs, no_datasets):
+        fits_path = fits_path.decode('utf-8')
+        self._set_connector(h5_connector)
+        if self.spec_cnt % 100 == 0 and self.spec_cnt / 100 > 0:
+            self.logger.info("Spectra cnt: %05d" % self.spec_cnt)
+        try:
+            self.write_metadata(h5_connector, fits_path, header, no_attrs, no_datasets)
+            self.spec_cnt += 1
+            self.h5_connector.fits_total_cnt += 1
+        except ValueError as e:
+            self.logger.warning(
+                "Unable to ingest spectrum %s, message: %s" % (fits_path, str(e)))
+
+    def _set_connector(self, h5_connector):
+        self.h5_connector = h5_connector
 
     @abstractmethod
     def get_resolution_groups(self, metadata, h5_connector):
@@ -41,11 +74,17 @@ class SpectrumMetadataStrategy(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def write_datasets(self, res_grp_list, data, file_name):
+    def write_datasets(self, res_grp_list, data, file_name, offset):
+        raise NotImplementedError
+
+    @abstractmethod
+    def _write_parsed_spectrum_metadata(self, metadata, fits_path, no_attrs, no_datasets):
         raise NotImplementedError
 
 
 class TreeSpectrumStrategy(SpectrumMetadataStrategy):
+    def __init__(self, metadata_strategy: TreeStrategy, config: Config, photometry: Photometry):
+        super().__init__(metadata_strategy, config, photometry)
 
     def get_resolution_groups(self, metadata, h5_connector):
         self.h5_connector = h5_connector
@@ -59,17 +98,7 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
         for res_grp in time_grp:
             yield time_grp[res_grp]
 
-    def write_spectra_metadata(self, h5_connector, no_attrs=False, no_datasets=False):
-        self._set_connector(h5_connector)
-        fits_headers = self.h5_connector.file["/fits_spectra_metadata"]
-        self._write_spectra_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets)
-
-    def write_spectrum_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
-        self._set_connector(h5_connector)
-        metadata = ujson.loads(fits_header)
-        self._write_parsed_spectrum_metadata(metadata, fits_path, no_attrs, no_datasets)
-
-    def write_datasets(self, res_grp_list, data, file_name):
+    def write_datasets(self, res_grp_list, data, file_name, offset):
         spec_datasets = []
         for group in res_grp_list:
             res = group.name.split('/')[-1]
@@ -87,50 +116,20 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
         self.h5_connector = h5_connector
         self._add_image_refs(h5_connector.file)
 
-    def _set_connector(self, h5_connector):
-        self.h5_connector = h5_connector
-
     def _write_parsed_spectrum_metadata(self, metadata, fits_path, no_attrs, no_datasets):
         if self.config.APPLY_REBIN is False:
             spectrum_length = fitsio.read_header(fits_path, 1)["NAXIS2"]
         else:
             spectrum_length = self.config.REBIN_SAMPLES
         file_name = os.path.basename(fits_path)
-        res_grps = self._create_spectrum_index_tree(metadata, spectrum_length)
+        res_grps = self._create_index_tree(metadata, spectrum_length)
         spec_datasets = []
         if not no_datasets:
             spec_datasets = self._create_spec_datasets(file_name, res_grps)
         if not no_attrs:
             self.metadata_strategy.add_metadata(self.h5_connector, metadata, spec_datasets)
 
-    def _write_spectra_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
-        self.spec_cnt = 0
-        self.h5_connector.fits_total_cnt = 0
-        for fits_path, header in fits_headers:
-            if not fits_path:  # end of data
-                break
-            self._write_spectrum_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
-            if self.spec_cnt >= self.config.LIMIT_SPECTRA_COUNT:
-                break
-        self.h5_connector.set_attr(self.h5_connector.file, "spectra_count", self.spec_cnt)
-
-    @log_timing("process_spectrum_metadata")
-    def _write_spectrum_metadata_from_header(self, h5_connector, fits_path, header, no_attrs, no_datasets):
-        fits_path = fits_path.decode('utf-8')
-        self._set_connector(h5_connector)
-        if self.spec_cnt % 100 == 0 and self.spec_cnt / 100 > 0:
-            self.logger.info("Spectra cnt: %05d" % self.spec_cnt)
-        try:
-            self.write_spectrum_metadata(h5_connector, fits_path, header, no_attrs, no_datasets)
-            self.spec_cnt += 1
-            self.h5_connector.fits_total_cnt += 1
-        except ValueError as e:
-            self.logger.warning(
-                "Unable to ingest spectrum %s, message: %s" % (fits_path, str(e)))
-
-
-
-    def _create_spectrum_index_tree(self, metadata, spectrum_length):
+    def _create_index_tree(self, metadata, spectrum_length):
         """
         Creates the index tree for a spectrum.
         Returns HDF5 group - the one where the spectrum dataset should be placed.
@@ -138,7 +137,7 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
 
         """
         spec_grp = self.h5_connector.require_semi_sparse_cube_grp()
-        spatial_grp = self._require_spectrum_spatial_grp_structure(metadata, spec_grp)
+        spatial_grp = self._require_spatial_grp_structure(metadata, spec_grp)
         time_grp = self._require_spectrum_time_grp(metadata, spatial_grp)
         res_grps = self._require_res_grps(time_grp, spectrum_length)
         return res_grps
@@ -157,12 +156,15 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
                         list(group), file_name))
             res = int(self.h5_connector.get_name(group).split('/')[-1])
             spec_data_shape = (res,) + (3,)
-            ds = self.h5_connector.create_spectrum_h5_dataset(group, file_name, spec_data_shape)
+            if not file_name in group:
+                ds = self.h5_connector.create_spectrum_h5_dataset(group, file_name, spec_data_shape)
+            else:
+                ds = group[file_name]
             self.h5_connector.set_attr(ds, "mime-type", "spectrum")
             spec_datasets.append(ds)
         return spec_datasets
 
-    def _require_spectrum_spatial_grp_structure(self, metadata, child_grp):
+    def _require_spatial_grp_structure(self, metadata, child_grp):
         """
         Creates the spatial index part for a spectrum. Takes the root group as parameter.
         Parameters
@@ -175,7 +177,7 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
         """
         spectrum_coord = (metadata['PLUG_RA'], metadata['PLUG_DEC'])
         for order in range(self.config.SPEC_SPAT_INDEX_ORDER):
-            child_grp = self.metadata_strategy.require_spatial_grp(self.h5_connector, order, child_grp, spectrum_coord)
+            child_grp = require_spatial_grp(self.h5_connector, order, child_grp, spectrum_coord)
 
         for img_zoom in range(self.config.IMG_ZOOM_CNT):
             self.h5_connector.require_dataset(child_grp, "image_cutouts_%d" % img_zoom,
@@ -185,7 +187,7 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
         return child_grp
 
     def _require_spectrum_time_grp(self, metadata, parent_grp):
-        time = get_time_from_spectrum(metadata)
+        time = get_spectrum_time(metadata)
         grp = self.h5_connector.require_group(parent_grp, str(time), track_order=True)
         self.h5_connector.set_attr(grp, "type", "time")
         return grp
@@ -259,16 +261,25 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
             image_refs[res] = np.array(image_refs[res],
                                        dtype=h5py.regionref_dtype)
         for spec_zoom_idx, spec_ds in enumerate(spec_datasets):
-            image_cutout_ds = spec_ds.parent.parent.parent[
-                "image_cutouts_%d" % spec_zoom_idx]  # we write image cutout zoom equivalent to the spectral zoom
+            image_cutout_ds = self.get_image_cutout_ds(spec_ds, spec_zoom_idx)
             if len(image_refs) > 0:
                 if spec_zoom_idx > image_min_zoom_idx:
                     no_references = len(image_refs[image_min_zoom_idx])
-                    image_cutout_ds[0:no_references] = image_refs[image_min_zoom_idx]
+                    self.write_image_cutout(image_cutout_ds, image_min_zoom_idx, image_refs, no_references)
                 else:
                     no_references = len(image_refs[spec_zoom_idx])
-                    image_cutout_ds[0:no_references] = image_refs[spec_zoom_idx]
+                    self.write_image_cutout(image_cutout_ds, spec_zoom_idx, image_refs, no_references)
         return spec_datasets
+
+    @staticmethod
+    def write_image_cutout(image_cutout_ds, image_min_zoom_idx, image_refs, no_references):
+        image_cutout_ds[0:no_references] = image_refs[image_min_zoom_idx]
+
+    @staticmethod
+    def get_image_cutout_ds(spec_ds, spec_zoom_idx):
+        image_cutout_ds = spec_ds.parent.parent.parent[
+            "image_cutouts_%d" % spec_zoom_idx]  # we write image cutout zoom equivalent to the spectral zoom
+        return image_cutout_ds
 
     def _find_images_overlapping_spectrum(self, metadata):
         """Finds images in the HDF5 index structure that overlap the spectrum coordinate. Does so by constructing the
@@ -306,17 +317,65 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
 
 class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
 
+    def write_datasets(self, res_grp_list, data, file_name, offset):
+        return write_dataset(data, res_grp_list, self.config.FLOAT_COMPRESS, offset)
+
     def link_spectra_to_images(self, h5_connector):
         pass
 
-    def _write_parsed_spectrum_metadata(self, metadata, spectrum_length, fits_path, no_attrs, no_datasets):
-        pass
-
     def get_resolution_groups(self, metadata, h5_connector):
-        pass
+        return get_dataset_resolution_groups(h5_connector, self.config.ORIG_CUBE_NAME, self.config.SPEC_ZOOM_CNT,
+                                             "spectra")
+
+    def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
+        spectrum_count = self.h5_connector.get_attr(self.h5_connector.file, "spectrum_count")
+        spectrum_zoom_groups = require_zoom_grps("spectra", self.h5_connector, self.config.SPEC_ZOOM_CNT)
+        if not no_datasets:
+            self.create_datasets(spectrum_zoom_groups, spectrum_count)
+            super()._write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets)
+        self.sort_indices()
+
+    def _write_parsed_spectrum_metadata(self, metadata, fits_path, no_attrs, no_datasets):
+        spec_datasets = get_data_datasets(self.h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
+                                          self.config.ORIG_CUBE_NAME)
+        if not no_attrs:
+            self.metadata_strategy.add_metadata(self.h5_connector, metadata, spec_datasets, self.spec_cnt)
+        self.add_index_entry(metadata, spec_datasets)
+
+    def create_datasets(self, spec_zoom_groups, spec_count):
+        for spec_zoom, spec_zoom_group in enumerate(spec_zoom_groups):
+            chunk_size = None
+            spec_shape = (spec_count, int(self.config.REBIN_SAMPLES / (2 ** spec_zoom)))
+            if self.config.DATASET_STRATEGY_CHUNKED:
+                chunk_size = (1,) + spec_shape[1:]
+            spec_ds = self.h5_connector.create_spectrum_h5_dataset(spec_zoom_group, "data", spec_shape, chunk_size)
+            self.h5_connector.set_attr(spec_ds, "mime-type", "spectrum")
+            set_nx_interpretation(spec_ds, "spectrum", self.h5_connector)
+            error_ds = self.h5_connector.create_spectrum_h5_dataset(spec_zoom_group, "errors", spec_shape, chunk_size)
+            self.h5_connector.set_attr(spec_ds, "error_ds_ref", error_ds.ref)
+            index_dtype = [("spatial", np.int64), ("time", np.float32), ("ds_slice_idx", np.int64)]
+            create_metadata_index_ds(spec_count, spec_ds, spec_zoom_group, index_dtype, self.h5_connector,
+                                     self.config.FITS_SPECTRUM_MAX_HEADER_SIZE)
+            self.h5_connector.require_dataset(spec_zoom_group, "image_cutouts",
+                                              (spec_count, self.config.MAX_CUTOUT_REFS),
+                                              dtype=h5py.regionref_dtype)
+
+    def add_index_entry(self, metadata, spec_datasets):
+        for img_ds in spec_datasets:
+            index_ds = self.h5_connector.file[self.h5_connector.get_attr(img_ds, "index_ds_ref")]
+            spectrum_ra, spectrum_dec = get_spectrum_center_coords(metadata)
+            healpix_id = get_healpix_id(spectrum_ra, spectrum_dec, self.config.SPEC_SPAT_INDEX_ORDER)
+            time = get_spectrum_time(metadata)
+            index_ds[self.spec_cnt] = (healpix_id, time, self.spec_cnt)
+
+    def sort_indices(self):
+        index_datasets = get_index_datasets(self.h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
+                                            self.config.ORIG_CUBE_NAME)
+        for index_ds in index_datasets:
+            index_ds[:] = np.sort(index_ds[:], order=['spatial', 'time'])
 
 
-def get_time_from_spectrum(spec_header):
+def get_spectrum_time(spec_header):
     try:
         time = spec_header["TAI"]
     except KeyError:

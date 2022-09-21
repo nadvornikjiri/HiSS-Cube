@@ -24,7 +24,7 @@ def float_compress(data, ndig=10):
 
     Parameters
     ----------
-    data    numpy array, type float32 or float64
+    data    numpy array, dataset_type float32 or float64
     ndig    number of binary significant digits to keep
 
     Returns

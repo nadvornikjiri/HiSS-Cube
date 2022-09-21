@@ -34,6 +34,10 @@ def get_image_center_coords(fits_header):
     return fits_header["CRVAL1"], fits_header["CRVAL2"]
 
 
+def get_spectrum_center_coords(fits_header):
+    return fits_header["PLUG_RA"], fits_header["PLUG_DEC"]
+
+
 def get_optimized_wcs(image_fits_header):
     """
     Reads the WCS header and constructs the WCS object in an optimized way, see
