@@ -85,7 +85,7 @@ class TestSerialBuilder(unittest.TestCase):
         args.fits_metadata_cache = True
         args.metadata = True
         args.data = True
-        args.link_spectra_images = False
+        args.link = False
         args.visualization_cube = False
         args.ml_cube = False
         args.output_path = H5_PATH
@@ -115,27 +115,15 @@ class TestSerialBuilder(unittest.TestCase):
             director.construct()
 
     def test_add_spec_refs(self):
-        image_pattern = "frame-r-004136-3-0129.fits"
-        spectra_pattern = "spec-0412-51871-0308.fits"
-        self._insert_links(image_pattern, spectra_pattern)
+        self.run_link_spectra()
         with h5py.File(H5_PATH) as h5_file:
             spec_datasets = self._get_test_spec_ds(h5_file)
             self._assert_image_cutout_sizes(h5_file, spec_datasets)
 
-    @staticmethod
-    def _insert_links(image_pattern, spectra_pattern):
-        test_images = "../../data/raw/galaxy_small/images"
-        test_spectra = "../../data/raw/galaxy_tiny/spectra"
-        args = Mock()
-        args.command = "update"
-        args.fits_metadata_cache = True
-        args.metadata = True
-        args.data = True
-        args.link_images_spectra = True
-        args.output_path = H5_PATH
-        dependency_provider, director = get_test_director(args, test_images, test_spectra, image_pattern,
-                                                          spectra_pattern)
-        director.construct()
+    def run_link_spectra(self, config=None):
+        image_pattern = "frame-r-004136-3-0129.fits"
+        spectra_pattern = "spec-0412-51871-0308.fits"
+        self._insert_links(image_pattern, spectra_pattern, config)
 
     @staticmethod
     def _get_test_spec_ds(h5_file):
@@ -153,13 +141,45 @@ class TestSerialBuilder(unittest.TestCase):
         assert bool(spec_datasets[0].parent.parent.parent["image_cutouts_0"][0])
         for spec_dataset in spec_datasets:
             for zoom in range(self.dependency_provider.config.SPEC_ZOOM_CNT):
-                for cutout in spec_dataset.parent.parent.parent["image_cutouts_%d" % zoom]:
-                    if not cutout:
-                        break
-                    cutout_shape = h5_file[cutout][cutout].shape
-                    assert (0 <= cutout_shape[0] <= 64)
-                    assert (0 <= cutout_shape[1] <= 64)
-                    assert (cutout_shape[2] == 2)
+                cutout_list = spec_dataset.parent.parent.parent["image_cutouts_%d" % zoom]
+                self.assert_cutouts(h5_file, cutout_list, 0, 1)
+
+    def assert_cutouts(self, h5_file, cutout_list, x_idx, y_idx):
+        assert cutout_list[0]
+        for cutout in cutout_list:
+            if not cutout:
+                break
+            cutout_shape = h5_file[cutout][cutout].shape
+            assert (0 <= cutout_shape[x_idx] <= 64)
+            assert (0 <= cutout_shape[y_idx] <= 64)
+
+    def test_add_spec_refs_dataset_strategy(self):
+        self.config.METADATA_STRATEGY = "DATASET"
+        self.run_link_spectra(self.config)
+        with h5py.File(H5_PATH) as h5_file:
+            cutout_list = self._get_test_cutout_ds(h5_file)
+            self.assert_cutouts(h5_file, cutout_list, 1, 2)
+
+    @staticmethod
+    def _get_test_cutout_ds(h5_file):
+        return h5_file["semi_sparse_cube/0/spectra/image_cutouts_data"][0]
+
+    @staticmethod
+    def _insert_links(image_pattern, spectra_pattern, config=None):
+        test_images = "../../data/raw/galaxy_small/images"
+        test_spectra = "../../data/raw/galaxy_tiny/spectra"
+        args = Mock()
+        args.command = "update"
+        args.fits_metadata_cache = True
+        args.metadata = True
+        args.data = True
+        args.link_images_spectra = True
+        args.visualization_cube = False
+        args.ml_cube = False
+        args.output_path = H5_PATH
+        dependency_provider, director = get_test_director(args, test_images, test_spectra, image_pattern,
+                                                          spectra_pattern, config=config)
+        director.construct()
 
     def test_is_cutout_whole(self):
         test1 = [[[735, 1849],
@@ -210,7 +230,7 @@ class TestSerialBuilder(unittest.TestCase):
         data_processor = self.dependency_provider.processors.data_processor
         photometry = self.dependency_provider.photometry
         config = self.dependency_provider.config
-        metadata_processor.metadata, data_processor.data = photometry.get_multiple_resolution_image(
+        metadata_processor.spectrum_metadata, data_processor.data = photometry.get_multiple_resolution_image(
             test_path,
             config.IMG_ZOOM_CNT)
         metadata_processor.file_name = os.path.basename(test_path)

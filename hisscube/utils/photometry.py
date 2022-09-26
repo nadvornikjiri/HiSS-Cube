@@ -69,6 +69,9 @@ class Photometry:
 
         self.merged_transmission_curve = self._merge_transmission_curves_max(self.transmission_curves)
 
+    def get_image_wl(self, metadata):
+        return self.filter_midpoints[metadata["FILTER"]]
+
     def get_multiple_resolution_spectrum(self, path, spec_zoom_cnt, apply_rebin=False, rebin_min=0, rebin_max=0,
                                          rebin_samples=0, apply_transmission=True):
         """

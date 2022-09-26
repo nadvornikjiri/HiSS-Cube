@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from ast import literal_eval
 from collections import deque
 from datetime import datetime
 from itertools import chain
@@ -7,10 +6,11 @@ from sys import getsizeof, stderr
 
 import h5py
 import mpi4py.MPI
-import ujson
 from astropy.time import Time
 
 from hisscube.processors.data import get_property_list
+from hisscube.utils.config import Config
+from hisscube.utils.io_strategy import IOStrategy
 from hisscube.utils.logging import get_c_timings_path
 from hisscube.utils.nexus import set_nx_entry
 
@@ -74,9 +74,10 @@ def truncate(h5_path):
 
 
 class H5Connector(ABC):
-    def __init__(self, h5_path, config):
+    def __init__(self, h5_path, config: Config, io_strategy: IOStrategy):
         self.h5_path = h5_path
         self.config = config
+        self.strategy = io_strategy
         self.grp_cnt = 0
         self.fits_total_cnt = 0
         self.file = None
@@ -94,6 +95,12 @@ class H5Connector(ABC):
 
     def close_h5_file(self):
         self.file.close()
+
+    def read_serialized_fits_header(self, ds, idx=0):
+        return self.strategy.read_serialized_fits_header(ds, idx)
+
+    def write_serialized_fits_header(self, ds, attrs_dict, idx=0):
+        return self.strategy.write_serialized_fits_header(ds, attrs_dict, idx)
 
     def require_semi_sparse_cube_grp(self):
         grp = self.require_group(self.file, self.config.ORIG_CUBE_NAME)
@@ -127,6 +134,12 @@ class H5Connector(ABC):
     def create_spectrum_h5_dataset(self, group, file_name, spec_data_shape, chunk_size=None):
         return self.create_dataset(group, file_name, spec_data_shape, chunk_size)
 
+    def get_spectrum_count(self):
+        return self.get_attr(self.file, "spectrum_count")
+
+    def get_image_count(self):
+        return self.get_attr(self.file, "image_count")
+
     @staticmethod
     def get_name(grp):
         return grp.name
@@ -144,14 +157,6 @@ class H5Connector(ABC):
         return ds.attrs[key]
 
     @staticmethod
-    def read_serialized_fits_header(ds):
-        return ujson.loads(ds.attrs["serialized_header"])
-
-    @staticmethod
-    def write_serialized_fits_header(ds, attrs_dict):
-        ds.attrs["serialized_header"] = ujson.dumps(attrs_dict)
-
-    @staticmethod
     def require_dataset(grp, name, shape, dtype):
         return grp.require_dataset(name, shape, dtype)
 
@@ -162,8 +167,8 @@ class H5Connector(ABC):
 
 class SerialH5Writer(H5Connector):
 
-    def __init__(self, h5_path, config):
-        super().__init__(h5_path, config)
+    def __init__(self, h5_path, config, io_strategy: IOStrategy):
+        super().__init__(h5_path, config, io_strategy)
 
     def open_h5_file(self, truncate_file=False):
         self.file = h5py.File(self.h5_path, 'r+', libver="latest")
@@ -171,16 +176,16 @@ class SerialH5Writer(H5Connector):
 
 class SerialH5Reader(H5Connector):
 
-    def __init__(self, h5_path, config):
-        super().__init__(h5_path, config)
+    def __init__(self, h5_path, config, io_strategy: IOStrategy):
+        super().__init__(h5_path, config, io_strategy)
 
     def open_h5_file(self, truncate_file=False):
         self.file = h5py.File(self.h5_path, 'r', libver="latest")
 
 
 class ParallelH5Writer(H5Connector):
-    def __init__(self, h5_path, config, mpi_comm=None):
-        super().__init__(h5_path, config)
+    def __init__(self, h5_path, config, io_strategy: IOStrategy, mpi_comm=None):
+        super().__init__(h5_path, config, io_strategy)
         self.comm = mpi_comm
         if not self.comm:
             self.comm = mpi4py.MPI.COMM_WORLD
@@ -192,8 +197,8 @@ class ParallelH5Writer(H5Connector):
 
 class CBoostedMetadataBuildWriter(SerialH5Writer):
 
-    def __init__(self, h5_path, config):
-        super().__init__(h5_path, config)
+    def __init__(self, h5_path, config, io_strategy: IOStrategy):
+        super().__init__(h5_path, config, io_strategy)
         self.c_timing_log = get_c_timings_path()
         self.h5_file_structure = {"name": ""}
 
@@ -246,16 +251,6 @@ class CBoostedMetadataBuildWriter(SerialH5Writer):
         return ds
 
     @staticmethod
-    def write_serialized_fits_header(ds, attrs_dict):
-        if "attrs" not in ds:
-            ds["attrs"] = {}
-        ds["attrs"]["serialized_header"] = ujson.dumps(attrs_dict)
-
-    @staticmethod
-    def read_serialized_fits_header(ds):
-        return ujson.loads(ds["attrs"]["serialized_header"])
-
-    @staticmethod
     def require_dataset(grp, name, shape, dtype):
         if not name in grp:
             grp[name] = {}
@@ -295,6 +290,10 @@ def get_image_header_dataset(h5_connector):
 
 def get_spectrum_header_dataset(h5_connector):
     return h5_connector.file["fits_spectra_metadata"]
+
+
+def get_fits_path(metadata_ds, cnt):
+    return metadata_ds[cnt]["path"]
 
 
 def get_str_paths(ds):

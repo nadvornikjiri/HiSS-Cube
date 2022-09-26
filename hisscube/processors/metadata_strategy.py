@@ -3,14 +3,22 @@ from abc import ABC, abstractmethod
 import h5py
 import healpy
 import numpy as np
-import ujson
 from astropy_healpix import healpy
 
 from hisscube.processors.data import float_compress
-from hisscube.utils.astrometry import get_image_lower_res_wcs, get_image_center_coords
+from hisscube.utils.astrometry import get_image_lower_res_wcs
 from hisscube.utils.config import Config
-from hisscube.utils.io import H5Connector
+from hisscube.utils.io_strategy import write_path
 from hisscube.utils.nexus import set_nx_data, set_nx_signal
+
+
+def get_header_ds(max_entries, path_size, header_size, grp, ds_name):
+    path_dtype = h5py.string_dtype(encoding="utf-8", length=path_size)
+    header_dtype = h5py.string_dtype(encoding="utf-8", length=header_size)
+    header_ds_dtype = [("path", path_dtype), ("header", header_dtype)]
+    header_ds = grp.create_dataset(ds_name, (max_entries,),
+                                   dtype=header_ds_dtype)
+    return header_ds, header_ds_dtype
 
 
 class MetadataStrategy(ABC):
@@ -18,7 +26,7 @@ class MetadataStrategy(ABC):
         self.config = config
 
     @abstractmethod
-    def add_metadata(self, h5_connector, metadata, datasets, img_cnt=None):
+    def add_metadata(self, h5_connector, metadata, datasets, img_cnt=None, fits_name=None):
         raise NotImplementedError
 
 
@@ -42,14 +50,14 @@ def require_spatial_grp(h5_connector, order, prev, coord):
     return grp
 
 
-def write_naxis_values(ds, fits_header, h5_connector, ds_shape):
+def write_naxis_values(fits_header, ds_shape):
     naxis = len(ds_shape)
     fits_header["NAXIS"] = naxis
     for axis in range(naxis):
         fits_header["NAXIS%d" % (axis)] = ds_shape[axis]
 
 
-def get_image_metadata(ds, h5_connector, image_fits_header, orig_image_fits_header, res_idx):
+def get_lower_res_image_metadata(ds, h5_connector, image_fits_header, orig_image_fits_header, res_idx):
     if h5_connector.get_attr(ds, "mime-type") == "image":
         image_fits_header = get_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx)
     return image_fits_header
@@ -58,17 +66,17 @@ def get_image_metadata(ds, h5_connector, image_fits_header, orig_image_fits_head
 def get_lower_res_metadata(datasets, ds, h5_connector, image_fits_header, res_idx):
     h5_connector.set_attr_ref(ds, "orig_res_link", datasets[0])
     orig_image_fits_header = h5_connector.read_serialized_fits_header(datasets[0])
-    image_fits_header = get_image_metadata(ds, h5_connector, image_fits_header,
-                                           orig_image_fits_header, res_idx)
+    image_fits_header = get_lower_res_image_metadata(ds, h5_connector, image_fits_header,
+                                                     orig_image_fits_header, res_idx)
     return image_fits_header
 
 
 class TreeStrategy(MetadataStrategy):
 
-    def add_metadata(self, h5_connector, metadata, datasets, img_cnt=None):
+    def add_metadata(self, h5_connector, metadata, datasets, img_cnt=None, fits_name=None):
         """
-        Adds metadata to the HDF5 data sets of the same image or spectrum in multiple resolutions. It also modifies the
-        metadata for image where needed and adds the COMMENT and HISTORY attributes as datasets for optimization
+        Adds spectrum_metadata to the HDF5 data sets of the same image or spectrum in multiple resolutions. It also modifies the
+        spectrum_metadata for image where needed and adds the COMMENT and HISTORY attributes as datasets for optimization
         purposes.
         Parameters
         ----------
@@ -83,16 +91,16 @@ class TreeStrategy(MetadataStrategy):
             if res_idx > 0:
                 fits_header = get_lower_res_metadata(datasets, ds, h5_connector, fits_header, res_idx)
             ds_shape = h5_connector.get_shape(ds)
-            write_naxis_values(ds, fits_header, h5_connector, ds_shape)
+            write_naxis_values(fits_header, ds_shape)
             h5_connector.write_serialized_fits_header(ds, fits_header)
 
 
 class DatasetStrategy(MetadataStrategy):
 
-    def add_metadata(self, h5_connector, metadata, datasets, img_cnt=None):
+    def add_metadata(self, h5_connector, metadata, datasets, idx=None, fits_name=None):
         """
-        Adds metadata to the HDF5 data sets of the same image or spectrum in multiple resolutions. It also modifies the
-        metadata for image where needed and adds the COMMENT and HISTORY attributes as datasets for optimization
+        Adds spectrum_metadata to the HDF5 data sets of the same image or spectrum in multiple resolutions. It also modifies the
+        spectrum_metadata for image where needed and adds the COMMENT and HISTORY attributes as datasets for optimization
         purposes.
         Parameters
         ----------
@@ -106,28 +114,67 @@ class DatasetStrategy(MetadataStrategy):
         fits_header_metadata = dict(metadata)
         for res_idx, ds in enumerate(datasets):
             if res_idx > 0:
-                fits_header_metadata = get_image_metadata(ds, h5_connector, fits_header_metadata,
-                                                          fits_header_metadata, res_idx)
+                fits_header_metadata = get_lower_res_image_metadata(ds, h5_connector, fits_header_metadata,
+                                                                    fits_header_metadata, res_idx)
             ds_shape = h5_connector.get_shape(ds)[1:]  # 1st dimension is number of images or spectra
-            write_naxis_values(ds, fits_header_metadata, h5_connector, ds_shape)
+            write_naxis_values(fits_header_metadata, ds_shape)
             metadata_ds_ref = h5_connector.get_attr(ds, "metadata_ds_ref")
             metadata_ds = h5_connector.file[metadata_ds_ref]
-            metadata_ds[img_cnt] = ujson.dumps(fits_header_metadata)
+            h5_connector.write_serialized_fits_header(metadata_ds, fits_header_metadata, idx=idx)
+            write_path(metadata_ds, fits_name, idx)
 
     def require_spatial_grp(self, h5_connector, order, prev, coord):
         pass
 
 
-def get_data_datasets(h5_connector, type, zoom_cnt, semi_sparse_cube_name):
+def get_datasets(h5_connector, data_type, dataset_type, zoom_cnt, semi_sparse_cube_name):
+    datasets = []
     for zoom in range(zoom_cnt):
-        dataset = h5_connector.file["%s/%d/%s/data" % (semi_sparse_cube_name, zoom, type)]
-        yield dataset
+        datasets.append(h5_connector.file["%s/%d/%s/%s" % (semi_sparse_cube_name, zoom, data_type, dataset_type)])
+    return datasets
 
 
-def get_index_datasets(h5_connector, type, zoom_cnt, semi_sparse_cube_name):
-    for zoom in range(zoom_cnt):
-        dataset = h5_connector.file["%s/%d/%s/db_index" % (semi_sparse_cube_name, zoom, type)]
-        yield dataset
+def get_cutout_data_datasets(h5_connector, zoom_cnt, semi_sparse_cube_name):
+    dataset_type = "image_cutouts_data"
+    data_type = "spectra"
+    return get_datasets(h5_connector, data_type, dataset_type, zoom_cnt, semi_sparse_cube_name)
+
+
+def get_cutout_error_datasets(h5_connector, zoom_cnt, semi_sparse_cube_name):
+    dataset_type = "image_cutouts_errors"
+    data_type = "spectra"
+    return get_datasets(h5_connector, data_type, dataset_type, zoom_cnt, semi_sparse_cube_name)
+
+
+def get_cutout_metadata_datasets(h5_connector, zoom_cnt, semi_sparse_cube_name):
+    dataset_type = "image_cutouts_metadata"
+    data_type = "spectra"
+    return get_datasets(h5_connector, data_type, dataset_type, zoom_cnt, semi_sparse_cube_name)
+
+
+def get_data_datasets(h5_connector, data_type, zoom_cnt, semi_sparse_cube_name):
+    dataset_type = "data"
+    return get_datasets(h5_connector, data_type, dataset_type, zoom_cnt, semi_sparse_cube_name)
+
+
+def get_error_datasets(h5_connector, data_type, zoom_cnt, semi_sparse_cube_name):
+    dataset_type = "errors"
+    return get_datasets(h5_connector, data_type, dataset_type, zoom_cnt, semi_sparse_cube_name)
+
+
+def get_wl_datasets(h5_connector, data_type, zoom_cnt, semi_sparse_cube_name):
+    dataset_type = "wl"
+    return get_datasets(h5_connector, data_type, dataset_type, zoom_cnt, semi_sparse_cube_name)
+
+
+def get_index_datasets(h5_connector, data_type, zoom_cnt, semi_sparse_cube_name):
+    dataset_type = "db_index"
+    return get_datasets(h5_connector, data_type, dataset_type, zoom_cnt, semi_sparse_cube_name)
+
+
+def get_metadata_datasets(h5_connector, data_type, zoom_cnt, semi_sparse_cube_name):
+    dataset_type = "metadata"
+    return get_datasets(h5_connector, data_type, dataset_type, zoom_cnt, semi_sparse_cube_name)
 
 
 def require_zoom_grps(dataset_type, connector, zoom_cnt):
@@ -153,7 +200,7 @@ def get_dataset_resolution_groups(h5_connector, semi_sparse_group_name, zoom_cnt
         yield data_group
 
 
-def write_dataset(data, res_grp_list, should_compress, offset):
+def write_dataset(data, res_grp_list, should_compress, offset, coordinates=None):
     datasets = []
     for zoom_idx, grp in enumerate(res_grp_list):
         data_ds = grp["data"]
@@ -163,6 +210,13 @@ def write_dataset(data, res_grp_list, should_compress, offset):
         data_errors = wanted_resolution["flux_sigma"]
         data_mean[data_mean == np.inf] = np.nan
         data_errors[data_errors == np.inf] = np.nan
+        if coordinates:
+            if offset == 0:
+                coordinates_ds = grp["wl"]  # TODO image coordinates
+                wl_coordinates = wanted_resolution["wl"]
+                if should_compress:
+                    wl_coordinates = float_compress(wl_coordinates)
+                coordinates_ds.write_direct(wl_coordinates)
         if should_compress:
             data_mean = float_compress(data_mean)
             data_errors = float_compress(data_errors)
@@ -172,10 +226,8 @@ def write_dataset(data, res_grp_list, should_compress, offset):
     return datasets
 
 
-def create_metadata_index_ds(img_count, img_ds, img_zoom_group, index_dtype, connector, max_header_size):
-    index_ds = connector.require_dataset(img_zoom_group, "db_index", (img_count,), index_dtype)
-    img_metadata_dtype = h5py.string_dtype(encoding="utf-8", length=max_header_size)
-    metadata_ds = connector.require_dataset(img_zoom_group, "metadata", (img_count,),
-                                            dtype=img_metadata_dtype)
-    connector.set_attr(img_ds, "metadata_ds_ref", metadata_ds.ref)
-    connector.set_attr(img_ds, "index_ds_ref", index_ds.ref)
+def create_additional_datasets(img_count, img_ds, img_zoom_group, index_dtype, h5_connector, header_size, path_size):
+    index_ds = h5_connector.require_dataset(img_zoom_group, "db_index", (img_count,), index_dtype)
+    metadata_ds, metadata_ds_dtype = get_header_ds(img_count, path_size, header_size, img_zoom_group, "metadata")
+    h5_connector.set_attr(img_ds, "metadata_ds_ref", metadata_ds.ref)
+    h5_connector.set_attr(img_ds, "index_ds_ref", index_ds.ref)

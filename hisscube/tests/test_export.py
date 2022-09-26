@@ -19,7 +19,6 @@ from hisscube.utils.io import SerialH5Writer
 H5PATH = "../../results/SDSS_cube.h5"
 
 
-@pytest.mark.incremental
 class TestExport:
 
     def setup_class(self):
@@ -29,10 +28,17 @@ class TestExport:
         test_spectra = "../../data/raw/galaxy_small/spectra"
         spectra_pattern = "*.fits"
         args = Mock()
-        args.command = "create"
+        args.command = "update"
+        args.truncate = True
+        args.fits_metadata_cache = True
+        args.metadata = True
+        args.data = True
+        args.link = True
+        args.visualization_cube = True
+        args.ml_cube = False
         args.output_path = H5PATH
         self.config = Config()
-        self.config.METADATA_STRATEGY = "TREE"
+        self.config.METADATA_STRATEGY = "DATASET"
         self.dependency_provider = HiSSCubeProvider(H5PATH, image_path=test_images, spectra_path=test_spectra,
                                                     image_pattern=image_pattern, spectra_pattern=spectra_pattern,
                                                     config=self.config)
@@ -48,41 +54,38 @@ class TestExport:
 
     def test_get_spectral_cube(self):
         with self.dependency_provider.h5_serial_reader as h5_connector:
-            processor = VisualizationProcessor(self.config)
-            processor.h5_connector = h5_connector
-            data = processor.read_spectral_cube_table(0)
+            processor = VisualizationProcessor(self.dependency_provider.processors.visualization_cube_strategy)
+            data = processor.read_spectral_cube_table(h5_connector, 0)
             assert data.shape == (276100,)
 
     def test_write_VO_table(self):
         with self.dependency_provider.h5_serial_reader as h5_connector:
-            processor = VisualizationProcessor(self.config)
-            processor.h5_connector = h5_connector
+            processor = VisualizationProcessor(self.dependency_provider.processors.visualization_cube_strategy)
             self.output_path = "../../results/output.xml"
-            processor.read_spectral_cube_table(0)
+            processor.read_spectral_cube_table(h5_connector, 0)
             processor.write_VOTable(self.output_path)
             # self.send_samp("table.load.votable")
-            assert processor.spectral_cube.shape == (276100,)
+            assert processor.metadata_strategy.spectral_cube.shape == (276100,)
 
     def test_write_fits(self):
         with self.dependency_provider.h5_serial_reader as h5_connector:
-            processor = VisualizationProcessor(self.config)
-            processor.h5_connector = h5_connector
+            processor = VisualizationProcessor(self.dependency_provider.processors.visualization_cube_strategy)
             self.output_path = "../../results/output.fits"
-            processor.read_spectral_cube_table(self.resolution)
+            processor.read_spectral_cube_table(h5_connector, self.resolution)
             processor.write_FITS(self.output_path)
             # self.send_samp("table.load.fits")
-            assert processor.spectral_cube.shape == (276100,)
+            assert processor.metadata_strategy.spectral_cube.shape == (276100,)
 
     def test_write_fits_zoomed(self):
         with self.dependency_provider.h5_serial_reader as h5_connector:
-            processor = VisualizationProcessor(self.config)
+            processor = VisualizationProcessor(self.dependency_provider.processors.visualization_cube_strategy)
             processor.h5_connector = h5_connector
 
             self.output_path = "../../results/output.fits"
-            processor.read_spectral_cube_table(zoom=3)
+            processor.read_spectral_cube_table(h5_connector, zoom=3)
             processor.write_FITS(self.output_path)
             # self.send_samp("table.load.fits")
-            assert processor.spectral_cube.shape == (9867,)
+            assert processor.metadata_strategy.spectral_cube.shape == (9867,)
 
     def test_get_3d_cube(self):
         with self.dependency_provider.h5_serial_reader as h5_connector:

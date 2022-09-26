@@ -8,12 +8,15 @@ from hisscube.processors.cube_ml import MLProcessor
 from hisscube.processors.cube_visualization import VisualizationProcessor
 from hisscube.processors.metadata import MetadataProcessor
 from hisscube.processors.image import ImageProcessor
+from hisscube.processors.metadata_strategy_cube_visualization import TreeVisualizationProcessorStrategy, \
+    DatasetVisualizationProcessorStrategy
 from hisscube.processors.spectrum import SpectrumProcessor
 from hisscube.processors.metadata_strategy import TreeStrategy, DatasetStrategy
 from hisscube.processors.metadata_strategy_image import TreeImageStrategy, DatasetImageStrategy
 from hisscube.processors.metadata_strategy_spectrum import TreeSpectrumStrategy, DatasetSpectrumStrategy
 from hisscube.utils.config import Config
 from hisscube.utils.io import SerialH5Writer, ParallelH5Writer, CBoostedMetadataBuildWriter, SerialH5Reader
+from hisscube.utils.io_strategy import SerialTreeIOStrategy, CBoostedTreeIOStrategy, SerialDatasetIOStrategy
 from hisscube.utils.mpi_helper import MPIHelper
 from hisscube.utils.photometry import Photometry
 
@@ -30,10 +33,17 @@ class HiSSCubeProvider:
         else:
             self.config = config
         self.photometry = Photometry()
-        self.h5_serial_writer = SerialH5Writer(h5_output_path, self.config)
-        self.h5_serial_reader = SerialH5Reader(h5_output_path, self.config)
-        self.h5_c_boosted_serial_writer = CBoostedMetadataBuildWriter(h5_output_path, self.config)
-        self.h5_parallel_writer = ParallelH5Writer(h5_output_path, self.config)
+        if self.config.METADATA_STRATEGY == "TREE":
+            self.io_strategy = SerialTreeIOStrategy()
+        else:
+            self.io_strategy = SerialDatasetIOStrategy()
+
+        self.c_boosted_strategy = CBoostedTreeIOStrategy()
+        self.h5_serial_writer = SerialH5Writer(h5_output_path, self.config, self.io_strategy)
+        self.h5_serial_reader = SerialH5Reader(h5_output_path, self.config, self.io_strategy)
+        self.h5_c_boosted_serial_writer = CBoostedMetadataBuildWriter(h5_output_path, self.config,
+                                                                      self.c_boosted_strategy)
+        self.h5_parallel_writer = ParallelH5Writer(h5_output_path, self.config, self.io_strategy)
 
         self.mpi_helper = MPIHelper(self.config)
         self.processors: ProcessorProvider = ProcessorProvider(self.photometry, self.config)
@@ -54,10 +64,12 @@ class ProcessorProvider:
             self.metadata_strategy = TreeStrategy(config)
             self.image_metadata_strategy = TreeImageStrategy(self.metadata_strategy, config, photometry)
             self.spectrum_metadata_strategy = TreeSpectrumStrategy(self.metadata_strategy, config, photometry)
+            self.visualization_cube_strategy = TreeVisualizationProcessorStrategy(config)
         elif config.METADATA_STRATEGY == "DATASET":
             self.metadata_strategy = DatasetStrategy(config)
             self.image_metadata_strategy = DatasetImageStrategy(self.metadata_strategy, config, photometry)
             self.spectrum_metadata_strategy = DatasetSpectrumStrategy(self.metadata_strategy, config, photometry)
+            self.visualization_cube_strategy = DatasetVisualizationProcessorStrategy(config, photometry)
         else:
             raise AttributeError(
                 "Unsupported METADATA_STRATEGY %s, supported options are: TREE, DATASET." % config.METADATA_STRATEGY)
@@ -67,7 +79,7 @@ class ProcessorProvider:
         self.spectrum_metadata_processor = SpectrumProcessor(config, self.metadata_processor,
                                                              self.spectrum_metadata_strategy)
         self.ml_cube_processor = MLProcessor(config)
-        self.visualization_cube_processor = VisualizationProcessor(config)
+        self.visualization_cube_processor = VisualizationProcessor(self.visualization_cube_strategy)
 
 
 class SerialBuilderProvider:

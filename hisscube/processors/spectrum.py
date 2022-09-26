@@ -23,7 +23,7 @@ class SpectrumProcessor:
         self._set_connector(h5_connector)
         spec_pattern, spectra_pattern = get_path_patterns(self.config, None, spec_pattern)
         try:
-            self.spec_cnt = self.h5_connector.file.attrs["spectrum_count"]  # header datasets not created yet
+            self.spec_cnt = self.h5_connector.get_spectrum_count()  # header datasets not created yet
         except KeyError:
             self.spec_cnt = 0
             self.metadata_processor.create_fits_header_datasets()
@@ -43,8 +43,8 @@ class SpectrumProcessor:
     def write_spectrum_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
         self.metadata_strategy.write_metadata(h5_connector, fits_path, fits_header, no_attrs, no_datasets)
 
-    def write_datasets(self, res_grp_list, data, file_name, offset = 0):
-        return self.metadata_strategy.write_datasets(res_grp_list, data, file_name, offset)
+    def write_datasets(self, res_grp_list, data, file_name, offset=0, coordinates=None):
+        return self.metadata_strategy.write_datasets(res_grp_list, data, file_name, offset, coordinates)
 
     def link_spectra_to_images(self, h5_connector):
         self.metadata_strategy.link_spectra_to_images(h5_connector)
@@ -52,7 +52,3 @@ class SpectrumProcessor:
     def _set_connector(self, h5_connector):
         self.h5_connector = h5_connector
         self.metadata_processor.h5_connector = h5_connector
-
-
-
-

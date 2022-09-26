@@ -4,7 +4,7 @@ import numpy as np
 
 from hisscube.processors.metadata_strategy_spectrum import get_spectrum_time
 
-from hisscube.utils.astrometry import get_cutout_pixel_coords, get_cutout_bounds_from_spectrum
+from hisscube.utils.astrometry import get_cutout_pixel_coords
 from hisscube.utils.io import get_orig_header
 from hisscube.utils.logging import HiSSCubeLogger
 from hisscube.utils.nexus import add_nexus_navigation_metadata, set_nx_data, set_nx_interpretation, set_nx_signal, \
@@ -165,7 +165,7 @@ class MLProcessor:
     def _count_spatial_groups_with_depth(self, group, target_depth, curr_depth=0):
         my_cnt = 0
         if curr_depth == target_depth and group.attrs["type"] == "spatial":
-            return 1  # increase cnt
+            return 1  # increase idx
         else:
             for child_grp_name in group.keys():
                 child_grp = group[child_grp_name]

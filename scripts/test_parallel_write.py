@@ -26,7 +26,7 @@ class ParallelWriter:
         self.f = None
 
     def ingest_data(self, truncate_file=None):
-        if self.mpi_rank == 0:  # if I'm the master, write all metadata and create datasets
+        if self.mpi_rank == 0:  # if I'm the master, write all spectrum_metadata and create datasets
             self.open_h5_file_serial()
             self.ingest_metadata()
             self.close_h5_file()  # close the file opened in serial mode

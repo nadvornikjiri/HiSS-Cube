@@ -1,6 +1,7 @@
 import os
 from abc import ABC, abstractmethod
 from ast import literal_eval
+from pathlib import Path
 
 import numpy as np
 import ujson
@@ -8,7 +9,7 @@ import ujson
 from hisscube.processors.data import float_compress
 from hisscube.processors.metadata_strategy import MetadataStrategy, require_spatial_grp, get_data_datasets, \
     require_zoom_grps, get_index_datasets, get_healpix_id, get_dataset_resolution_groups, write_dataset, \
-    create_metadata_index_ds
+    create_additional_datasets
 from hisscube.utils.astrometry import get_heal_path_from_coords, get_image_center_coords
 from hisscube.utils.config import Config
 from hisscube.utils.io import H5Connector
@@ -58,7 +59,7 @@ class ImageMetadataStrategy(ABC):
         self._set_connector(h5_connector)
         fits_path = fits_path.decode('utf-8')
         if self.img_cnt % 100 == 0 and self.img_cnt / 100 > 0:
-            self.logger.info("Image cnt: %05d" % self.img_cnt)
+            self.logger.info("Image idx: %05d" % self.img_cnt)
         try:
             self.write_metadata(h5_connector, fits_path, header, no_attrs=no_attrs, no_datasets=no_datasets)
             self.img_cnt += 1
@@ -82,10 +83,6 @@ def get_image_time(metadata):
     return tai_time
 
 
-def get_image_wl(metadata, photometry):
-    return photometry.filter_midpoints[metadata["FILTER"]]
-
-
 class TreeImageStrategy(ImageMetadataStrategy):
 
     def get_resolution_groups(self, metadata, h5_connector):
@@ -93,7 +90,7 @@ class TreeImageStrategy(ImageMetadataStrategy):
         spatial_path = get_heal_path_from_coords(metadata, self.config, ra=reference_coord[0],
                                                  dec=reference_coord[1])
         tai_time = get_image_time(metadata)
-        spectral_midpoint = get_image_wl(metadata, self.photometry)
+        spectral_midpoint = self.photometry.get_image_wl(metadata)
         path = "/".join([spatial_path, str(tai_time), str(spectral_midpoint)])
         spectral_grp = h5_connector.file[path]
         for res_grp in spectral_grp:
@@ -189,7 +186,7 @@ class TreeImageStrategy(ImageMetadataStrategy):
 
     def require_spectral_grp(self, metadata, parent_grp):
         grp = self.h5_connector.require_group(parent_grp, str(
-            get_image_wl(metadata, self.photometry)),
+            self.photometry.get_image_wl(metadata)),
                                               track_order=True)
         self.h5_connector.set_attr(grp, "type", "spectral")
         return grp
@@ -220,7 +217,7 @@ class DatasetImageStrategy(ImageMetadataStrategy):
                                                  "images")
 
     def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
-        img_count = self.h5_connector.get_attr(self.h5_connector.file, "image_count")
+        img_count = self.h5_connector.get_image_count()
         img_zoom_groups = require_zoom_grps("images", self.h5_connector, self.config.IMG_ZOOM_CNT)
         if not no_datasets:
             self.create_datasets(img_zoom_groups, img_count)
@@ -231,8 +228,9 @@ class DatasetImageStrategy(ImageMetadataStrategy):
     def _write_parsed_metadata(self, metadata, fits_path, no_attrs, no_datasets):
         img_datasets = get_data_datasets(self.h5_connector, "images", self.config.IMG_ZOOM_CNT,
                                          self.config.ORIG_CUBE_NAME)
+        fits_name = Path(fits_path).name
         if not no_attrs:
-            self.metadata_strategy.add_metadata(self.h5_connector, metadata, img_datasets, self.img_cnt)
+            self.metadata_strategy.add_metadata(self.h5_connector, metadata, img_datasets, self.img_cnt, fits_name)
         self.add_index_entry(metadata, img_datasets)
 
     def create_datasets(self, img_zoom_groups, img_count):
@@ -249,16 +247,16 @@ class DatasetImageStrategy(ImageMetadataStrategy):
             error_ds = self.h5_connector.create_image_h5_dataset(img_zoom_group, "errors", img_shape, chunk_size)
             self.h5_connector.set_attr(img_ds, "error_ds_ref", error_ds.ref)
             index_dtype = [("spatial", np.int64), ("time", np.float32), ("wl", np.int32), ("ds_slice_idx", np.int64)]
-            create_metadata_index_ds(img_count, img_ds, img_zoom_group, index_dtype, self.h5_connector,
-                                     self.config.FITS_IMAGE_MAX_HEADER_SIZE)
+            create_additional_datasets(img_count, img_ds, img_zoom_group, index_dtype, self.h5_connector,
+                                       self.config.FITS_IMAGE_MAX_HEADER_SIZE, self.config.FITS_MAX_PATH_SIZE)
 
     def add_index_entry(self, metadata, img_datasets):
         for img_ds in img_datasets:
             index_ds = self.h5_connector.file[self.h5_connector.get_attr(img_ds, "index_ds_ref")]
             image_center_ra, image_center_dec = get_image_center_coords(metadata)
-            healpix_id = get_healpix_id(image_center_ra, image_center_dec, self.config.IMG_SPAT_INDEX_ORDER)
+            healpix_id = get_healpix_id(image_center_ra, image_center_dec, self.config.IMG_SPAT_INDEX_ORDER - 1)
             time = get_image_time(metadata)
-            wl = get_image_wl(metadata, self.photometry)
+            wl = self.photometry.get_image_wl(metadata)
             index_ds[self.img_cnt] = (healpix_id, time, wl, self.img_cnt)
 
     def sort_indices(self):
