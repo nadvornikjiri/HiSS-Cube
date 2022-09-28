@@ -6,8 +6,9 @@ import numpy as np
 from astropy_healpix import healpy
 
 from hisscube.processors.data import float_compress
-from hisscube.utils.astrometry import get_image_lower_res_wcs
+from hisscube.utils.astrometry import get_image_lower_res_wcs, get_optimized_wcs, get_cutout_bounds
 from hisscube.utils.config import Config
+from hisscube.utils.io import get_orig_header, get_time_from_image, get_image_header_dataset
 from hisscube.utils.io_strategy import write_path
 from hisscube.utils.nexus import set_nx_data, set_nx_signal
 
@@ -54,21 +55,11 @@ def write_naxis_values(fits_header, ds_shape):
     naxis = len(ds_shape)
     fits_header["NAXIS"] = naxis
     for axis in range(naxis):
-        fits_header["NAXIS%d" % (axis)] = ds_shape[axis]
+        fits_header["NAXIS%d" % (axis + 1)] = ds_shape[axis]
 
 
-def get_lower_res_image_metadata(ds, h5_connector, image_fits_header, orig_image_fits_header, res_idx):
-    if h5_connector.get_attr(ds, "mime-type") == "image":
-        image_fits_header = get_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx)
-    return image_fits_header
-
-
-def get_lower_res_metadata(datasets, ds, h5_connector, image_fits_header, res_idx):
-    h5_connector.set_attr_ref(ds, "orig_res_link", datasets[0])
-    orig_image_fits_header = h5_connector.read_serialized_fits_header(datasets[0])
-    image_fits_header = get_lower_res_image_metadata(ds, h5_connector, image_fits_header,
-                                                     orig_image_fits_header, res_idx)
-    return image_fits_header
+def get_lower_res_image_metadata(image_fits_header, orig_image_fits_header, res_idx):
+    return get_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx)
 
 
 class TreeStrategy(MetadataStrategy):
@@ -89,10 +80,30 @@ class TreeStrategy(MetadataStrategy):
         fits_header = dict(metadata)
         for res_idx, ds in enumerate(datasets):
             if res_idx > 0:
-                fits_header = get_lower_res_metadata(datasets, ds, h5_connector, fits_header, res_idx)
+                fits_header = self._get_lower_res_metadata(datasets, ds, h5_connector, fits_header, res_idx)
             ds_shape = h5_connector.get_shape(ds)
             write_naxis_values(fits_header, ds_shape)
             h5_connector.write_serialized_fits_header(ds, fits_header)
+
+    @staticmethod
+    def get_cutout_bounds_from_spectrum(h5_connector, image_ds, spectrum_ds, image_cutout_size, res_idx):
+        orig_image_header = get_orig_header(h5_connector, image_ds)
+        orig_spectrum_header = get_orig_header(h5_connector, spectrum_ds)
+        time = get_time_from_image(orig_image_header)
+        wl = image_ds.name.split('/')[-3]
+        image_fits_header = h5_connector.read_serialized_fits_header(image_ds)
+        w = get_optimized_wcs(image_fits_header)
+        cutout_bounds = get_cutout_bounds(image_fits_header, res_idx, orig_spectrum_header,
+                                          image_cutout_size)
+        return cutout_bounds, time, w, wl
+
+    @staticmethod
+    def _get_lower_res_metadata(datasets, ds, h5_connector, fits_header, res_idx):
+        if h5_connector.get_attr(ds, "mime-type") == "image":
+            h5_connector.set_attr_ref(ds, "orig_res_link", datasets[0])
+            orig_image_fits_header = h5_connector.read_serialized_fits_header(datasets[0])
+            fits_header = get_lower_res_image_metadata(fits_header, orig_image_fits_header, res_idx)
+        return fits_header
 
 
 class DatasetStrategy(MetadataStrategy):
@@ -114,8 +125,8 @@ class DatasetStrategy(MetadataStrategy):
         fits_header_metadata = dict(metadata)
         for res_idx, ds in enumerate(datasets):
             if res_idx > 0:
-                fits_header_metadata = get_lower_res_image_metadata(ds, h5_connector, fits_header_metadata,
-                                                                    fits_header_metadata, res_idx)
+                fits_header_metadata = self._get_lower_res_metadata(idx, ds, h5_connector, fits_header_metadata,
+                                                                    res_idx)
             ds_shape = h5_connector.get_shape(ds)[1:]  # 1st dimension is number of images or spectra
             write_naxis_values(fits_header_metadata, ds_shape)
             metadata_ds_ref = h5_connector.get_attr(ds, "metadata_ds_ref")
@@ -123,8 +134,24 @@ class DatasetStrategy(MetadataStrategy):
             h5_connector.write_serialized_fits_header(metadata_ds, fits_header_metadata, idx=idx)
             write_path(metadata_ds, fits_name, idx)
 
+    def get_cutout_bounds_from_spectrum(self, image_fits_header, res_idx, spectrum_metadata, photometry):
+        time = get_time_from_image(image_fits_header)
+        wl = photometry.get_image_wl(image_fits_header)
+        w = get_optimized_wcs(image_fits_header)
+        cutout_bounds = get_cutout_bounds(image_fits_header, res_idx, spectrum_metadata,
+                                          self.config.IMAGE_CUTOUT_SIZE)
+        return cutout_bounds, time, w, wl
+
     def require_spatial_grp(self, h5_connector, order, prev, coord):
         pass
+
+    @staticmethod
+    def _get_lower_res_metadata(idx, ds, h5_connector, fits_header, res_idx):
+        if h5_connector.get_attr(ds, "mime-type") == "image":
+            image_header_ds_orig_res = get_image_header_dataset(h5_connector)
+            orig_image_fits_header = h5_connector.read_serialized_fits_header(image_header_ds_orig_res, idx=idx)
+            fits_header = get_lower_res_image_metadata(fits_header, orig_image_fits_header, res_idx)
+        return fits_header
 
 
 def get_datasets(h5_connector, data_type, dataset_type, zoom_cnt, semi_sparse_cube_name):
@@ -231,3 +258,9 @@ def create_additional_datasets(img_count, img_ds, img_zoom_group, index_dtype, h
     metadata_ds, metadata_ds_dtype = get_header_ds(img_count, path_size, header_size, img_zoom_group, "metadata")
     h5_connector.set_attr(img_ds, "metadata_ds_ref", metadata_ds.ref)
     h5_connector.set_attr(img_ds, "index_ds_ref", index_ds.ref)
+
+
+def dereference_region_ref(region_ref, h5_connector):
+    image_ds = h5_connector.file[region_ref]
+    image_region = image_ds[region_ref][0]  # TODO check why we need the index 0 here.
+    return image_region

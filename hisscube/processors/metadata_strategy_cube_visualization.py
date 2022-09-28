@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from pathlib import Path
 
 import h5py
@@ -8,10 +8,11 @@ import ujson
 from astropy.io.votable import from_table, writeto
 from astropy.table import QTable
 
-from hisscube.processors.metadata_strategy import get_data_datasets, get_metadata_datasets, get_cutout_data_datasets, \
-    get_cutout_error_datasets, get_cutout_metadata_datasets, get_error_datasets, get_wl_datasets
-from hisscube.utils.astrometry import get_cutout_pixel_coords, get_optimized_wcs, get_cutout_bounds
-from hisscube.utils.io import get_orig_header, get_time_from_image, get_image_header_dataset, get_fits_path, \
+from hisscube.processors.metadata_strategy import get_data_datasets, get_cutout_data_datasets, \
+    get_cutout_error_datasets, get_cutout_metadata_datasets, get_error_datasets, get_wl_datasets, TreeStrategy, DatasetStrategy, \
+    dereference_region_ref
+from hisscube.utils.astrometry import get_cutout_pixel_coords
+from hisscube.utils.io import get_fits_path, \
     get_spectrum_header_dataset
 from hisscube.utils.logging import HiSSCubeLogger
 from hisscube.utils.photometry import Photometry
@@ -21,6 +22,7 @@ class VisualizationProcessorStrategy(ABC):
 
     def __init__(self, config):
         self.h5_connector = None
+        self.spectrum_metadata = None
         self.config = config
         self.logger = HiSSCubeLogger.logger
         if self.config.INCLUDE_ADDITIONAL_METADATA:  # TODO add the grouprefs to the images and spectra from dense cube
@@ -100,75 +102,9 @@ class VisualizationProcessorStrategy(ABC):
         table = self._get_q_table()
         table.write(output_path, overwrite=True, format='fits')
 
-    def _construct_multires_spectral_cube_table(self, h5_parent):
-        if "mime-type" in h5_parent.attrs and h5_parent.attrs["mime-type"] == "spectrum":
-            if h5_parent.parent.attrs["res_zoom"] == self.output_zoom:
-                self._construct_spectrum_table(h5_parent)
-
-        if isinstance(h5_parent, h5py.Group):
-            for h5_child in h5_parent.keys():
-                self._construct_multires_spectral_cube_table(h5_parent[h5_child])
-        return
-
-    def _construct_spectrum_table(self, spectrum_ds):
-        """
-        Reads the spectral dataset and writes it ot self.spectral_cube.
-        Parameters
-        ----------
-        spectrum_ds HDF5 dataset
-
-        Returns
-        -------
-
-        """
-        try:
-            if spectrum_ds.attrs["orig_res_link"]:
-                self.spectrum_metadata = self.h5_connector.read_serialized_fits_header(
-                    self.h5_connector.file[spectrum_ds.attrs["orig_res_link"]])
-            else:
-                self.spectrum_metadata = self.h5_connector.read_serialized_fits_header(spectrum_ds)
-        except KeyError:
-            self.spectrum_metadata = self.h5_connector.read_serialized_fits_header(spectrum_ds)
-        spectrum_5d = self._get_table_pixels_from_spectrum(spectrum_ds.name, spectrum_ds)
-        self._resize_output_if_necessary(spectrum_5d)
-        self.spectral_cube[self.output_counter:self.output_counter + spectrum_5d.shape[0]] = spectrum_5d
-        self.output_counter += spectrum_5d.shape[0]
-        cutout_refs = spectrum_ds.parent.parent.parent["image_cutouts_%s" % spectrum_ds.parent.attrs["res_zoom"]]
-
-        if len(cutout_refs) > 0:
-            for region_ref in cutout_refs:
-                if region_ref:
-                    try:
-                        image_5d = self._get_table_pixels_from_image_cutout(spectrum_ds, self.output_zoom, region_ref)
-                        self._resize_output_if_necessary(image_5d)
-                        self.spectral_cube[self.output_counter:self.output_counter + image_5d.shape[0]] = image_5d
-                        self.output_counter += image_5d.shape[0]
-                    except ValueError as e:
-                        self.logger.error("Could not process region for %s, message: %s" % (spectrum_ds.name, str(e)))
-                else:
-                    break  # necessary because of how null object references are tested in h5py dataset
-
     def _resize_output_if_necessary(self, spectrum_5d):
         if self.output_counter + spectrum_5d.shape[0] > self.spectral_cube.shape[0]:
             self.spectral_cube.resize((self.spectral_cube.shape[0] * 2,), refcheck=False)
-
-    def _get_table_pixels_from_spectrum(self, spectrum_h5_path, spectrum_ds):
-        """
-        Gets array of pixels from the spectrum, also containing their coordinates.
-        Parameters
-        ----------
-        spectrum_h5_path    String
-        spectrum_ds         HDF5 dataset
-
-        Returns             numpy record
-        -------
-
-        """
-        res = int(spectrum_h5_path.split('/')[-2])
-        spectrum_fits_name = spectrum_ds.name.split('/')[-1]
-        ra, dec = self.spectrum_metadata["PLUG_RA"], self.spectrum_metadata["PLUG_DEC"]
-        spectrum_part = spectrum_ds
-        return self._get_table_pixels_from_spectrum_generic(dec, ra, res, spectrum_fits_name, spectrum_part)
 
     def _get_table_pixels_from_spectrum_generic(self, dec, ra, res, spectrum_fits_name, spectrum_part):
         heal_id = hp.ang2pix(hp.order2nside(self.config.OUTPUT_HEAL_ORDER),
@@ -206,30 +142,6 @@ class VisualizationProcessorStrategy(ABC):
                                 spectrum_name_column,
                                 spectrum_name_column]
         return np.rec.fromarrays(spectrum_columns, names=spectrum_column_names)
-
-    def _get_table_pixels_from_image_cutout(self, spectrum_ds, res_idx, region_ref):
-        """
-        Gets all of the image pixels for the given cutout, along with its coordinates.
-        Parameters
-        ----------
-        spectrum_ds HDF5 dataset
-        image_zoom     int
-        region_ref  HDF5 region reference
-
-        Returns     numpy record
-        -------
-
-        """
-        spectrum_path = spectrum_ds.name
-        image_ds = self.h5_connector.file[region_ref]
-        image_path = image_ds.name
-        image_region = image_ds[region_ref]
-
-        cutout_bounds, time, w, wl = self.get_cutout_bounds_from_spectrum(image_ds, res_idx, spectrum_ds,
-                                                                          self.config.IMAGE_CUTOUT_SIZE)
-        return self._get_table_image_pixels_from_cutout_bounds(cutout_bounds, image_path, image_region, spectrum_path,
-                                                               time, w,
-                                                               wl)
 
     def _get_table_image_pixels_from_cutout_bounds(self, cutout_bounds, image_path, image_region, spectrum_path, time,
                                                    w,
@@ -291,27 +203,115 @@ class VisualizationProcessorStrategy(ABC):
                            meta={'name': 'SDSS Cube'})
         return table
 
-    def get_cutout_bounds_from_spectrum(self, image_ds, res_idx, spectrum_ds, image_cutout_size):
-        orig_image_header = get_orig_header(self.h5_connector, image_ds)
-        orig_spectrum_header = get_orig_header(self.h5_connector, spectrum_ds)
-        time = get_time_from_image(orig_image_header)
-        wl = image_ds.name.split('/')[-3]
-        image_fits_header = self.h5_connector.read_serialized_fits_header(image_ds)
-        w = get_optimized_wcs(image_fits_header)
-        cutout_bounds = get_cutout_bounds(image_fits_header, res_idx, orig_spectrum_header,
-                                          image_cutout_size)
-        return cutout_bounds, time, w, wl
+    @abstractmethod
+    def _construct_multires_spectral_cube_table(self, h5_grp):
+        raise NotImplementedError
 
 
 class TreeVisualizationProcessorStrategy(VisualizationProcessorStrategy):
-    pass
+    def __init__(self, config, metadata_strategy: TreeStrategy):
+        super().__init__(config)
+        self.metadata_strategy = metadata_strategy
+
+    def _construct_multires_spectral_cube_table(self, h5_parent):
+        if "mime-type" in h5_parent.attrs and h5_parent.attrs["mime-type"] == "spectrum":
+            if h5_parent.parent.attrs["res_zoom"] == self.output_zoom:
+                self._construct_spectrum_table(h5_parent)
+
+        if isinstance(h5_parent, h5py.Group):
+            for h5_child in h5_parent.keys():
+                self._construct_multires_spectral_cube_table(h5_parent[h5_child])
+        return
+
+    def _construct_spectrum_table(self, spectrum_ds):
+        """
+        Reads the spectral dataset and writes it ot self.spectral_cube.
+        Parameters
+        ----------
+        spectrum_ds HDF5 dataset
+
+        Returns
+        -------
+
+        """
+        try:
+            if spectrum_ds.attrs["orig_res_link"]:
+                self.spectrum_metadata = self.h5_connector.read_serialized_fits_header(
+                    self.h5_connector.file[spectrum_ds.attrs["orig_res_link"]])
+            else:
+                self.spectrum_metadata = self.h5_connector.read_serialized_fits_header(spectrum_ds)
+        except KeyError:
+            self.spectrum_metadata = self.h5_connector.read_serialized_fits_header(spectrum_ds)
+        spectrum_5d = self._get_table_pixels_from_spectrum(spectrum_ds.name, spectrum_ds)
+        self._resize_output_if_necessary(spectrum_5d)
+        self.spectral_cube[self.output_counter:self.output_counter + spectrum_5d.shape[0]] = spectrum_5d
+        self.output_counter += spectrum_5d.shape[0]
+        cutout_refs = spectrum_ds.parent.parent.parent["image_cutouts_%s" % spectrum_ds.parent.attrs["res_zoom"]]
+
+        if len(cutout_refs) > 0:
+            for region_ref in cutout_refs:
+                if region_ref:
+                    try:
+                        image_5d = self._get_table_pixels_from_image_cutout(spectrum_ds, self.output_zoom, region_ref)
+                        self._resize_output_if_necessary(image_5d)
+                        self.spectral_cube[self.output_counter:self.output_counter + image_5d.shape[0]] = image_5d
+                        self.output_counter += image_5d.shape[0]
+                    except ValueError as e:
+                        self.logger.error("Could not process region for %s, message: %s" % (spectrum_ds.name, str(e)))
+                else:
+                    break  # necessary because of how null object references are tested in h5py dataset
+
+    def _get_table_pixels_from_spectrum(self, spectrum_h5_path, spectrum_ds):
+        """
+        Gets array of pixels from the spectrum, also containing their coordinates.
+        Parameters
+        ----------
+        spectrum_h5_path    String
+        spectrum_ds         HDF5 dataset
+
+        Returns             numpy record
+        -------
+
+        """
+        res = int(spectrum_h5_path.split('/')[-2])
+        spectrum_fits_name = spectrum_ds.name.split('/')[-1]
+        ra, dec = self.spectrum_metadata["PLUG_RA"], self.spectrum_metadata["PLUG_DEC"]
+        spectrum_part = spectrum_ds
+        return self._get_table_pixels_from_spectrum_generic(dec, ra, res, spectrum_fits_name, spectrum_part)
+
+    def _get_table_pixels_from_image_cutout(self, spectrum_ds, res_idx, region_ref):
+        """
+        Gets all of the image pixels for the given cutout, along with its coordinates.
+        Parameters
+        ----------
+        spectrum_ds HDF5 dataset
+        image_zoom     int
+        region_ref  HDF5 region reference
+
+        Returns     numpy record
+        -------
+
+        """
+        spectrum_path = spectrum_ds.name
+        image_ds = self.h5_connector.file[region_ref]
+        image_path = image_ds.name
+        image_region = image_ds[region_ref]
+
+        cutout_bounds, time, w, wl = self.metadata_strategy.get_cutout_bounds_from_spectrum(self.h5_connector, image_ds,
+                                                                                            spectrum_ds,
+                                                                                            self.config.IMAGE_CUTOUT_SIZE,
+                                                                                            res_idx)
+        return self._get_table_image_pixels_from_cutout_bounds(cutout_bounds, image_path, image_region, spectrum_path,
+                                                               time, w,
+                                                               wl)
 
 
 class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
 
-    def __init__(self, config, photometry: Photometry):
+    def __init__(self, config, photometry: Photometry, metadata_strategy: DatasetStrategy):
         super().__init__(config)
         self.photometry = photometry
+        self.metadata_strategy = metadata_strategy
         self.spec_cnt = 0
 
     def _construct_multires_spectral_cube_table(self, h5_parent):
@@ -414,27 +414,16 @@ class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
         -------
 
         """
-        cutout_metadata = self.dereference_region_ref(cutout_metadata_ref)
+        cutout_metadata = dereference_region_ref(cutout_metadata_ref, self.h5_connector)
         image_path = cutout_metadata["path"]
         image_fits_header = ujson.loads(cutout_metadata["header"])
-        image_data_region = self.dereference_region_ref(region_data_ref)
-        image_error_region = self.dereference_region_ref(region_error_ref)
+        image_data_region = dereference_region_ref(region_data_ref, self.h5_connector)
+        image_error_region = dereference_region_ref(region_error_ref, self.h5_connector)
         image_region = np.dstack([image_data_region, image_error_region])
-        cutout_bounds, time, w, wl = self.get_cutout_bounds_from_spectrum(image_fits_header, res_idx)
+        cutout_bounds, time, w, wl = self.metadata_strategy.get_cutout_bounds_from_spectrum(image_fits_header, res_idx,
+                                                                                            self.spectrum_metadata,
+                                                                                            self.photometry)
         return self._get_table_image_pixels_from_cutout_bounds(cutout_bounds, image_path, image_region,
                                                                spectrum_fits_path,
                                                                time, w,
                                                                wl)
-
-    def dereference_region_ref(self, region_ref):
-        image_ds = self.h5_connector.file[region_ref]
-        image_region = image_ds[region_ref][0]  # TODO check why we need the index 0 here.
-        return image_region
-
-    def get_cutout_bounds_from_spectrum(self, image_fits_header, res_idx):
-        time = get_time_from_image(image_fits_header)
-        wl = self.photometry.get_image_wl(image_fits_header)
-        w = get_optimized_wcs(image_fits_header)
-        cutout_bounds = get_cutout_bounds(image_fits_header, res_idx, self.spectrum_metadata,
-                                          self.config.IMAGE_CUTOUT_SIZE)
-        return cutout_bounds, time, w, wl

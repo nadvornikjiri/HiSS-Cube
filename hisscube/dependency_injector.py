@@ -8,6 +8,7 @@ from hisscube.processors.cube_ml import MLProcessor
 from hisscube.processors.cube_visualization import VisualizationProcessor
 from hisscube.processors.metadata import MetadataProcessor
 from hisscube.processors.image import ImageProcessor
+from hisscube.processors.metadata_strategy_cube_ml import TreeMLProcessorStrategy, DatasetMLProcessorStrategy
 from hisscube.processors.metadata_strategy_cube_visualization import TreeVisualizationProcessorStrategy, \
     DatasetVisualizationProcessorStrategy
 from hisscube.processors.spectrum import SpectrumProcessor
@@ -64,12 +65,15 @@ class ProcessorProvider:
             self.metadata_strategy = TreeStrategy(config)
             self.image_metadata_strategy = TreeImageStrategy(self.metadata_strategy, config, photometry)
             self.spectrum_metadata_strategy = TreeSpectrumStrategy(self.metadata_strategy, config, photometry)
-            self.visualization_cube_strategy = TreeVisualizationProcessorStrategy(config)
+            self.visualization_cube_strategy = TreeVisualizationProcessorStrategy(config, self.metadata_strategy)
+            self.ml_cube_strategy = TreeMLProcessorStrategy(config, self.metadata_strategy)
         elif config.METADATA_STRATEGY == "DATASET":
             self.metadata_strategy = DatasetStrategy(config)
             self.image_metadata_strategy = DatasetImageStrategy(self.metadata_strategy, config, photometry)
             self.spectrum_metadata_strategy = DatasetSpectrumStrategy(self.metadata_strategy, config, photometry)
-            self.visualization_cube_strategy = DatasetVisualizationProcessorStrategy(config, photometry)
+            self.visualization_cube_strategy = DatasetVisualizationProcessorStrategy(config, photometry,
+                                                                                     self.metadata_strategy)
+            self.ml_cube_strategy = DatasetMLProcessorStrategy(config, self.metadata_strategy, photometry)
         else:
             raise AttributeError(
                 "Unsupported METADATA_STRATEGY %s, supported options are: TREE, DATASET." % config.METADATA_STRATEGY)
@@ -78,7 +82,7 @@ class ProcessorProvider:
                                                        self.image_metadata_strategy)
         self.spectrum_metadata_processor = SpectrumProcessor(config, self.metadata_processor,
                                                              self.spectrum_metadata_strategy)
-        self.ml_cube_processor = MLProcessor(config)
+        self.ml_cube_processor = MLProcessor(self.ml_cube_strategy)
         self.visualization_cube_processor = VisualizationProcessor(self.visualization_cube_strategy)
 
 

@@ -64,6 +64,7 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
         except ValueError as e:
             self.logger.warning(
                 "Unable to ingest spectrum %s, message: %s" % (fits_path, str(e)))
+            raise e
 
     def _set_connector(self, h5_connector):
         self.h5_connector = h5_connector

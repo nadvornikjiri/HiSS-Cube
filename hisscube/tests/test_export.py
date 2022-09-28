@@ -34,8 +34,8 @@ class TestExport:
         args.metadata = True
         args.data = True
         args.link = True
-        args.visualization_cube = True
-        args.ml_cube = False
+        args.visualization_cube = False
+        args.ml_cube = True
         args.output_path = H5PATH
         self.config = Config()
         self.config.METADATA_STRATEGY = "DATASET"
@@ -89,9 +89,8 @@ class TestExport:
 
     def test_get_3d_cube(self):
         with self.dependency_provider.h5_serial_reader as h5_connector:
-            processor = MLProcessor(self.config)
-            processor.h5_connector = h5_connector
-            cube_3d = processor.get_spectrum_3d_cube(zoom=2)
+            processor = MLProcessor(self.dependency_provider.processors.ml_cube_strategy)
+            cube_3d = processor.get_spectrum_3d_cube(h5_connector, zoom=2)
             assert cube_3d[0].shape == (2, 5, 16, 16)
             assert cube_3d[2].shape == (2, 1155)
 

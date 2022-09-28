@@ -45,7 +45,7 @@ def get_optimized_wcs(image_fits_header):
 
     Parameters
     ----------
-    image_fits_header  Dictionary
+    fits_header  Dictionary
 
     Returns WCS object
     -------
@@ -79,7 +79,7 @@ def get_cutout_bounds(image_fits_header, res_idx, spectrum_fits_header, cutout_s
 
     """
     w = get_optimized_wcs(image_fits_header)
-    image_size = np.array((image_fits_header["NAXIS0"], image_fits_header["NAXIS1"]))
+    image_size = np.array((image_fits_header["NAXIS1"], image_fits_header["NAXIS2"]))
     return process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, res_idx)
 
 
