@@ -11,6 +11,7 @@ if __name__ == '__main__':
                         help="data folder that includes folders images and spectra")
     parser.add_argument('output_path', metavar="output", type=str,
                         help="path to HDF5 file, does not need to exist")
+    parser.add_argument('--truncate', action='store_true', help="Truncate existing Hdf5 file?")
 
     subparsers = parser.add_subparsers(help='commands', dest="command")
     create_parser = subparsers.add_parser("create",
@@ -20,16 +21,18 @@ if __name__ == '__main__':
                                                   cube h5 file. They all work in the way that there respective group 
                                                   structure within the h5 file gets deleted and recreated from scratch at 
                                                   the moment.""")
-    update_parser.add_argument('fits-header-cache', action='store_true',
+    update_parser.add_argument('--fits-spectrum_metadata-cache', action='store_true',
                                help="Recreate the FITS paths and serialized headers tables.")
-    update_parser.add_argument('metadata', action='store_true',
+    update_parser.add_argument('--spectrum_metadata', action='store_true',
                                help="Recreate the semi-sparse group and everything beneath.")
-    update_parser.add_argument('data', action='store_true',
+    update_parser.add_argument('--data', action='store_true',
                                help="Update all the image and spectra datasets within the semi-sparse group.")
-    update_parser.add_argument('link-images-spectra', action='store_true',
+    update_parser.add_argument('--link', action='store_true',
                                help="Recreate the image references for each spectrum.")
-    update_parser.add_argument('dense-cube', action='store_true',
-                               help="Recreate the dense cube.")
+    update_parser.add_argument('--visualization-cube', action='store_true',
+                               help="Recreate the Visualization cube.")
+    update_parser.add_argument('--ml-cube', action='store_true',
+                               help="Recreate the Machine Learning cube.")
 
     args = parser.parse_args()
 

@@ -42,7 +42,7 @@ class FITSProcessor(VisualizationProcessor):
         self.metadata = spectrum_hdul[0].header
         spectrum_fits_name = str(spectrum_path).split('/')[-1]
         spectrum_5d = self.get_pixels_from_spectrum(spectrum_hdul[0].header, spectrum_hdul, spectrum_fits_name)
-        self.resize_output_if_necessary(spectrum_5d)
+        self._resize_output_if_necessary(spectrum_5d)
         self.spectral_cube[self.output_counter:self.output_counter + spectrum_5d.shape[0]] = np.reshape(spectrum_5d,
                                                                                                         spectrum_5d.shape)
         self.output_counter += spectrum_5d.shape[0]
@@ -56,13 +56,13 @@ class FITSProcessor(VisualizationProcessor):
             try:
                 image_5d = self.get_pixels_from_image_cutout(self.metadata, image_header, self.output_res,
                                                              cutout_region, spectrum_path, image_path)
-                self.resize_output_if_necessary(image_5d)
+                self._resize_output_if_necessary(image_5d)
                 self.spectral_cube[self.output_counter:self.output_counter + image_5d.shape[0]] = image_5d
                 self.output_counter += image_5d.shape[0]
             except ValueError as e:
                 self.logger.error("Could not process region for %s, message: %s" % (spectrum_path, str(e)))
 
-    def resize_output_if_necessary(self, spectrum_5d):
+    def _resize_output_if_necessary(self, spectrum_5d):
         if self.output_counter + spectrum_5d.shape[0] > self.spectral_cube.shape[0]:
             self.spectral_cube.resize((self.spectral_cube.shape[0] * 2, 1), refcheck=False)
 
@@ -70,7 +70,7 @@ class FITSProcessor(VisualizationProcessor):
         res = int(len(spectrum_hdul[1].data))
         ra, dec = spectrum_header["PLUG_RA"], spectrum_header["PLUG_DEC"]
         spectrum_part = self.get_spectral_data(spectrum_hdul)
-        return self.get_table_pixels_from_spectrum_generic(dec, ra, res, spectrum_fits_name, spectrum_part)
+        return self._get_table_pixels_from_spectrum_generic(dec, ra, res, spectrum_fits_name, spectrum_part)
 
     def get_pixels_from_image_cutout(self, orig_spectrum_header, orig_image_header, res_idx, image_region,
                                      spectrum_path, image_path):
@@ -86,9 +86,9 @@ class FITSProcessor(VisualizationProcessor):
         image_size = np.array((orig_image_header["NAXIS2"], orig_image_header["NAXIS1"]))
         cutout_bounds = astrometry.process_cutout_bounds(w, image_size, orig_spectrum_header,
                                                          self.config.IMAGE_CUTOUT_SIZE)
-        return self.get_table_image_pixels_from_cutout_bounds(cutout_bounds, image_path, image_region, spectrum_path,
-                                                              time,
-                                                              w, wl)
+        return self._get_table_image_pixels_from_cutout_bounds(cutout_bounds, image_path, image_region, spectrum_path,
+                                                               time,
+                                                               w, wl)
 
     def get_region_from_fits(self, spectrum_header, image_path):
         with fits.open(image_path, memmap=True) as image_hdul:

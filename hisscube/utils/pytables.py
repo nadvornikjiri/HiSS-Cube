@@ -1,5 +1,5 @@
 
-# TODO these classes might be needed if FITS metadata storage needs to be more efficient.
+# TODO these classes might be needed if FITS spectrum_metadata storage needs to be more efficient.
 from tables import *
 
 class ImageHeader(IsDescription):

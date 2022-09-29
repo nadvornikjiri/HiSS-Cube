@@ -43,7 +43,7 @@ with h5py.File(H5PATH, 'w') as h5_file:  # truncate file
     writer.create_dense_cube()
     start1 = start2
     start2 = timer()
-    print("Created dense cube + image_refs: %.2fs" % (start2 - start1))
+    print("Created dense cube + image_data_refs: %.2fs" % (start2 - start1))
 
     ml_writer = MLProcessor(h5_file)
     ml_writer.create_3d_cube()

@@ -7,7 +7,8 @@ from astropy.wcs.utils import skycoord_to_pixel
 import healpy as hp
 from numpy import arange
 
-from hisscube.utils.io import get_orig_header, get_time_from_image
+from hisscube.utils.io import get_time_from_image
+from hisscube.utils.io_strategy import get_orig_header
 
 
 def get_boundary_coords(fits_header):
@@ -34,6 +35,10 @@ def get_image_center_coords(fits_header):
     return fits_header["CRVAL1"], fits_header["CRVAL2"]
 
 
+def get_spectrum_center_coords(fits_header):
+    return fits_header["PLUG_RA"], fits_header["PLUG_DEC"]
+
+
 def get_optimized_wcs(image_fits_header):
     """
     Reads the WCS header and constructs the WCS object in an optimized way, see
@@ -41,7 +46,7 @@ def get_optimized_wcs(image_fits_header):
 
     Parameters
     ----------
-    image_fits_header  Dictionary
+    fits_header  Dictionary
 
     Returns WCS object
     -------
@@ -66,8 +71,8 @@ def get_cutout_bounds(image_fits_header, res_idx, spectrum_fits_header, cutout_s
 
     Parameters
     ----------
-    image_ds                HDF5 dataset
-    res_idx                 Resolution index = zoom factor
+    ds                HDF5 dataset
+    image_zoom                 Resolution index = zoom factor
     spectrum_fits_header    Dictionary-like header of the spectrum, mostly copied from the FITS.
 
     Returns                 Numpy array shape (2,2)
@@ -75,7 +80,7 @@ def get_cutout_bounds(image_fits_header, res_idx, spectrum_fits_header, cutout_s
 
     """
     w = get_optimized_wcs(image_fits_header)
-    image_size = np.array((image_fits_header["NAXIS0"], image_fits_header["NAXIS1"]))
+    image_size = np.array((image_fits_header["NAXIS1"], image_fits_header["NAXIS2"]))
     return process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, res_idx)
 
 
@@ -120,12 +125,10 @@ def is_cutout_whole(cutout_bounds, image_ds):
 
 
 def get_potential_overlapping_image_spatial_paths(fits_header, radius_arcmin, image_index_depth):
-    spec_ra = fits_header["PLUG_RA"]
-    spec_dec = fits_header["PLUG_DEC"]
-    vec = hp.ang2vec(spec_ra, spec_dec, lonlat=True)
-    radius_rad = radius_arcmin * math.pi / (60 * 180)
     nsides = 2 ** arange(image_index_depth)
-    pix_ids = hp.query_disc(nsides[-1], vec, inclusive=True, fact=2 ** image_index_depth, radius=radius_rad, nest=True)
+    reference_nside = nsides[-1]
+    fact = 2 ** image_index_depth
+    pix_ids = get_overlapping_healpix_pixel_ids(fits_header, reference_nside, fact, radius_arcmin)
     paths = []
     for ipix in pix_ids:
         path = str(ipix)
@@ -137,34 +140,14 @@ def get_potential_overlapping_image_spatial_paths(fits_header, radius_arcmin, im
     return paths
 
 
-def get_region_ref(h5_connector, res_idx, image_ds, spec_fits_header, image_cutout_size):
-    """
-    Gets the region reference for a given resolution from an image_ds.
+def get_overlapping_healpix_pixel_ids(fits_header, nside, fact, radius_arcmin):
+    spec_ra = fits_header["PLUG_RA"]
+    spec_dec = fits_header["PLUG_DEC"]
+    vec = hp.ang2vec(spec_ra, spec_dec, lonlat=True)
+    radius_rad = radius_arcmin * math.pi / (60 * 180)
+    pix_ids = hp.query_disc(nside, vec, inclusive=True, fact=fact, radius=radius_rad, nest=True)
+    return pix_ids
 
-    Parameters
-    ----------
-    res_idx     Resolution index = zoom factor, e.g., 0, 1, 2, ...
-    image_ds    HDF5 dataset
-
-    Returns     HDF5 region reference
-    -------
-
-    """
-    image_fits_header = h5_connector.read_serialized_fits_header(image_ds)
-    cutout_bounds = get_cutout_bounds(image_fits_header, res_idx, spec_fits_header, image_cutout_size)
-    if not is_cutout_whole(cutout_bounds, image_ds):
-        raise NoCoverageFoundError("Cutout not whole.")
-    region_ref = image_ds.regionref[cutout_bounds[0][1][1]:cutout_bounds[1][1][1],
-                 cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
-    cutout_shape = h5_connector.file[region_ref][region_ref].shape
-    try:
-        if not (0 <= cutout_shape[0] <= (64 / 2 ** res_idx) and
-                0 <= cutout_shape[1] <= (64 / 2 ** res_idx) and
-                cutout_shape[2] == 2):
-            raise NoCoverageFoundError("Cutout not in correct shape.")
-    except IndexError:
-        raise NoCoverageFoundError("IndexError")
-    return region_ref
 
 
 def get_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx=0):
@@ -173,7 +156,7 @@ def get_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx=0
     Parameters
     ----------
     ds      HDF5 dataset
-    res_idx int
+    image_zoom int
 
     Returns
     -------
@@ -214,14 +197,3 @@ def get_cutout_pixel_coords(cutout_bounds, w):
 
     return ra, dec
 
-
-def get_cutout_bounds_from_spectrum(h5_connector, image_ds, res_idx, spectrum_ds, image_cutout_size):
-    orig_image_header = get_orig_header(h5_connector, image_ds)
-    orig_spectrum_header = get_orig_header(h5_connector, spectrum_ds)
-    time = get_time_from_image(orig_image_header)
-    wl = image_ds.name.split('/')[-3]
-    image_fits_header = h5_connector.read_serialized_fits_header(image_ds)
-    w = get_optimized_wcs(image_fits_header)
-    cutout_bounds = get_cutout_bounds(image_fits_header, res_idx, orig_spectrum_header,
-                                      image_cutout_size)
-    return cutout_bounds, time, w, wl

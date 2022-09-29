@@ -19,9 +19,9 @@ mpi4py.MPI.pickle.__init__(lambda *x: msgpack.dumps(x[0]), msgpack.loads)
 
 rank = mpi4py.MPI.COMM_WORLD.Get_rank()
 
-
 # import pydevd_pycharm
-# port_mapping = [43375, 44353]
+
+# port_mapping = [42381, 43567, 35945, 32785, 33119, 42433, 40641, 46823]
 # pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
 # print(os.getpid())
 
@@ -65,21 +65,30 @@ class MPIHelper:
         if self.rank == 0:
             self.logger.info("Rank 0 pid: %d", os.getpid())
 
+    def receive_work_parsed(self, status):
+        image_path_list, offset = None, None
+        msg = self.receive_work(status)
+        if not status.Get_tag() == self.KILL_TAG:
+            image_path_list, offset = msg
+        return image_path_list, offset
+
     def receive_work(self, status):
         self.wait_for_message(source=0, tag=mpi4py.MPI.ANY_TAG, status=status)
-        data = self.comm.recv(source=0, tag=mpi4py.MPI.ANY_TAG, status=status)
+        msg = self.comm.recv(source=0, tag=mpi4py.MPI.ANY_TAG, status=status)
         self.logger.debug(
-            "Rank %02d: Received work no. %02d from master: %d" % (self.rank, self.sent_work_cnt, hash(str(data))))
+            "Rank %02d: Received work no. %02d from master: %d, tag: %d." % (
+            self.rank, self.sent_work_cnt, hash(str(msg)), status.Get_tag()))
         self.received_work_cnt += 1
-        return data
+        return msg
 
-    def send_work(self, batches, dest):
+    def send_work(self, batches, dest, offset=0):
         if len(batches) > 0:
             batch = batches.pop()
+            msg = (batch, offset)
             tag = self.WORK_TAG
             self.logger.debug(
                 "Send work batch no. %02d to dest %02d: %d " % (self.sent_work_cnt, dest, hash(str(batch))))
-            self.comm.send(obj=batch, dest=dest, tag=tag)
+            self.comm.send(obj=msg, dest=dest, tag=tag)
             self.sent_work_cnt += 1
 
     def send_work_finished(self, dest):

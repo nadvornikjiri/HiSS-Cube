@@ -24,8 +24,8 @@ class Photometry:
         filter_curve_path = "%s/../../config/SDSS_Bands" % lib_path
         ccd_gain_path = "%s/../../config/ccd_gain.tsv" % lib_path
         ccd_dark_var_path = "%s/../../config/ccd_dark_variance.tsv" % lib_path
-        self.ccd_gain_config = self.read_config(ccd_gain_path)
-        self.ccd_dark_variance_config = self.read_config(ccd_dark_var_path)
+        self.ccd_gain_config = self._read_config(ccd_gain_path)
+        self.ccd_dark_variance_config = self._read_config(ccd_dark_var_path)
         self.fits_mem_map = fits_mem_map
 
         self.filter_midpoints = {
@@ -67,63 +67,10 @@ class Photometry:
             "z": dict(np.array(ascii.read("%s/SLOAN_SDSS.z.dat" % filter_curve_path)).tolist())
         }
 
-        self.merged_transmission_curve = self.merge_transmission_curves_max(self.transmission_curves)
+        self.merged_transmission_curve = self._merge_transmission_curves_max(self.transmission_curves)
 
-    def read_config(self, config_path):
-        with open(config_path) as tsv_config:
-            config = []
-            reader = csv.DictReader(tsv_config, dialect='excel-tab')
-            for row in reader:
-                config.append(row)
-        return config
-
-    def get_ccd_gain(self, camcol, run, band):
-        return self.get_config(self.ccd_gain_config, camcol, run, band)
-
-    def get_dark_variance(self, camcol, run, band):
-        return self.get_config(self.ccd_dark_variance_config, camcol, run, band)
-
-    def get_config(self, config_obj, camcol, run, band):
-        config_obj = list(filter(
-            lambda r: r['camcol'] == str(camcol) and eval(str(run) + r['run']),
-            config_obj))[0]  # there will be only one row matching the criteria
-        return config_obj[band]
-
-    def readFITSFiles(self, ):
-        pathlist = Path("./data").glob('**/*.fits*')
-        for path in pathlist:
-            self.read_fits_file(path)
-
-    def read_fits_file(self, filename):
-        with fits.open(filename, memmap=self.fits_mem_map) as f:
-            header = f[0].header
-            data = f[0].data
-            return [header, data, f]
-
-    def read_spectrum(self, filename):
-        with fits.open(filename, memmap=self.fits_mem_map) as hdul:
-            fits_header = hdul[0].header
-            data = hdul[1].data
-            return data, fits_header
-
-    def merge_transmission_curves_max(self, *dicts):
-        """
-        Concats the transmission curves and where they overlap, takes maximum of both curves.
-        Parameters
-        ----------
-        dicts   *[Dictionary]
-
-        Returns Dictionary
-        -------
-
-        """
-        merged = {}
-        for transmission in dicts:  # `dicts` is a tuple storing the input dictionaries
-            for band, d in transmission.items():
-                for key in d:
-                    if key not in merged or d[key] > merged[key][1]:
-                        merged[key] = [band, d[key]]
-        return merged
+    def get_image_wl(self, metadata):
+        return self.filter_midpoints[metadata["FILTER"]]
 
     def get_multiple_resolution_spectrum(self, path, spec_zoom_cnt, apply_rebin=False, rebin_min=0, rebin_max=0,
                                          rebin_samples=0, apply_transmission=True):
@@ -146,14 +93,14 @@ class Photometry:
 
         """
         multiple_resolution_cube = []
-        data, fits_header = self.read_spectrum(path)
+        data, fits_header = self._read_spectrum(path)
 
         wl_orig_res = np.power(10, data["loglam"])
         flux_mean_orig_res = data["flux"] * 1e-17
         with np.errstate(divide='ignore'):
             flux_sigma_orig_res = np.sqrt(np.divide(1, data["ivar"])) * 1e-17
 
-        band, transmission_ratio, wl_trans = self.get_transmission_ratio(wl_orig_res)
+        band, transmission_ratio, wl_trans = self._get_transmission_ratio(wl_orig_res)
 
         if apply_transmission:
             flux_mean_orig_res, flux_sigma_orig_res = self._get_filtered_spectrum(flux_mean_orig_res,
@@ -171,8 +118,8 @@ class Photometry:
                                          "flux_mean": flux_mean_orig_res,
                                          "flux_sigma": flux_sigma_orig_res})
         if spec_zoom_cnt > 0:
-            spec_zoom_cnt -=1
-            self._append_lower_resolution_1D(multiple_resolution_cube, flux_mean_orig_res, flux_sigma_orig_res,
+            spec_zoom_cnt -= 1
+            self._append_lower_resolution_1d(multiple_resolution_cube, flux_mean_orig_res, flux_sigma_orig_res,
                                              wl_orig_res,
                                              spec_zoom_cnt)
         return fits_header, multiple_resolution_cube
@@ -205,9 +152,25 @@ class Photometry:
                                          "flux_sigma": img_orig_res_flux_sigma})
         if img_zoom_cnt > 0:
             img_zoom_cnt -= 1
-            self._append_lower_resolution_2D(multiple_resolution_cube, img_orig_res_flux, img_orig_res_flux_sigma,
+            self._append_lower_resolution_2d(multiple_resolution_cube, img_orig_res_flux, img_orig_res_flux_sigma,
                                              img_zoom_cnt)
         return fits_header, multiple_resolution_cube
+
+    def get_photometry_params(self, flux, wl):
+        band, transmission_ratio, wl_trans = self._get_transmission_ratio(wl)
+        band_wl_limits = {}
+        for wavelength, band in zip(wl_trans, band):
+            if band not in band_wl_limits or band_wl_limits[band] < wavelength:
+                band_wl_limits[band] = wavelength
+        zero_points = np.empty(flux.shape)
+        softenings = np.empty(flux.shape)
+        for i, wavelength in np.ndenumerate(wl):
+            for band, band_limit in band_wl_limits.items():
+                if wavelength < band_limit:
+                    zero_points[i[0]] = self.transmission_params[band]["z_point"]
+                    softenings[i[0]] = self.transmission_params[band]["b_soft"]
+                    break
+        return transmission_ratio, zero_points, softenings
 
     def _get_image_with_errors(self, fits_path):
         """
@@ -233,8 +196,8 @@ class Photometry:
             allsky = f[2].data.field('allsky')[0]
             xinterp = f[2].data.field('xinterp')[0]
             yinterp = f[2].data.field('yinterp')[0]
-            gain = float(self.get_ccd_gain(camcol, run, band))
-            dark_variance = float(self.get_dark_variance(camcol, run, band))
+            gain = float(self._get_ccd_gain(camcol, run, band))
+            dark_variance = float(self._get_dark_variance(camcol, run, band))
 
             grid_x, grid_y = np.meshgrid(xinterp, yinterp, copy=False)
             simg = ndimage.map_coordinates(allsky, (grid_y, grid_x), order=1, mode="nearest")
@@ -246,29 +209,19 @@ class Photometry:
             return fits_header, np.ascontiguousarray(img), np.ascontiguousarray(
                 img_err)  # return calibrated image with errors in nanomaggies
 
-    def _get_filtered_spectrum(self, flux, flux_sigma, transmission_ratio):
-        # calibrating via filter curves
-        photometric_observed_spectrum_flux = flux * transmission_ratio
-        photometric_observed_spectrum_flux_sigma = flux_sigma * transmission_ratio
-        return photometric_observed_spectrum_flux, photometric_observed_spectrum_flux_sigma
+    def _get_ccd_gain(self, camcol, run, band):
+        return self._get_config(self.ccd_gain_config, camcol, run, band)
 
-    def get_photometry_params(self, flux, wl):
-        band, transmission_ratio, wl_trans = self.get_transmission_ratio(wl)
-        band_wl_limits = {}
-        for wavelength, band in zip(wl_trans, band):
-            if band not in band_wl_limits or band_wl_limits[band] < wavelength:
-                band_wl_limits[band] = wavelength
-        zero_points = np.empty(flux.shape)
-        softenings = np.empty(flux.shape)
-        for i, wavelength in np.ndenumerate(wl):
-            for band, band_limit in band_wl_limits.items():
-                if wavelength < band_limit:
-                    zero_points[i[0]] = self.transmission_params[band]["z_point"]
-                    softenings[i[0]] = self.transmission_params[band]["b_soft"]
-                    break
-        return transmission_ratio, zero_points, softenings
+    def _get_dark_variance(self, camcol, run, band):
+        return self._get_config(self.ccd_dark_variance_config, camcol, run, band)
 
-    def get_transmission_ratio(self, wl):
+    def _read_spectrum(self, filename):
+        with fits.open(filename, memmap=self.fits_mem_map) as hdul:
+            fits_header = hdul[0].header
+            data = hdul[1].data
+            return data, fits_header
+
+    def _get_transmission_ratio(self, wl):
         wl_trans, band_ratio = zip(*list(self.merged_transmission_curve.items()))
         band, ratio = zip(*list(band_ratio))
         transmission_ratio = np.interp(wl,
@@ -276,7 +229,7 @@ class Photometry:
                                        ratio)
         return band, transmission_ratio, wl_trans
 
-    def _append_lower_resolution_1D(self, multiple_resolution_cube, flux_mean_orig_res, flux_sigma_orig_res,
+    def _append_lower_resolution_1d(self, multiple_resolution_cube, flux_mean_orig_res, flux_sigma_orig_res,
                                     wl_orig_res,
                                     spec_zoom_cnt):
         # smoothing the curve with gaussian kernel to simulate observation in lower resolution (assuming gaussian-distributed errors)
@@ -302,11 +255,11 @@ class Photometry:
 
         if spec_zoom_cnt > 0:
             spec_zoom_cnt -= 1
-            self._append_lower_resolution_1D(multiple_resolution_cube, flux_lower_res, flux_sigma_lower_res,
+            self._append_lower_resolution_1d(multiple_resolution_cube, flux_lower_res, flux_sigma_lower_res,
                                              wl_lower_res,
                                              spec_zoom_cnt)
 
-    def _append_lower_resolution_2D(self, multiple_resolution_cube, flux_mean_orig_res, flux_sigma_orig_res,
+    def _append_lower_resolution_2d(self, multiple_resolution_cube, flux_mean_orig_res, flux_sigma_orig_res,
                                     res_zoom):
         # producing lower resolution
         flux_lower_res = cv2.resize(flux_mean_orig_res, dsize=(int(flux_mean_orig_res.shape[1] / 2),
@@ -325,12 +278,55 @@ class Photometry:
 
         if res_zoom > 0:
             res_zoom -= 1
-            self._append_lower_resolution_2D(multiple_resolution_cube, flux_lower_res, flux_sigma_lower_res,
+            self._append_lower_resolution_2d(multiple_resolution_cube, flux_lower_res, flux_sigma_lower_res,
                                              res_zoom)
 
-    def _get_rebinned_spectrum(self, orig_wavs, flux_sigma_orig_res, flux_mean_orig_res, rebin_min, rebin_max,
+    @staticmethod
+    def _get_filtered_spectrum(flux, flux_sigma, transmission_ratio):  # calibrating via filter curves
+        photometric_observed_spectrum_flux = flux * transmission_ratio
+        photometric_observed_spectrum_flux_sigma = flux_sigma * transmission_ratio
+        return photometric_observed_spectrum_flux, photometric_observed_spectrum_flux_sigma
+
+    @staticmethod
+    def _read_config(config_path):
+        with open(config_path) as tsv_config:
+            config = []
+            reader = csv.DictReader(tsv_config, dialect='excel-tab')
+            for row in reader:
+                config.append(row)
+        return config
+
+    @staticmethod
+    def _merge_transmission_curves_max(*dicts):
+        """
+        Concats the transmission curves and where they overlap, takes maximum of both curves.
+        Parameters
+        ----------
+        dicts   *[Dictionary]
+
+        Returns Dictionary
+        -------
+
+        """
+        merged = {}
+        for transmission in dicts:  # `dicts` is a tuple storing the input dictionaries
+            for band, d in transmission.items():
+                for key in d:
+                    if key not in merged or d[key] > merged[key][1]:
+                        merged[key] = [band, d[key]]
+        return merged
+
+    @staticmethod
+    def _get_rebinned_spectrum(orig_wavs, flux_sigma_orig_res, flux_mean_orig_res, rebin_min, rebin_max,
                                rebin_samples):
         new_wavs = np.linspace(rebin_min, rebin_max, rebin_samples)
         rebinned_flux, rebinned_sigma = spectres.spectres(new_wavs, orig_wavs, flux_mean_orig_res, flux_sigma_orig_res)
 
         return new_wavs, rebinned_flux, rebinned_sigma
+
+    @staticmethod
+    def _get_config(config_obj, camcol, run, band):
+        config_obj = list(filter(
+            lambda r: r['camcol'] == str(camcol) and eval(str(run) + r['run']),
+            config_obj))[0]  # there will be only one row matching the criteria
+        return config_obj[band]

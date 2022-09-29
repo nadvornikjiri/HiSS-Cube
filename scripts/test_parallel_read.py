@@ -39,7 +39,7 @@ for start_idx in my_chunk_bounds:
     start = timer()
     dense_cube_ds.read_direct(my_arr, np.s_[start_i: end_i])
     end = timer()
-    print("Rank %d: Dataset of size %d read in: %fs, MB/s = %f" % (
+    print("Rank %d: Dataset of path_size %d read in: %fs, MB/s = %f" % (
         rank, my_arr.nbytes, end - start, (my_arr.nbytes / 1024 / 1024) / (end - start)))
 MPI.COMM_WORLD.barrier()
 if rank == 0:

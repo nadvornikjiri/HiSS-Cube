@@ -12,6 +12,7 @@ from tqdm.auto import tqdm
 from hisscube.builders import SingleImageBuilder, HiSSCubeConstructionDirector
 from hisscube.dependency_injector import HiSSCubeProvider
 from hisscube.processors.data import float_compress
+from hisscube.utils.config import Config
 from hisscube.utils.io import SerialH5Writer, truncate
 from hisscube.utils.astrometry import is_cutout_whole
 
@@ -23,9 +24,19 @@ H5_PATH = "../../results/SDSS_cube.h5"
 INPUT_PATH = "../../data/raw"
 
 
-def get_test_director(args, test_images, test_spectra, image_pattern, spectra_pattern):
+def get_default_config():
+    config = Config()
+    config.MPIO = False
+    config.C_BOOSTER = False
+    config.METADATA_STRATEGY = "TREE"
+    return config
+
+
+def get_test_director(args, test_images, test_spectra, image_pattern, spectra_pattern, config=None):
+    if not config:
+        config = get_default_config()
     dependency_provider = HiSSCubeProvider(H5_PATH, image_path=test_images, spectra_path=test_spectra,
-                                           image_pattern=image_pattern, spectra_pattern=spectra_pattern)
+                                           image_pattern=image_pattern, spectra_pattern=spectra_pattern, config=config)
     dependency_provider.config.MPIO = False
     director = HiSSCubeConstructionDirector(args, dependency_provider.config, dependency_provider.serial_builders,
                                             dependency_provider.parallel_builders)
@@ -36,9 +47,9 @@ class TestSerialBuilder(unittest.TestCase):
 
     def setup_method(self, test_method):
         truncate(H5_PATH)
-        self.dependency_provider = HiSSCubeProvider(H5_PATH, input_path=INPUT_PATH)
-        self.dependency_provider.config.MPIO = False
-        self.dependency_provider.config.C_BOOSTER = False
+        self.config = get_default_config()
+        self.dependency_provider = HiSSCubeProvider(H5_PATH, input_path=INPUT_PATH, config=self.config)
+
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
     def test_build_image_single(self):
@@ -48,50 +59,71 @@ class TestSerialBuilder(unittest.TestCase):
         h5_datasets = builder.build()
         assert len(h5_datasets) == self.dependency_provider.config.IMG_ZOOM_CNT
 
-    def test_build_spetrum_single(self):
+    def test_build_image_single_dataset_strategy(self):
+        self.config.METADATA_STRATEGY = "DATASET"
+        self.dependency_provider = HiSSCubeProvider(H5_PATH, input_path=INPUT_PATH, config=self.config)
+        self.test_build_image_single()
+
+    def test_build_spectrum_single(self):
         test_path = "../../data/raw/problematic/spectra/spec-5290-55862-0984.fits"
         builder = self.dependency_provider.serial_builders.single_spectrum_builder
         builder.spectrum_path = test_path
         h5_datasets = builder.build()
         assert len(h5_datasets) == self.dependency_provider.config.SPEC_ZOOM_CNT
 
-    def test_add_image_multiple_same_run(self):
-        test_images = "../../data/raw/problematic/images_same_run"
-        image_pattern = "*.fits"
+    def test_build_spetrum_single_dataset_strategy(self):
+        self.config.METADATA_STRATEGY = "DATASET"
+        self.dependency_provider = HiSSCubeProvider(H5_PATH, input_path=INPUT_PATH, config=self.config)
+        self.test_build_spectrum_single()
+
+    @staticmethod
+    def get_image_test(image_pattern, test_images, config=None):
         test_spectra = ""
         spectra_pattern = ""
         args = Mock()
-        args.command = "create"
+        args.command = "update"
+        args.fits_metadata_cache = True
+        args.metadata = True
+        args.data = True
+        args.link = False
+        args.visualization_cube = False
+        args.ml_cube = False
         args.output_path = H5_PATH
         dependency_provider, director = get_test_director(args, test_images, test_spectra, image_pattern,
-                                                          spectra_pattern)
+                                                          spectra_pattern, config)
+        return dependency_provider, director
+
+    def test_add_image_multiple(self):
+        test_images = "../../data/raw/galaxy_small/images"
+        image_pattern = "frame-*-004136-*-0129.fits"
+        dependency_provider, director = self.get_image_test(image_pattern, test_images)
+        director.construct()
+
+    def test_add_image_multiple_dataset_strategy(self):
+        self.config.METADATA_STRATEGY = "DATASET"
+        test_images = "../../data/raw/galaxy_small/images"
+        image_pattern = "frame-*-004136-*-0129.fits"
+        dependency_provider, director = self.get_image_test(image_pattern, test_images, self.config)
+
+    def test_add_image_multiple_same_run(self):
+        test_images = "../../data/raw/problematic/images_same_run"
+        image_pattern = "*.fits"
+        dependency_provider, director = self.get_image_test(image_pattern, test_images)
 
         dependency_provider.config.IMG_SPAT_INDEX_ORDER = 8
         with self.assertRaises(RuntimeError):
             director.construct()
 
     def test_add_spec_refs(self):
-        image_pattern = "frame-r-004136-3-0129.fits"
-        spectra_pattern = "spec-0412-51871-0308.fits"
-        self._insert_links(image_pattern, spectra_pattern)
+        self.run_link_spectra()
         with h5py.File(H5_PATH) as h5_file:
             spec_datasets = self._get_test_spec_ds(h5_file)
             self._assert_image_cutout_sizes(h5_file, spec_datasets)
 
-    @staticmethod
-    def _insert_links(image_pattern, spectra_pattern):
-        test_images = "../../data/raw/galaxy_small/images"
-        test_spectra = "../../data/raw/galaxy_tiny/spectra"
-        args = Mock()
-        args.command = "update"
-        args.fits_header_cache = True
-        args.metadata = True
-        args.data = True
-        args.link_images_spectra = True
-        args.output_path = H5_PATH
-        dependency_provider, director = get_test_director(args, test_images, test_spectra, image_pattern,
-                                                          spectra_pattern)
-        director.construct()
+    def run_link_spectra(self, config=None):
+        image_pattern = "frame-r-004136-3-0129.fits"
+        spectra_pattern = "spec-0412-51871-0308.fits"
+        self._insert_links(image_pattern, spectra_pattern, config)
 
     @staticmethod
     def _get_test_spec_ds(h5_file):
@@ -109,13 +141,45 @@ class TestSerialBuilder(unittest.TestCase):
         assert bool(spec_datasets[0].parent.parent.parent["image_cutouts_0"][0])
         for spec_dataset in spec_datasets:
             for zoom in range(self.dependency_provider.config.SPEC_ZOOM_CNT):
-                for cutout in spec_dataset.parent.parent.parent["image_cutouts_%d" % zoom]:
-                    if not cutout:
-                        break
-                    cutout_shape = h5_file[cutout][cutout].shape
-                    assert (0 <= cutout_shape[0] <= 64)
-                    assert (0 <= cutout_shape[1] <= 64)
-                    assert (cutout_shape[2] == 2)
+                cutout_list = spec_dataset.parent.parent.parent["image_cutouts_%d" % zoom]
+                self.assert_cutouts(h5_file, cutout_list, 0, 1)
+
+    def assert_cutouts(self, h5_file, cutout_list, x_idx, y_idx):
+        assert cutout_list[0]
+        for cutout in cutout_list:
+            if not cutout:
+                break
+            cutout_shape = h5_file[cutout][cutout].shape
+            assert (0 <= cutout_shape[x_idx] <= 64)
+            assert (0 <= cutout_shape[y_idx] <= 64)
+
+    def test_add_spec_refs_dataset_strategy(self):
+        self.config.METADATA_STRATEGY = "DATASET"
+        self.run_link_spectra(self.config)
+        with h5py.File(H5_PATH) as h5_file:
+            cutout_list = self._get_test_cutout_ds(h5_file)
+            self.assert_cutouts(h5_file, cutout_list, 1, 2)
+
+    @staticmethod
+    def _get_test_cutout_ds(h5_file):
+        return h5_file["semi_sparse_cube/0/spectra/image_cutouts_data"][0]
+
+    @staticmethod
+    def _insert_links(image_pattern, spectra_pattern, config=None):
+        test_images = "../../data/raw/galaxy_small/images"
+        test_spectra = "../../data/raw/galaxy_tiny/spectra"
+        args = Mock()
+        args.command = "update"
+        args.fits_metadata_cache = True
+        args.metadata = True
+        args.data = True
+        args.link_images_spectra = True
+        args.visualization_cube = False
+        args.ml_cube = False
+        args.output_path = H5_PATH
+        dependency_provider, director = get_test_director(args, test_images, test_spectra, image_pattern,
+                                                          spectra_pattern, config=config)
+        director.construct()
 
     def test_is_cutout_whole(self):
         test1 = [[[735, 1849],
@@ -166,7 +230,7 @@ class TestSerialBuilder(unittest.TestCase):
         data_processor = self.dependency_provider.processors.data_processor
         photometry = self.dependency_provider.photometry
         config = self.dependency_provider.config
-        metadata_processor.metadata, data_processor.data = photometry.get_multiple_resolution_image(
+        metadata_processor.spectrum_metadata, data_processor.data = photometry.get_multiple_resolution_image(
             test_path,
             config.IMG_ZOOM_CNT)
         metadata_processor.file_name = os.path.basename(test_path)

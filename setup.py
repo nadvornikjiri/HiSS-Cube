@@ -15,7 +15,7 @@ h5writer_module = Extension('h5writer',
                             include_dirs=include_dirs,
                             library_dirs=library_dirs,
                             libraries=libraries,
-                            sources=['c_boosters/h5writer/h5_connector.c', 'c_boosters/h5writer/main.c'])
+                            sources=['c_boosters/h5writer/writer.c', 'c_boosters/h5writer/main.c'])
 
 setup(name='h5writer',
       version='1.0',

@@ -31,7 +31,7 @@ with open(FILE_NAME) as f:
     for line in lines:
         if dst_cnt % check == 0 and dst_cnt / check > 0:  # timing and loggin related stuff
             end = timer()
-            print("Dataset cnt: %05d, 100 images done in %.4fs" % (dst_cnt, (end - start)))
+            print("Dataset idx: %05d, 100 images done in %.4fs" % (dst_cnt, (end - start)))
             timings_logger.writerow([dst_cnt, (end - start)])
             start = end
         dst_cnt += 1

@@ -6,6 +6,7 @@ from unittest.mock import Mock
 import pytest
 
 from hisscube.tests.test_serial_builders import get_test_director
+from hisscube.utils.config import Config
 
 H5_DUMP_CMD_PATH = "../../ext_lib/hdf5-1.12.0/hdf5/bin/h5dump"
 H5_DIFF_CMD_PATH = "../../ext_lib/hdf5-1.12.0/hdf5/bin/h5diff"
@@ -24,14 +25,7 @@ class TestHiSSCube(unittest.TestCase):
 
         assert (diff_output == "")
 
-    @pytest.mark.skip(reason="H5 Files not versioned with git.")
-    def test_serial_whole(self):
-        h5_test_path = "../../results/SDSS_cube_test.h5"
-        h5_path = self.construct_serial()
-        diff_output = self.h5diff_whole(h5_path, h5_test_path)
-        assert (diff_output == "")
-
-    @pytest.mark.skip(reason="Long run")
+    # @pytest.mark.skip(reason="Long run")
     def test_parallel_metadata(self):
         h5_dump_path = "../../results/SDSS_cube_c_par_dump.txt"
         h5_testdump_path = "../../results/SDSS_cube_c_par_test_dump.txt"
@@ -40,6 +34,13 @@ class TestHiSSCube(unittest.TestCase):
         diff_output = self.diff_dump(h5_dump_path, h5_path, h5_testdump_path)
         assert (diff_output == "")
         return h5_dump_path, h5_testdump_path, h5_path
+
+    @pytest.mark.skip(reason="H5 Files not versioned with git.")
+    def test_serial_whole(self):
+        h5_test_path = "../../results/SDSS_cube_test.h5"
+        h5_path = self.construct_serial()
+        diff_output = self.h5diff_whole(h5_path, h5_test_path)
+        assert (diff_output == "")
 
     @pytest.mark.skip(reason="H5 Files not versioned with git. Long run")
     def test_parallel_whole(self):
@@ -59,8 +60,10 @@ class TestHiSSCube(unittest.TestCase):
         args = Mock()
         args.command = "create"
         args.output_path = h5_path
+        config = Config()
+        config.METADATA_STRATEGY = "TREE"
         dependency_provider, director = get_test_director(args, test_images, test_spectra, image_pattern,
-                                                          spectra_pattern)
+                                                          spectra_pattern, config=config)
         director.construct()
         return h5_path
 
