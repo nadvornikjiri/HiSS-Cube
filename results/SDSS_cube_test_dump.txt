@@ -40,7 +40,7 @@ GROUP "/" {
       DATATYPE  H5T_STD_I64LE
       DATASPACE  SCALAR
    }
-   ATTRIBUTE "spectra_count" {
+   ATTRIBUTE "spectrum_count" {
       DATATYPE  H5T_STD_I64LE
       DATASPACE  SCALAR
    }
@@ -111,7 +111,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 163840
-                  OFFSET 213446656
+                  OFFSET 213442560
                }
                FILTERS {
                   NONE
@@ -143,7 +143,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 163840
-                  OFFSET 213610496
+                  OFFSET 213606400
                }
                FILTERS {
                   NONE
@@ -182,7 +182,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 36960
-                  OFFSET 213815296
+                  OFFSET 213811200
                }
                FILTERS {
                   NONE
@@ -201,7 +201,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 36960
-                  OFFSET 213774336
+                  OFFSET 213770240
                }
                FILTERS {
                   NONE
@@ -257,7 +257,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 28714400
-                  OFFSET 172396544
+                  OFFSET 172392448
                }
                FILTERS {
                   NONE
@@ -298,7 +298,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 40960
-                  OFFSET 213856256
+                  OFFSET 213852160
                }
                FILTERS {
                   NONE
@@ -330,7 +330,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 40960
-                  OFFSET 213897216
+                  OFFSET 213893120
                }
                FILTERS {
                   NONE
@@ -369,7 +369,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 18480
-                  OFFSET 213958656
+                  OFFSET 213954560
                }
                FILTERS {
                   NONE
@@ -388,7 +388,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 18480
-                  OFFSET 213938176
+                  OFFSET 213934080
                }
                FILTERS {
                   NONE
@@ -444,7 +444,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 8499920
-                  OFFSET 201113600
+                  OFFSET 201109504
                }
                FILTERS {
                   NONE
@@ -485,7 +485,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 10240
-                  OFFSET 213979136
+                  OFFSET 213975040
                }
                FILTERS {
                   NONE
@@ -517,7 +517,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 10240
-                  OFFSET 213991424
+                  OFFSET 213987328
                }
                FILTERS {
                   NONE
@@ -556,7 +556,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 9240
-                  OFFSET 214016000
+                  OFFSET 214011904
                }
                FILTERS {
                   NONE
@@ -575,7 +575,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 9240
-                  OFFSET 214003712
+                  OFFSET 213999616
                }
                FILTERS {
                   NONE
@@ -631,7 +631,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 2785640
-                  OFFSET 209616896
+                  OFFSET 209612800
                }
                FILTERS {
                   NONE
@@ -672,7 +672,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 2560
-                  OFFSET 214028288
+                  OFFSET 214024192
                }
                FILTERS {
                   NONE
@@ -704,7 +704,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 2560
-                  OFFSET 214032384
+                  OFFSET 214028288
                }
                FILTERS {
                   NONE
@@ -743,7 +743,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 4616
-                  OFFSET 214044672
+                  OFFSET 214040576
                }
                FILTERS {
                   NONE
@@ -762,7 +762,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 4616
-                  OFFSET 214036480
+                  OFFSET 214032384
                }
                FILTERS {
                   NONE
@@ -818,7 +818,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 1026168
-                  OFFSET 212406272
+                  OFFSET 212402176
                }
                FILTERS {
                   NONE
@@ -1120,10 +1120,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -1175,10 +1171,6 @@ GROUP "/" {
                                                                      CSET H5T_CSET_UTF8;
                                                                      CTYPE H5T_C_S1;
                                                                   }
-                                                                  DATASPACE  SCALAR
-                                                               }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
                                                                   DATASPACE  SCALAR
                                                                }
                                                                ATTRIBUTE "serialized_header" {
@@ -1287,10 +1279,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -1355,10 +1343,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -1412,10 +1396,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -1448,7 +1428,7 @@ GROUP "/" {
                                                                STORAGE_LAYOUT {
                                                                   CONTIGUOUS
                                                                   SIZE 55440
-                                                                  OFFSET 171384832
+                                                                  OFFSET 171380736
                                                                }
                                                                FILTERS {
                                                                   NONE
@@ -1522,10 +1502,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -1590,10 +1566,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -1645,10 +1617,6 @@ GROUP "/" {
                                                                      CSET H5T_CSET_UTF8;
                                                                      CTYPE H5T_C_S1;
                                                                   }
-                                                                  DATASPACE  SCALAR
-                                                               }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
                                                                   DATASPACE  SCALAR
                                                                }
                                                                ATTRIBUTE "serialized_header" {
@@ -1757,10 +1725,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -1804,7 +1768,7 @@ GROUP "/" {
                                                                STORAGE_LAYOUT {
                                                                   CONTIGUOUS
                                                                   SIZE 13860
-                                                                  OFFSET 171610112
+                                                                  OFFSET 171606016
                                                                }
                                                                FILTERS {
                                                                   NONE
@@ -1823,10 +1787,6 @@ GROUP "/" {
                                                                      CSET H5T_CSET_UTF8;
                                                                      CTYPE H5T_C_S1;
                                                                   }
-                                                                  DATASPACE  SCALAR
-                                                               }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
                                                                   DATASPACE  SCALAR
                                                                }
                                                                ATTRIBUTE "serialized_header" {
@@ -1880,10 +1840,6 @@ GROUP "/" {
                                                                      CSET H5T_CSET_UTF8;
                                                                      CTYPE H5T_C_S1;
                                                                   }
-                                                                  DATASPACE  SCALAR
-                                                               }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
                                                                   DATASPACE  SCALAR
                                                                }
                                                                ATTRIBUTE "serialized_header" {
@@ -1992,10 +1948,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -2060,10 +2012,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -2115,10 +2063,6 @@ GROUP "/" {
                                                                      CSET H5T_CSET_UTF8;
                                                                      CTYPE H5T_C_S1;
                                                                   }
-                                                                  DATASPACE  SCALAR
-                                                               }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
                                                                   DATASPACE  SCALAR
                                                                }
                                                                ATTRIBUTE "serialized_header" {
@@ -2227,10 +2171,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -2295,10 +2235,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -2350,10 +2286,6 @@ GROUP "/" {
                                                                      CSET H5T_CSET_UTF8;
                                                                      CTYPE H5T_C_S1;
                                                                   }
-                                                                  DATASPACE  SCALAR
-                                                               }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
                                                                   DATASPACE  SCALAR
                                                                }
                                                                ATTRIBUTE "serialized_header" {
@@ -2441,7 +2373,7 @@ GROUP "/" {
                                                                STORAGE_LAYOUT {
                                                                   CONTIGUOUS
                                                                   SIZE 6924
-                                                                  OFFSET 171761664
+                                                                  OFFSET 171757568
                                                                }
                                                                FILTERS {
                                                                   NONE
@@ -2460,10 +2392,6 @@ GROUP "/" {
                                                                      CSET H5T_CSET_UTF8;
                                                                      CTYPE H5T_C_S1;
                                                                   }
-                                                                  DATASPACE  SCALAR
-                                                               }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
                                                                   DATASPACE  SCALAR
                                                                }
                                                                ATTRIBUTE "serialized_header" {
@@ -2530,10 +2458,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -2585,10 +2509,6 @@ GROUP "/" {
                                                                      CSET H5T_CSET_UTF8;
                                                                      CTYPE H5T_C_S1;
                                                                   }
-                                                                  DATASPACE  SCALAR
-                                                               }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
                                                                   DATASPACE  SCALAR
                                                                }
                                                                ATTRIBUTE "serialized_header" {
@@ -2676,7 +2596,7 @@ GROUP "/" {
                                                                STORAGE_LAYOUT {
                                                                   CONTIGUOUS
                                                                   SIZE 6924
-                                                                  OFFSET 171241472
+                                                                  OFFSET 171237376
                                                                }
                                                                FILTERS {
                                                                   NONE
@@ -2695,10 +2615,6 @@ GROUP "/" {
                                                                      CSET H5T_CSET_UTF8;
                                                                      CTYPE H5T_C_S1;
                                                                   }
-                                                                  DATASPACE  SCALAR
-                                                               }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
                                                                   DATASPACE  SCALAR
                                                                }
                                                                ATTRIBUTE "serialized_header" {
@@ -2765,10 +2681,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -2822,10 +2734,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -2858,7 +2766,7 @@ GROUP "/" {
                                                                STORAGE_LAYOUT {
                                                                   CONTIGUOUS
                                                                   SIZE 55440
-                                                                  OFFSET 171773952
+                                                                  OFFSET 171769856
                                                                }
                                                                FILTERS {
                                                                   NONE
@@ -2930,10 +2838,6 @@ GROUP "/" {
                                                                      CSET H5T_CSET_UTF8;
                                                                      CTYPE H5T_C_S1;
                                                                   }
-                                                                  DATASPACE  SCALAR
-                                                               }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
                                                                   DATASPACE  SCALAR
                                                                }
                                                                ATTRIBUTE "serialized_header" {
@@ -3102,10 +3006,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -3159,10 +3059,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -3195,7 +3091,7 @@ GROUP "/" {
                                                                STORAGE_LAYOUT {
                                                                   CONTIGUOUS
                                                                   SIZE 55440
-                                                                  OFFSET 172003328
+                                                                  OFFSET 171999232
                                                                }
                                                                FILTERS {
                                                                   NONE
@@ -3269,10 +3165,6 @@ GROUP "/" {
                                                                   }
                                                                   DATASPACE  SCALAR
                                                                }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
-                                                                  DATASPACE  SCALAR
-                                                               }
                                                                ATTRIBUTE "serialized_header" {
                                                                   DATATYPE  H5T_STRING {
                                                                      STRSIZE H5T_VARIABLE;
@@ -3316,7 +3208,7 @@ GROUP "/" {
                                                                STORAGE_LAYOUT {
                                                                   CONTIGUOUS
                                                                   SIZE 13860
-                                                                  OFFSET 172228608
+                                                                  OFFSET 172224512
                                                                }
                                                                FILTERS {
                                                                   NONE
@@ -3335,10 +3227,6 @@ GROUP "/" {
                                                                      CSET H5T_CSET_UTF8;
                                                                      CTYPE H5T_C_S1;
                                                                   }
-                                                                  DATASPACE  SCALAR
-                                                               }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
                                                                   DATASPACE  SCALAR
                                                                }
                                                                ATTRIBUTE "serialized_header" {
@@ -3373,7 +3261,7 @@ GROUP "/" {
                                                                STORAGE_LAYOUT {
                                                                   CONTIGUOUS
                                                                   SIZE 27720
-                                                                  OFFSET 172195840
+                                                                  OFFSET 172191744
                                                                }
                                                                FILTERS {
                                                                   NONE
@@ -3392,10 +3280,6 @@ GROUP "/" {
                                                                      CSET H5T_CSET_UTF8;
                                                                      CTYPE H5T_C_S1;
                                                                   }
-                                                                  DATASPACE  SCALAR
-                                                               }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
                                                                   DATASPACE  SCALAR
                                                                }
                                                                ATTRIBUTE "serialized_header" {
@@ -3430,7 +3314,7 @@ GROUP "/" {
                                                                STORAGE_LAYOUT {
                                                                   CONTIGUOUS
                                                                   SIZE 55440
-                                                                  OFFSET 172134400
+                                                                  OFFSET 172130304
                                                                }
                                                                FILTERS {
                                                                   NONE
@@ -3483,7 +3367,7 @@ GROUP "/" {
                                                                STORAGE_LAYOUT {
                                                                   CONTIGUOUS
                                                                   SIZE 6924
-                                                                  OFFSET 172249088
+                                                                  OFFSET 172244992
                                                                }
                                                                FILTERS {
                                                                   NONE
@@ -3502,10 +3386,6 @@ GROUP "/" {
                                                                      CSET H5T_CSET_UTF8;
                                                                      CTYPE H5T_C_S1;
                                                                   }
-                                                                  DATASPACE  SCALAR
-                                                               }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
                                                                   DATASPACE  SCALAR
                                                                }
                                                                ATTRIBUTE "serialized_header" {
@@ -3551,7 +3431,7 @@ GROUP "/" {
                                                                STORAGE_LAYOUT {
                                                                   CONTIGUOUS
                                                                   SIZE 13860
-                                                                  OFFSET 172359680
+                                                                  OFFSET 172355584
                                                                }
                                                                FILTERS {
                                                                   NONE
@@ -3570,10 +3450,6 @@ GROUP "/" {
                                                                      CSET H5T_CSET_UTF8;
                                                                      CTYPE H5T_C_S1;
                                                                   }
-                                                                  DATASPACE  SCALAR
-                                                               }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
                                                                   DATASPACE  SCALAR
                                                                }
                                                                ATTRIBUTE "serialized_header" {
@@ -3627,10 +3503,6 @@ GROUP "/" {
                                                                      CSET H5T_CSET_UTF8;
                                                                      CTYPE H5T_C_S1;
                                                                   }
-                                                                  DATASPACE  SCALAR
-                                                               }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
                                                                   DATASPACE  SCALAR
                                                                }
                                                                ATTRIBUTE "serialized_header" {
@@ -3718,7 +3590,7 @@ GROUP "/" {
                                                                STORAGE_LAYOUT {
                                                                   CONTIGUOUS
                                                                   SIZE 6924
-                                                                  OFFSET 172380160
+                                                                  OFFSET 172376064
                                                                }
                                                                FILTERS {
                                                                   NONE
@@ -3737,10 +3609,6 @@ GROUP "/" {
                                                                      CSET H5T_CSET_UTF8;
                                                                      CTYPE H5T_C_S1;
                                                                   }
-                                                                  DATASPACE  SCALAR
-                                                               }
-                                                               ATTRIBUTE "orig_res_link" {
-                                                                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
                                                                   DATASPACE  SCALAR
                                                                }
                                                                ATTRIBUTE "serialized_header" {
@@ -3782,7 +3650,7 @@ GROUP "/" {
                                                          STORAGE_LAYOUT {
                                                             CONTIGUOUS
                                                             SIZE 24000
-                                                            OFFSET 171929600
+                                                            OFFSET 171925504
                                                          }
                                                          FILTERS {
                                                             NONE
@@ -3802,7 +3670,7 @@ GROUP "/" {
                                                          STORAGE_LAYOUT {
                                                             CONTIGUOUS
                                                             SIZE 24000
-                                                            OFFSET 171954176
+                                                            OFFSET 171950080
                                                          }
                                                          FILTERS {
                                                             NONE
@@ -3822,7 +3690,7 @@ GROUP "/" {
                                                          STORAGE_LAYOUT {
                                                             CONTIGUOUS
                                                             SIZE 24000
-                                                            OFFSET 171978752
+                                                            OFFSET 171974656
                                                          }
                                                          FILTERS {
                                                             NONE

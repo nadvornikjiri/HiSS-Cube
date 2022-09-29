@@ -1,5 +1,6 @@
 import os
 import timeit
+import unittest
 import warnings
 from unittest.mock import Mock
 from urllib.parse import urljoin
@@ -19,7 +20,9 @@ from hisscube.utils.io import SerialH5Writer
 H5PATH = "../../results/SDSS_cube.h5"
 
 
-class TestExport:
+class TestExport(unittest.TestCase):
+
+    metadata_strategy = "TREE"
 
     def setup_class(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -34,11 +37,11 @@ class TestExport:
         args.metadata = True
         args.data = True
         args.link = True
-        args.visualization_cube = False
+        args.visualization_cube = True
         args.ml_cube = True
         args.output_path = H5PATH
         self.config = Config()
-        self.config.METADATA_STRATEGY = "DATASET"
+        self.config.METADATA_STRATEGY = self.metadata_strategy
         self.dependency_provider = HiSSCubeProvider(H5PATH, image_path=test_images, spectra_path=test_spectra,
                                                     image_pattern=image_pattern, spectra_pattern=spectra_pattern,
                                                     config=self.config)
@@ -101,3 +104,8 @@ class TestExport:
         print(params["url"])
         message = {"samp.mtype": message_type, "samp.params": params}
         client.notify_all(message)
+
+
+class TestExportDatasetStrategy(TestExport):
+    metadata_strategy = "DATASET"
+

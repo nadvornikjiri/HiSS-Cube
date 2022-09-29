@@ -1,6 +1,7 @@
 import os
 from urllib.parse import urljoin
 
+import pytest
 from astropy.samp import SAMPIntegratedClient
 
 from hisscube.processors.fits_cube_visualization import FITSProcessor
@@ -8,6 +9,7 @@ from hisscube.utils.config import Config
 from hisscube.utils.photometry import Photometry
 
 
+@pytest.mark.skip(reason="Deprecated.")
 class TestFITSCubeProcessor:
 
     def setup_method(self, test_method):

@@ -7,7 +7,8 @@ from astropy.wcs.utils import skycoord_to_pixel
 import healpy as hp
 from numpy import arange
 
-from hisscube.utils.io import get_orig_header, get_time_from_image
+from hisscube.utils.io import get_time_from_image
+from hisscube.utils.io_strategy import get_orig_header
 
 
 def get_boundary_coords(fits_header):

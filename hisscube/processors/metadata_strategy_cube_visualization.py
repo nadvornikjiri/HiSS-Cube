@@ -8,9 +8,10 @@ import ujson
 from astropy.io.votable import from_table, writeto
 from astropy.table import QTable
 
-from hisscube.processors.metadata_strategy import get_data_datasets, get_cutout_data_datasets, \
-    get_cutout_error_datasets, get_cutout_metadata_datasets, get_error_datasets, get_wl_datasets, TreeStrategy, DatasetStrategy, \
-    dereference_region_ref
+from hisscube.processors.metadata_strategy import dereference_region_ref
+from hisscube.processors.metadata_strategy_dataset import DatasetStrategy, get_cutout_data_datasets, \
+    get_cutout_error_datasets, get_cutout_metadata_datasets, get_data_datasets, get_error_datasets, get_wl_datasets
+from hisscube.processors.metadata_strategy_tree import TreeStrategy
 from hisscube.utils.astrometry import get_cutout_pixel_coords
 from hisscube.utils.io import get_fits_path, \
     get_spectrum_header_dataset
@@ -42,7 +43,7 @@ class VisualizationProcessorStrategy(ABC):
         dense_cube_grp = self.h5_connector.file.require_group(self.config.DENSE_CUBE_NAME)
         for zoom in range(
                 min(self.config.SPEC_ZOOM_CNT, self.config.IMG_ZOOM_CNT)):
-            spectral_cube = self.construct_spectral_cube_table(zoom)
+            spectral_cube = self._construct_spectral_cube_table(zoom)
             res_grp = dense_cube_grp.require_group(str(zoom))
             visualization = res_grp.require_group("visualization")
             ds = visualization.require_dataset("dense_cube_zoom_%d" % zoom,
@@ -70,7 +71,7 @@ class VisualizationProcessorStrategy(ABC):
         self.spectral_cube = self.h5_connector.file[spectral_cube_path][()]
         return self.spectral_cube
 
-    def construct_spectral_cube_table(self, zoom):
+    def _construct_spectral_cube_table(self, zoom):
         """
         This method constructs the dense cube from the semi-sparse cube tree in the HDF5 file for a given resolution.
         It iterates over the individual spectra, reads the "image_cutouts" attribute and de-references all of the

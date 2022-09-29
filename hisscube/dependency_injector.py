@@ -12,7 +12,8 @@ from hisscube.processors.metadata_strategy_cube_ml import TreeMLProcessorStrateg
 from hisscube.processors.metadata_strategy_cube_visualization import TreeVisualizationProcessorStrategy, \
     DatasetVisualizationProcessorStrategy
 from hisscube.processors.spectrum import SpectrumProcessor
-from hisscube.processors.metadata_strategy import TreeStrategy, DatasetStrategy
+from hisscube.processors.metadata_strategy_dataset import DatasetStrategy
+from hisscube.processors.metadata_strategy_tree import TreeStrategy
 from hisscube.processors.metadata_strategy_image import TreeImageStrategy, DatasetImageStrategy
 from hisscube.processors.metadata_strategy_spectrum import TreeSpectrumStrategy, DatasetSpectrumStrategy
 from hisscube.utils.config import Config

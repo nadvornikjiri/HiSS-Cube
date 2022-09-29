@@ -7,9 +7,10 @@ import numpy as np
 import ujson
 
 from hisscube.processors.data import float_compress
-from hisscube.processors.metadata_strategy import MetadataStrategy, require_spatial_grp, get_data_datasets, \
-    require_zoom_grps, get_index_datasets, get_healpix_id, get_dataset_resolution_groups, write_dataset, \
-    create_additional_datasets
+from hisscube.processors.metadata_strategy import MetadataStrategy, require_zoom_grps
+from hisscube.processors.metadata_strategy_dataset import get_data_datasets, get_index_datasets, get_healpix_id, \
+    get_dataset_resolution_groups, write_dataset, create_additional_datasets
+from hisscube.processors.metadata_strategy_tree import require_spatial_grp
 from hisscube.utils.astrometry import get_heal_path_from_coords, get_image_center_coords
 from hisscube.utils.config import Config
 from hisscube.utils.io import H5Connector
@@ -26,10 +27,6 @@ class ImageMetadataStrategy(ABC):
         self.h5_connector: H5Connector = None
         self.logger = HiSSCubeLogger.logger
         self.img_cnt = 0
-
-    @abstractmethod
-    def get_resolution_groups(self, metadata, h5_connector):
-        raise NotImplementedError
 
     def write_metadata_multiple(self, h5_connector, no_attrs=False, no_datasets=False):
         self._set_connector(h5_connector)
@@ -68,6 +65,10 @@ class ImageMetadataStrategy(ABC):
             self.logger.warning(
                 "Unable to ingest image %s, message: %s" % (fits_path, str(e)))
             raise e
+
+    @abstractmethod
+    def get_resolution_groups(self, metadata, h5_connector):
+        raise NotImplementedError
 
     @abstractmethod
     def _write_parsed_metadata(self, metadata, fits_path, no_attrs, no_datasets):
@@ -205,6 +206,16 @@ class TreeImageStrategy(ImageMetadataStrategy):
             x_lower_res = int(x_lower_res / 2)
             y_lower_res = int(y_lower_res / 2)
         return res_grp_list
+
+    def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
+        self.img_cnt = 0
+        self.h5_connector.fits_total_cnt = 0
+        for fits_path, header in fits_headers:
+            if not fits_path:  # end of data
+                break
+            self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
+            if self.img_cnt >= self.config.LIMIT_IMAGE_COUNT:
+                break
 
 
 class DatasetImageStrategy(ImageMetadataStrategy):

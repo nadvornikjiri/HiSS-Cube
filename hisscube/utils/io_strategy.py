@@ -30,6 +30,17 @@ class SerialTreeIOStrategy(IOStrategy):
         ds.attrs["serialized_header"] = ujson.dumps(attrs_dict)
 
 
+def get_orig_header(h5_connector, ds):
+    try:
+        if ds.attrs["orig_res_link"]:
+            orig_image_header = h5_connector.read_serialized_fits_header(h5_connector.file[ds.attrs["orig_res_link"]])
+        else:
+            orig_image_header = h5_connector.read_serialized_fits_header(ds)
+    except KeyError:
+        orig_image_header = h5_connector.read_serialized_fits_header(ds)
+    return orig_image_header
+
+
 class CBoostedTreeIOStrategy(IOStrategy):
 
     def read_serialized_fits_header(self, ds, idx=0):
@@ -48,3 +59,6 @@ class SerialDatasetIOStrategy(IOStrategy):
 
     def write_serialized_fits_header(self, ds, attrs_dict, idx=0):
         ds[idx, "header"] = ujson.dumps(attrs_dict)
+
+
+

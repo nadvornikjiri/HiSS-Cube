@@ -273,17 +273,6 @@ class CBoostedMetadataBuildWriter(SerialH5Writer):
         obj["attrs"][key] = obj2["path"]  # the obj2["path"] is not needed ATM.
 
 
-def get_orig_header(h5_connector, ds):
-    try:
-        if ds.attrs["orig_res_link"]:
-            orig_image_header = h5_connector.read_serialized_fits_header(h5_connector.file[ds.attrs["orig_res_link"]])
-        else:
-            orig_image_header = h5_connector.read_serialized_fits_header(ds)
-    except KeyError:
-        orig_image_header = h5_connector.read_serialized_fits_header(ds)
-    return orig_image_header
-
-
 def get_image_header_dataset(h5_connector):
     return h5_connector.file["fits_images_metadata"]
 

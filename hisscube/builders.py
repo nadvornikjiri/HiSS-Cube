@@ -225,7 +225,6 @@ class MetadataBuilder(SerialBuilder):
             self.image_processor.write_images_metadata(h5_connector)
             self.logger.info("Writing spectra spectrum_metadata.")
             self.spectrum_processor.write_spectra_metadata(h5_connector)
-            self.logger.info("bla")
 
 
 class CBoosterMetadataBuilder(MetadataBuilder):

@@ -8,10 +8,11 @@ import numpy as np
 import ujson
 
 from hisscube.processors.data import float_compress
-from hisscube.processors.metadata_strategy import MetadataStrategy, TreeStrategy, require_spatial_grp, \
-    get_data_datasets, require_zoom_grps, get_healpix_id, get_index_datasets, get_dataset_resolution_groups, \
-    write_dataset, create_additional_datasets, get_metadata_datasets, get_error_datasets, get_datasets, \
-    get_cutout_data_datasets, get_cutout_error_datasets, get_cutout_metadata_datasets
+from hisscube.processors.metadata_strategy import MetadataStrategy, require_zoom_grps
+from hisscube.processors.metadata_strategy_dataset import get_datasets, get_cutout_data_datasets, \
+    get_cutout_error_datasets, get_cutout_metadata_datasets, get_data_datasets, get_error_datasets, get_index_datasets, \
+    get_metadata_datasets, get_healpix_id, get_dataset_resolution_groups, write_dataset, create_additional_datasets
+from hisscube.processors.metadata_strategy_tree import require_spatial_grp, TreeStrategy
 from hisscube.utils import astrometry
 from hisscube.utils.astrometry import NoCoverageFoundError, get_heal_path_from_coords, \
     get_spectrum_center_coords, get_overlapping_healpix_pixel_ids, get_cutout_bounds, is_cutout_whole
@@ -66,8 +67,22 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
                 "Unable to ingest spectrum %s, message: %s" % (fits_path, str(e)))
             raise e
 
+    def _write_image_cutouts(self, spec_zoom, image_cutout_ds, image_max_zoom_idx, image_refs):
+        if len(image_refs) > 0:
+            if spec_zoom > image_max_zoom_idx:
+                no_references = len(image_refs[image_max_zoom_idx])
+                self._write_image_cutout(image_cutout_ds, image_max_zoom_idx, image_refs, no_references)
+            else:
+                no_references = len(image_refs[spec_zoom])
+                self._write_image_cutout(image_cutout_ds, spec_zoom, image_refs, no_references)
+
     def _set_connector(self, h5_connector):
         self.h5_connector = h5_connector
+
+    @staticmethod
+    def convert_refs_to_array(image_refs):
+        for res in image_refs:
+            image_refs[res] = np.array(image_refs[res], dtype=h5py.regionref_dtype)
 
     @abstractmethod
     def get_resolution_groups(self, metadata, h5_connector):
@@ -85,23 +100,9 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
     def _write_parsed_spectrum_metadata(self, metadata, fits_path, no_attrs, no_datasets):
         raise NotImplementedError
 
-    @staticmethod
-    def convert_refs_to_array(image_refs):
-        for res in image_refs:
-            image_refs[res] = np.array(image_refs[res], dtype=h5py.regionref_dtype)
-
     @abstractmethod
     def _write_image_cutout(self, image_cutout_ds, zoom, image_refs, no_references):
         pass
-
-    def write_image_cutouts(self, spec_zoom, image_cutout_ds, image_max_zoom_idx, image_refs):
-        if len(image_refs) > 0:
-            if spec_zoom > image_max_zoom_idx:
-                no_references = len(image_refs[image_max_zoom_idx])
-                self._write_image_cutout(image_cutout_ds, image_max_zoom_idx, image_refs, no_references)
-            else:
-                no_references = len(image_refs[spec_zoom])
-                self._write_image_cutout(image_cutout_ds, spec_zoom, image_refs, no_references)
 
 
 class TreeSpectrumStrategy(SpectrumMetadataStrategy):
@@ -274,18 +275,9 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
         self.convert_refs_to_array(image_refs)
         for spec_zoom_idx, spec_ds in enumerate(spec_datasets_multiple_zoom):
             image_cutout_ds = self.get_image_cutout_ds(spec_ds, spec_zoom_idx)
-            self.write_image_cutouts(spec_zoom_idx, image_cutout_ds, image_max_zoom_idx, image_refs)
+            self._write_image_cutouts(spec_zoom_idx, image_cutout_ds, image_max_zoom_idx, image_refs)
         self.spec_cnt += 1
         return spec_datasets_multiple_zoom
-
-    def write_image_cutouts(self, spec_zoom_idx, image_cutout_ds, image_max_zoom_idx, image_refs):
-        if len(image_refs) > 0:
-            if spec_zoom_idx > image_max_zoom_idx:
-                no_references = len(image_refs[image_max_zoom_idx])
-                self._write_image_cutout(image_cutout_ds, image_max_zoom_idx, image_refs, no_references)
-            else:
-                no_references = len(image_refs[spec_zoom_idx])
-                self._write_image_cutout(image_cutout_ds, spec_zoom_idx, image_refs, no_references)
 
     def walk_groups(self, depth, h5_grp):
         if isinstance(h5_grp, h5py.Group):
@@ -297,7 +289,8 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
         return "type" in h5_grp.attrs and h5_grp.attrs[
             "type"] == "spatial" and depth == self.config.SPEC_SPAT_INDEX_ORDER
 
-    def get_spec_datasets(self, time_grp_1st_spectrum):
+    @staticmethod
+    def get_spec_datasets(time_grp_1st_spectrum):
         spec_datasets = []
         for res_grp in time_grp_1st_spectrum.values():
             for ds_name, ds in res_grp.items():
@@ -305,7 +298,8 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
                     spec_datasets.append(ds)
         return spec_datasets
 
-    def get_spectrum_group(self, h5_grp):
+    @staticmethod
+    def get_spectrum_group(h5_grp):
         time_grp_1st_spectrum = {}
         for child_grp in h5_grp.values():
             if isinstance(child_grp, h5py.Group) and child_grp.attrs["type"] == "time":
@@ -316,7 +310,8 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
     def _write_image_cutout(self, image_cutout_ds, zoom, image_refs, no_references):
         image_cutout_ds[0:no_references] = image_refs[zoom]
 
-    def get_image_cutout_ds(self, spec_ds, spec_zoom_idx):
+    @staticmethod
+    def get_image_cutout_ds(spec_ds, spec_zoom_idx):
         image_cutout_ds = spec_ds.parent.parent.parent[
             "image_cutouts_%d" % spec_zoom_idx]  # we write image cutout zoom equivalent to the spectral zoom
         return image_cutout_ds
@@ -511,9 +506,9 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             image_data_cutout_ds = image_data_cutout_ds_multiple_zoom[spec_zoom]
             image_error_cutout_ds = image_error_cutout_ds_multiple_zoom[spec_zoom]
             image_metadata_cutout_ds = image_metadata_cutout_ds_multiple_zoom[spec_zoom]
-            self.write_image_cutouts(spec_zoom, image_data_cutout_ds, image_max_zoom, image_data_refs)
-            self.write_image_cutouts(spec_zoom, image_error_cutout_ds, image_max_zoom, image_error_refs)
-            self.write_image_cutouts(spec_zoom, image_metadata_cutout_ds, image_max_zoom, image_metadata_refs)
+            self._write_image_cutouts(spec_zoom, image_data_cutout_ds, image_max_zoom, image_data_refs)
+            self._write_image_cutouts(spec_zoom, image_error_cutout_ds, image_max_zoom, image_error_refs)
+            self._write_image_cutouts(spec_zoom, image_metadata_cutout_ds, image_max_zoom, image_metadata_refs)
         self.spec_cnt += 1
         return spec_metadata_datasets_multiple_zoom
 
@@ -570,7 +565,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         if not is_cutout_whole(cutout_bounds, image_ds[image_idx]):
             raise NoCoverageFoundError("Cutout not whole.")
         region_ref = image_ds.regionref[image_idx, cutout_bounds[0][1][1]:cutout_bounds[1][1][1],
-                     cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
+                                        cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
         cutout_shape = self.h5_connector.file[region_ref][region_ref].shape
         try:
             if not (0 <= cutout_shape[1] <= (64 / 2 ** image_zoom) and
@@ -589,7 +584,8 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
                                                     self.config.ORIG_CUBE_NAME)[0]
         yield from self._get_image_ids_from_pix_ids(pix_ids, index_dataset_orig_res)
 
-    def _get_image_ids_from_pix_ids(self, pix_ids, image_db_index_orig_res):
+    @staticmethod
+    def _get_image_ids_from_pix_ids(pix_ids, image_db_index_orig_res):
         for pix_id in pix_ids:
             image_idx = np.searchsorted(image_db_index_orig_res["spatial"], pix_id)
             while image_idx < len(image_db_index_orig_res) and image_db_index_orig_res["spatial"][image_idx] == pix_id:
