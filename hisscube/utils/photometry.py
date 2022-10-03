@@ -93,7 +93,7 @@ class Photometry:
 
         """
         multiple_resolution_cube = []
-        data, fits_header = self._read_spectrum(path)
+        data, fits_header = self.read_spectrum(path)
 
         wl_orig_res = np.power(10, data["loglam"])
         flux_mean_orig_res = data["flux"] * 1e-17
@@ -143,9 +143,8 @@ class Photometry:
         x_orig_res = img_orig_res_flux.shape[1]
         y_orig_res = img_orig_res_flux.shape[0]
 
-        img_orig_res_flux = img_orig_res_flux * 3e-5 * 3.631e-6 / (self.filter_midpoints[fits_header["FILTER"]] ** 2)
-        img_orig_res_flux_sigma = img_orig_res_flux_sigma * 3e-5 * 3.631e-6 / (
-                self.filter_midpoints[fits_header["FILTER"]] ** 2)
+        img_orig_res_flux = self.mag_to_flux(fits_header, img_orig_res_flux)
+        img_orig_res_flux_sigma = self.mag_to_flux(fits_header, img_orig_res_flux_sigma)
 
         multiple_resolution_cube.append({"zoom": (x_orig_res, y_orig_res),
                                          "flux_mean": img_orig_res_flux,
@@ -155,6 +154,9 @@ class Photometry:
             self._append_lower_resolution_2d(multiple_resolution_cube, img_orig_res_flux, img_orig_res_flux_sigma,
                                              img_zoom_cnt)
         return fits_header, multiple_resolution_cube
+
+    def mag_to_flux(self, fits_header, img_mag):
+        return img_mag * 3e-5 * 3.631e-6 / (self.filter_midpoints[fits_header["FILTER"]] ** 2)
 
     def get_photometry_params(self, flux, wl):
         band, transmission_ratio, wl_trans = self._get_transmission_ratio(wl)
@@ -196,8 +198,8 @@ class Photometry:
             allsky = f[2].data.field('allsky')[0]
             xinterp = f[2].data.field('xinterp')[0]
             yinterp = f[2].data.field('yinterp')[0]
-            gain = float(self._get_ccd_gain(camcol, run, band))
-            dark_variance = float(self._get_dark_variance(camcol, run, band))
+            gain = float(self.get_ccd_gain(camcol, run, band))
+            dark_variance = float(self.get_dark_variance(camcol, run, band))
 
             grid_x, grid_y = np.meshgrid(xinterp, yinterp, copy=False)
             simg = ndimage.map_coordinates(allsky, (grid_y, grid_x), order=1, mode="nearest")
@@ -209,13 +211,19 @@ class Photometry:
             return fits_header, np.ascontiguousarray(img), np.ascontiguousarray(
                 img_err)  # return calibrated image with errors in nanomaggies
 
-    def _get_ccd_gain(self, camcol, run, band):
+    def get_ccd_gain(self, camcol, run, band):
         return self._get_config(self.ccd_gain_config, camcol, run, band)
 
-    def _get_dark_variance(self, camcol, run, band):
+    def get_dark_variance(self, camcol, run, band):
         return self._get_config(self.ccd_dark_variance_config, camcol, run, band)
 
-    def _read_spectrum(self, filename):
+    def read_fits_file(self, filename):
+        with fits.open(filename, memmap=self.fits_mem_map) as f:
+            header = f[0].header
+            data = f[0].data
+            return [header, data, f]
+
+    def read_spectrum(self, filename):
         with fits.open(filename, memmap=self.fits_mem_map) as hdul:
             fits_header = hdul[0].header
             data = hdul[1].data

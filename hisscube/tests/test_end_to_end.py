@@ -54,6 +54,7 @@ class TestHiSSCube(unittest.TestCase):
         h5_path = "../../results/SDSS_cube.h5"
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         test_images = "../../data/raw/galaxy_small/images"
+        # image_pattern = "*.fits"
         image_pattern = "frame-*-004136-*-0129.fits"
         test_spectra = "../../data/raw/galaxy_small/spectra"
         spectra_pattern = "*.fits"

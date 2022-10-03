@@ -166,7 +166,7 @@ class VisualizationProcessorStrategy(ABC):
         else:
             image_column_names = 'heal, ra, dec, time, wl, mean, sigma, spectrum_ra, spectrum_dec, fits_name, ' \
                                  'spectrum_fits_name '
-            image_fits_name = str(image_path).split('/')[-1]
+            image_fits_name = self.parse_str_path(image_path)
             image_fits_name_casted = np.array([image_fits_name]).astype(np.dtype('S32'))
             image_fits_name_column = np.repeat(image_fits_name_casted, no_pixels, axis=0)
             spectrum_fits_name = str(spectrum_path).split('/')[-1]
@@ -186,6 +186,9 @@ class VisualizationProcessorStrategy(ABC):
                              spectrum_name_column]
         return np.rec.fromarrays(image_columns,
                                  names=image_column_names)
+
+    def parse_str_path(self, image_path):
+        return Path(image_path).name
 
     def _get_spectrum_table_columns(self, no_pixels, spectrum_fits_name):
         spectrum_fits_name_casted = np.array([spectrum_fits_name]).astype(np.dtype('S32'))
@@ -342,6 +345,10 @@ class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
         for spec_idx in range(spec_cnt_total):
             self._construct_spectrum_table(spec_ds, spec_idx, cutout_data_refs, cutout_error_refs, cutout_metadata_refs)
 
+    def parse_str_path(self, image_path):
+        image_path = image_path.decode('utf-8')
+        return super().parse_str_path(image_path)
+
     def _construct_spectrum_table(self, spectra_ds, spec_idx, cutout_data_refs, cutout_error_refs,
                                   cutout_metadata_refs):
         """
@@ -396,7 +403,7 @@ class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
 
         """
         res = int(self.config.REBIN_SAMPLES / (2 ** self.output_zoom))
-        spectrum_fits_name = Path(str(spectrum_fits_path)).name
+        spectrum_fits_name = Path(spectrum_fits_path.decode('utf-8')).name
         ra, dec = self.spectrum_metadata["PLUG_RA"], self.spectrum_metadata["PLUG_DEC"]
         spectrum_part = spectrum_ds
         return self._get_table_pixels_from_spectrum_generic(dec, ra, res, spectrum_fits_name, spectrum_part)

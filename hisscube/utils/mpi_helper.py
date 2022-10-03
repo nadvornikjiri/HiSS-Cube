@@ -83,7 +83,7 @@ class MPIHelper:
 
     def send_work(self, batches, dest, offset=0):
         if len(batches) > 0:
-            batch = batches.pop()
+            batch = batches.pop(0)
             msg = (batch, offset)
             tag = self.WORK_TAG
             self.logger.debug(
