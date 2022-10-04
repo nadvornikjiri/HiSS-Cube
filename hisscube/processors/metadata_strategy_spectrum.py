@@ -47,11 +47,7 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
         self.spec_cnt = 0
         self.h5_connector.fits_total_cnt = 0
         for fits_path, header in tqdm(fits_headers, desc="Writing metadata from spectrum cache"):
-            if not fits_path:  # end of data
-                break
             self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
-            if self.spec_cnt >= self.config.LIMIT_SPECTRA_COUNT:
-                break
 
     @log_timing("process_spectrum_metadata")
     def _write_metadata_from_header(self, h5_connector, fits_path, header, no_attrs, no_datasets):

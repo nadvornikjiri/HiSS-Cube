@@ -3,6 +3,7 @@ import ujson
 import numpy as np
 
 from hisscube.processors.data import float_compress
+from hisscube.processors.metadata import get_path_list
 from hisscube.processors.metadata_strategy_spectrum import SpectrumMetadataStrategy
 from hisscube.utils.io import get_path_patterns, get_spectrum_header_dataset
 from hisscube.utils.logging import HiSSCubeLogger, log_timing
@@ -26,10 +27,11 @@ class SpectrumProcessor:
             self.spec_cnt = self.h5_connector.get_spectrum_count()  # header datasets not created yet
         except KeyError:
             self.spec_cnt = 0
-            self.metadata_processor.create_fits_header_datasets()
+            self.metadata_processor.create_fits_header_datasets(max_spectra=1)
         spec_header_ds = get_spectrum_header_dataset(h5_connector)
+        spec_path_list = get_path_list(spec_path, spectra_pattern, self.config.LIMIT_SPECTRA_COUNT)
         self.spec_cnt += self.metadata_processor.write_fits_headers(spec_header_ds, spec_header_ds.dtype, spec_path,
-                                                                    spectra_pattern,
+                                                                    spec_path_list,
                                                                     self.config.LIMIT_SPECTRA_COUNT,
                                                                     offset=self.spec_cnt)
         self.h5_connector.file.attrs["spectrum_count"] = self.spec_cnt

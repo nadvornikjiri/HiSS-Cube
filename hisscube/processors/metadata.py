@@ -1,3 +1,4 @@
+import itertools
 import pathlib
 
 import fitsio
@@ -32,21 +33,11 @@ class MetadataProcessor:
         fits_cnt = 0
         for fits_path in tqdm(path_list, desc="Writing headers for %s" % fits_directory_path):
             buf_i, fits_cnt, offset = self._write_fits_header(buf, buf_i, fits_cnt, fits_path, header_ds, offset)
-            if fits_cnt >= max_fits_cnt:
-                break
         if fits_cnt > 0:
             header_ds.write_direct(buf, source_sel=np.s_[0:buf_i], dest_sel=np.s_[offset:offset + buf_i])
         return fits_cnt
 
-    def create_fits_header_datasets(self, max_images=None, max_spectra=None):
-        if not max_images:
-            max_images = self.config.LIMIT_IMAGE_COUNT
-        if not max_spectra:
-            max_spectra = self.config.LIMIT_SPECTRA_COUNT
-        if not max_images:
-            max_images = self.config.MAX_STORED_IMAGE_HEADERS
-        if not max_spectra:
-            max_spectra = self.config.MAX_STORED_SPECTRA_HEADERS
+    def create_fits_header_datasets(self, max_images=0, max_spectra=0):
         image_header_ds, image_header_ds_dtype = get_header_ds(max_images,
                                                                self.config.FITS_MAX_PATH_SIZE,
                                                                self.config.FITS_IMAGE_MAX_HEADER_SIZE,
@@ -65,8 +56,8 @@ class MetadataProcessor:
             del self.h5_connector.file["fits_spectra_metadata"]
 
     def _create_fits_headers(self, image_path, image_pattern, spectra_path, spectra_pattern):
-        image_path_list = self.get_path_list(image_path, image_pattern)
-        spectra_path_list = self.get_path_list(spectra_path, spectra_pattern)
+        image_path_list = get_path_list(image_path, image_pattern, self.config.LIMIT_IMAGE_COUNT)
+        spectra_path_list = get_path_list(spectra_path, spectra_pattern, self.config.LIMIT_SPECTRA_COUNT)
         image_header_ds, image_header_ds_dtype, spec_header_ds, spec_header_ds_dtype = self.create_fits_header_datasets(
             max_images=len(image_path_list), max_spectra=len(spectra_path_list))
         img_cnt = self.write_fits_headers(image_header_ds, image_header_ds_dtype, image_path, image_path_list,
@@ -75,10 +66,6 @@ class MetadataProcessor:
         spec_cnt = self.write_fits_headers(spec_header_ds, spec_header_ds_dtype, spectra_path, spectra_path_list,
                                            self.config.LIMIT_SPECTRA_COUNT)
         self.h5_connector.file.attrs["spectrum_count"] = spec_cnt
-
-    @staticmethod
-    def get_path_list(fits_directory_path, fits_pattern):
-        return list(pathlib.Path(fits_directory_path).rglob(fits_pattern))
 
     @log_timing("fits_headers")
     def _write_fits_header(self, buf, buf_i, fits_cnt, fits_path, header_ds, offset):
@@ -94,3 +81,9 @@ class MetadataProcessor:
         fits_cnt += 1
         self.h5_connector.fits_total_cnt += 1
         return buf_i, fits_cnt, offset
+
+
+def get_path_list(dir_path, pattern, limit):
+    path_generator = pathlib.Path(dir_path).rglob(pattern)
+    return list(itertools.islice(path_generator, limit))
+

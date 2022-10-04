@@ -54,9 +54,10 @@ class SparseTreeCube:
 
 class MLProcessorStrategy(ABC):
 
-    def __init__(self, config, metadata_strategy: MetadataStrategy):
+    def __init__(self, config, metadata_strategy: MetadataStrategy, photometry: Photometry):
         self.metadata_strategy = metadata_strategy
         self.config = config
+        self.photometry = photometry
         self.logger = HiSSCubeLogger.logger
         self.spectral_3d_cube = None
         self.spec_3d_cube_datasets = {"spectral": {}, "image": {}}
@@ -73,6 +74,7 @@ class MLProcessorStrategy(ABC):
         for wl in cutout_data:
             stacked_cutout_for_wl = aggregate_inverse_variance_weighting(cutout_data[wl])
             target_image_3d_cube.append(stacked_cutout_for_wl)
+
         target_image_3d_cube = np.array(target_image_3d_cube)
         spec_dims["time"] = np.mean(
             spec_dims["time"])  # TODO might change time to probability distribution as well?
@@ -171,8 +173,7 @@ class MLProcessorStrategy(ABC):
             spec_error_ds[self.target_cnt[zoom]] = target_spectra_1d_cube[:, 1]  # Writing errors
             self.target_cnt[zoom] += 1
 
-    @staticmethod
-    def _process_cutout_bounds(cutout_bounds, cutout_data, cutout_dims, cutout_wl, image_cutouts, image_region,
+    def _process_cutout_bounds(self, cutout_bounds, cutout_data, cutout_dims, cutout_wl, image_cutouts, image_region,
                                time, w):
         ra, dec = get_cutout_pixel_coords(cutout_bounds, w)
         if image_cutouts is None:
@@ -181,16 +182,19 @@ class MLProcessorStrategy(ABC):
             cutout_data = image_cutouts.data
             cutout_dims["spatial"] = np.stack((ra, dec), axis=2)
             cutout_dims["child_dim"] = {}
+            for cutout_desired_wl in self.photometry.get_midpoints():
+                cutout_data[cutout_desired_wl] = [np.zeros(image_region.shape)]
         wl_dim = cutout_dims["child_dim"]
         if cutout_wl not in wl_dim:
             wl_dim[cutout_wl] = {"child_dim": {"time": []}}
-            cutout_data[cutout_wl] = []
             time_dim = wl_dim[cutout_wl]["child_dim"]["time"]
 
         else:
             time_dim = cutout_dims["child_dim"][cutout_wl]["child_dim"]["time"]
-        cutout_dense_data = cutout_data[cutout_wl]
-        cutout_dense_data.append(image_region)
+        if cutout_data[cutout_wl][0].flat[0] == 0:  # array is only initialized, otherwise empty
+            cutout_data[cutout_wl][0] = image_region
+        else:
+            cutout_data[cutout_wl].append(image_region)
         time_dim.append(time)
         return cutout_data, cutout_dims, image_cutouts
 
@@ -206,8 +210,8 @@ class MLProcessorStrategy(ABC):
 
 
 class TreeMLProcessorStrategy(MLProcessorStrategy):
-    def __init__(self, config, metadata_strategy: TreeStrategy):
-        super().__init__(config, metadata_strategy)
+    def __init__(self, config, metadata_strategy: TreeStrategy, photometry: Photometry):
+        super().__init__(config, metadata_strategy, photometry)
         self.metadata_strategy: TreeStrategy = metadata_strategy
 
     def _get_spectral_cube(self, h5_connector, spec_datasets):
@@ -310,7 +314,7 @@ class TreeMLProcessorStrategy(MLProcessorStrategy):
 class DatasetMLProcessorStrategy(MLProcessorStrategy):
 
     def __init__(self, config, metadata_strategy: DatasetStrategy, photometry: Photometry):
-        super().__init__(config, metadata_strategy)
+        super().__init__(config, metadata_strategy, photometry)
         self.photometry = photometry
         self.metadata_strategy: DatasetStrategy = metadata_strategy
 

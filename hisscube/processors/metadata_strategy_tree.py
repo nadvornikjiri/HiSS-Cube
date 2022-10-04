@@ -54,7 +54,7 @@ class TreeStrategy(MetadataStrategy):
         orig_image_header = get_orig_header(h5_connector, image_ds)
         orig_spectrum_header = get_orig_header(h5_connector, spectrum_ds)
         time = get_time_from_image(orig_image_header)
-        wl = image_ds.name.split('/')[-3]
+        wl = int(image_ds.name.split('/')[-3])
         image_fits_header = h5_connector.read_serialized_fits_header(image_ds)
         w = get_optimized_wcs(image_fits_header)
         cutout_bounds = get_cutout_bounds(image_fits_header, res_idx, orig_spectrum_header,

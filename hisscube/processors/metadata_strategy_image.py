@@ -46,11 +46,7 @@ class ImageMetadataStrategy(ABC):
         self.img_cnt = 0
         self.h5_connector.fits_total_cnt = 0
         for fits_path, header in tqdm(fits_headers, desc="Writing metadata from image cache"):
-            if not fits_path:  # end of data
-                break
             self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
-            if self.img_cnt >= self.config.LIMIT_IMAGE_COUNT:
-                break
 
     @log_timing("process_image_metadata")
     def _write_metadata_from_header(self, h5_connector, fits_path, header, no_attrs, no_datasets):
@@ -210,11 +206,7 @@ class TreeImageStrategy(ImageMetadataStrategy):
         self.img_cnt = 0
         self.h5_connector.fits_total_cnt = 0
         for fits_path, header in fits_headers:
-            if not fits_path:  # end of data
-                break
             self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
-            if self.img_cnt >= self.config.LIMIT_IMAGE_COUNT:
-                break
 
 
 class DatasetImageStrategy(ImageMetadataStrategy):
