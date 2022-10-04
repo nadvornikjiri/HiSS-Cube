@@ -221,9 +221,9 @@ class MetadataBuilder(SerialBuilder):
 
     def _build(self):
         with self.h5_connector as h5_connector:
-            self.logger.info("Writing image spectrum_metadata.")
+            self.logger.info("Writing image metadata.")
             self.image_processor.write_images_metadata(h5_connector)
-            self.logger.info("Writing spectra spectrum_metadata.")
+            self.logger.info("Writing spectra metadata.")
             self.spectrum_processor.write_spectra_metadata(h5_connector)
 
 
@@ -474,7 +474,6 @@ class MLCubeBuilder(SerialBuilder):
     def _build(self):
         with self.h5_connector as h5_connector:
             self.logger.info("Creating the ML 3D dense cube.")
-            self.ml_processor.h5_connector = h5_connector
             self.ml_processor.create_3d_cube(h5_connector)
 
 

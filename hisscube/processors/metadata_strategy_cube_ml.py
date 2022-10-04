@@ -1,9 +1,10 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from bisect import bisect_left, bisect_right
 
 import h5py
 import numpy as np
 import ujson
+from tqdm import tqdm
 
 from hisscube.processors.metadata_strategy import MetadataStrategy, dereference_region_ref
 from hisscube.processors.metadata_strategy_dataset import DatasetStrategy, get_cutout_data_datasets, \
@@ -60,6 +61,10 @@ class MLProcessorStrategy(ABC):
         self.spectral_3d_cube = None
         self.spec_3d_cube_datasets = {"spectral": {}, "image": {}}
         self.target_cnt = {}
+
+    @abstractmethod
+    def create_3d_cube(self, h5_connector):
+        raise NotImplementedError
 
     @staticmethod
     def _aggregate_3d_cube(cutout_data, cutout_dims, spec_data, spec_dims):
@@ -325,7 +330,8 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
                                          self.config.ORIG_CUBE_NAME)
         spectra_errors = get_error_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
                                             self.config.ORIG_CUBE_NAME)
-        for spatial_index, from_idx, to_idx in target_spatial_indices:
+        for spatial_index, from_idx, to_idx in tqdm(target_spatial_indices,
+                                                    desc="Building ML 3D cube for target"):
             self._append_target_3d_cube(h5_connector, spectra_data, spectra_errors, spatial_index,
                                         from_idx, to_idx)
         add_nexus_navigation_metadata(h5_connector, self.config)

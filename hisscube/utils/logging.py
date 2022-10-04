@@ -139,6 +139,7 @@ def get_timings_logger(timings_path, prefix):
 def get_application_logger():
     config = Config()
     logging.basicConfig()
+    logging.captureWarnings(True)
     logging.root.setLevel(config.LOG_LEVEL)
     logger = logging.getLogger("rank[%i]" % rank)
     mh = MPIFileHandler("logfile.log")

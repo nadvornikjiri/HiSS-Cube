@@ -6,10 +6,11 @@ import fitsio
 import h5py
 import numpy as np
 import ujson
+from tqdm import tqdm
 
 from hisscube.processors.data import float_compress
 from hisscube.processors.metadata_strategy import MetadataStrategy, require_zoom_grps
-from hisscube.processors.metadata_strategy_dataset import get_datasets, get_cutout_data_datasets, \
+from hisscube.processors.metadata_strategy_dataset import get_cutout_data_datasets, \
     get_cutout_error_datasets, get_cutout_metadata_datasets, get_data_datasets, get_error_datasets, get_index_datasets, \
     get_metadata_datasets, get_healpix_id, get_dataset_resolution_groups, write_dataset, create_additional_datasets
 from hisscube.processors.metadata_strategy_tree import require_spatial_grp, TreeStrategy
@@ -17,7 +18,7 @@ from hisscube.utils import astrometry
 from hisscube.utils.astrometry import NoCoverageFoundError, get_heal_path_from_coords, \
     get_spectrum_center_coords, get_overlapping_healpix_pixel_ids, get_cutout_bounds, is_cutout_whole
 from hisscube.utils.config import Config
-from hisscube.utils.io import H5Connector
+from hisscube.utils.io import H5Connector, get_spectrum_header_dataset
 from hisscube.utils.logging import HiSSCubeLogger, log_timing
 from hisscube.utils.nexus import set_nx_interpretation, set_nx_axes
 from hisscube.utils.photometry import Photometry
@@ -34,7 +35,7 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
 
     def write_metadata_multiple(self, h5_connector, no_attrs=False, no_datasets=False):
         self._set_connector(h5_connector)
-        fits_headers = self.h5_connector.file["/fits_spectra_metadata"]
+        fits_headers = get_spectrum_header_dataset(h5_connector)
         self._write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets)
 
     def write_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
@@ -45,7 +46,7 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
     def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
         self.spec_cnt = 0
         self.h5_connector.fits_total_cnt = 0
-        for fits_path, header in fits_headers:
+        for fits_path, header in tqdm(fits_headers, desc="Writing metadata from spectrum cache"):
             if not fits_path:  # end of data
                 break
             self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
@@ -56,8 +57,6 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
     def _write_metadata_from_header(self, h5_connector, fits_path, header, no_attrs, no_datasets):
         fits_path = fits_path.decode('utf-8')
         self._set_connector(h5_connector)
-        if self.spec_cnt % 100 == 0 and self.spec_cnt / 100 > 0:
-            self.logger.info("Spectra idx: %05d" % self.spec_cnt)
         try:
             self.write_metadata(h5_connector, fits_path, header, no_attrs, no_datasets)
             self.spec_cnt += 1
@@ -398,7 +397,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         image_metadata_cutout_ds = get_cutout_metadata_datasets(self.h5_connector, self.config.SPEC_ZOOM_CNT,
                                                                 self.config.ORIG_CUBE_NAME)
         spec_total_cnt = h5_connector.get_spectrum_count()
-        for i in range(spec_total_cnt):
+        for i in tqdm(range(spec_total_cnt), desc="Adding image cutouts for spectrum"):
             self._add_image_refs_to_spectra(spectra_metadata_ds, image_data_cutout_ds,
                                             image_error_cutout_ds, image_metadata_cutout_ds)
 

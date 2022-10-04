@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import ujson
+from tqdm import tqdm
 
 from hisscube.processors.data import float_compress
 from hisscube.processors.metadata_strategy import MetadataStrategy, require_zoom_grps
@@ -13,7 +14,7 @@ from hisscube.processors.metadata_strategy_dataset import get_data_datasets, get
 from hisscube.processors.metadata_strategy_tree import require_spatial_grp
 from hisscube.utils.astrometry import get_heal_path_from_coords, get_image_center_coords
 from hisscube.utils.config import Config
-from hisscube.utils.io import H5Connector
+from hisscube.utils.io import H5Connector, get_image_header_dataset
 from hisscube.utils.logging import log_timing, HiSSCubeLogger
 from hisscube.utils.nexus import set_nx_data, set_nx_interpretation
 from hisscube.utils.photometry import Photometry
@@ -30,7 +31,7 @@ class ImageMetadataStrategy(ABC):
 
     def write_metadata_multiple(self, h5_connector, no_attrs=False, no_datasets=False):
         self._set_connector(h5_connector)
-        fits_headers = self.h5_connector.file["/fits_images_metadata"]
+        fits_headers = get_image_header_dataset(h5_connector)
         self._write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets)
 
     def write_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
@@ -44,7 +45,7 @@ class ImageMetadataStrategy(ABC):
     def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
         self.img_cnt = 0
         self.h5_connector.fits_total_cnt = 0
-        for fits_path, header in fits_headers:
+        for fits_path, header in tqdm(fits_headers, desc="Writing metadata from image cache"):
             if not fits_path:  # end of data
                 break
             self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
@@ -55,8 +56,6 @@ class ImageMetadataStrategy(ABC):
     def _write_metadata_from_header(self, h5_connector, fits_path, header, no_attrs, no_datasets):
         self._set_connector(h5_connector)
         fits_path = fits_path.decode('utf-8')
-        if self.img_cnt % 100 == 0 and self.img_cnt / 100 > 0:
-            self.logger.info("Image idx: %05d" % self.img_cnt)
         try:
             self.write_metadata(h5_connector, fits_path, header, no_attrs=no_attrs, no_datasets=no_datasets)
             self.img_cnt += 1
