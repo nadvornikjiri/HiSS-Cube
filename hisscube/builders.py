@@ -307,7 +307,7 @@ class ParallelDataBuilder(Builder):
         path_list = list(path_list)
         batches = list(chunks(path_list, self.config.BATCH_SIZE))
         offset = 0
-        for i in tqdm(range(1, len(batches) + 1)):
+        for i in tqdm(range(1, len(batches) + 1), desc="Data progress"):
             next_batch_size = len(batches[0])
             if i < self.mpi_helper.size:
                 self.mpi_helper.send_work(batches, dest=i, offset=offset)

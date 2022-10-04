@@ -12,6 +12,10 @@ if __name__ == '__main__':
     parser.add_argument('output_path', metavar="output", type=str,
                         help="path to HDF5 file, does not need to exist")
     parser.add_argument('--truncate', action='store_true', help="Truncate existing Hdf5 file?")
+    parser.add_argument('--image-pattern', dest='image_pattern', action='store', nargs='?', type=str,
+                        help="Regex pattern to match the images towards.")
+    parser.add_argument('--spectra-pattern', dest='spectra_pattern', action='store', nargs='?', type=str,
+                        help="Regex pattern to match the spectra towards.")
 
     subparsers = parser.add_subparsers(help='commands', dest="command")
     create_parser = subparsers.add_parser("create",
@@ -36,7 +40,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    dependencies = HiSSCubeProvider(args.output_path, input_path=args.input_path)
+    dependencies = HiSSCubeProvider(args.output_path, input_path=args.input_path, image_pattern=args.image_pattern,
+                                    spectra_pattern=args.spectra_pattern)
     cli_command_invoker = CLICommandInvoker(args, dependencies)
     cli_command_invoker.execute()
     dependencies.mpi_helper.log_proc_stats()
