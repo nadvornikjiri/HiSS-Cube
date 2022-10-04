@@ -36,10 +36,10 @@ class TestCBoostedBuilder(unittest.TestCase):
 
         h5_file = h5py.File(H5_PATH, libver="latest")
         test_ds = h5_file[
-            "/semi_sparse_cube/5/22/90/362/1450/5802/23208/92833/371334/4604806771.19/3551/(1024, 744)/frame-u-004899-2-0260.fits"]
+            "/semi_sparse_cube/5/22/90/362/1450/5802/23208/92833/371334/4604806627.9/6166/(1024, 744)/frame-r-004899-2-0260.fits"]
         orig_res_link = test_ds.attrs["orig_res_link"]
         orig_res_ds = h5_file[
-            "/semi_sparse_cube/5/22/90/362/1450/5802/23208/92833/371334/4604806771.19/3551/(2048, 1489)/frame-u-004899-2-0260.fits"]
+            "/semi_sparse_cube/5/22/90/362/1450/5802/23208/92833/371334/4604806627.9/6166/(2048, 1489)/frame-r-004899-2-0260.fits"]
         orig_res_ds_name = orig_res_ds.name.split('/')[-1]
         test_ds_name = h5_file[orig_res_link].name.split('/')[-1]
         assert (orig_res_ds_name == test_ds_name)
