@@ -69,8 +69,6 @@ class MetadataProcessor:
 
     @log_timing("fits_headers")
     def _write_fits_header(self, buf, buf_i, fits_cnt, fits_path, header_ds, offset):
-        if fits_cnt % 100 == 0 and fits_cnt / 100 > 0:
-            self.logger.info("Fits idx: %05d" % fits_cnt)
         if buf_i >= self.config.FITS_HEADER_BUF_SIZE:
             header_ds.write_direct(buf, source_sel=np.s_[0:buf_i], dest_sel=np.s_[offset:offset + buf_i])
             offset += buf_i
