@@ -100,7 +100,8 @@ class MLProcessorStrategy(ABC):
 
         set_nx_data(spec_ml_grp, h5_connector)
         ds_name = "cutout_3d_cube_zoom_%d" % zoom
-
+        if ds_name in image_ml_grp:
+            del image_ml_grp[ds_name]
         image_ds = image_ml_grp.require_dataset(ds_name, image_dshape, dtype)
         set_nx_interpretation(image_ds, "image", h5_connector)
         self.spec_3d_cube_datasets["image"][zoom] = image_ds
@@ -108,6 +109,8 @@ class MLProcessorStrategy(ABC):
         set_nx_signal(image_ml_grp, ds_name, h5_connector)
 
         ds_name = "spectral_1d_cube_zoom_%d" % zoom
+        if ds_name in image_ml_grp:
+            del image_ml_grp[ds_name]
         spec_ds = spec_ml_grp.require_dataset(ds_name, spectral_dshape, dtype)
         set_nx_interpretation(spec_ds, "spectrum", h5_connector)
         self.spec_3d_cube_datasets["spectral"][zoom] = spec_ds
@@ -150,7 +153,10 @@ class MLProcessorStrategy(ABC):
 
     @staticmethod
     def _create_error_ds(ml_grp, ds, dshape, dtype):
-        error_ds = ml_grp.require_dataset("errors", dshape, dtype)
+        error_ds_name = "errors"
+        if error_ds_name in ml_grp:
+            del ml_grp[error_ds_name]
+        error_ds = ml_grp.require_dataset(error_ds_name, dshape, dtype)
         ds.attrs["error_ds"] = error_ds.ref
 
     def _process_cutout_cube(self, cutout_cube, h5_connector, spectra_cube, zoom):

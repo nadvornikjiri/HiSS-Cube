@@ -11,8 +11,8 @@ def get_header_ds(max_entries, path_size, header_size, grp, ds_name):
     path_dtype = h5py.string_dtype(encoding="utf-8", length=path_size)
     header_dtype = h5py.string_dtype(encoding="utf-8", length=header_size)
     header_ds_dtype = [("path", path_dtype), ("header", header_dtype)]
-    header_ds = grp.create_dataset(ds_name, (max_entries,),
-                                   dtype=header_ds_dtype)
+    header_ds = grp.require_dataset(ds_name, (max_entries,),
+                                    dtype=header_ds_dtype)
     return header_ds, header_ds_dtype
 
 

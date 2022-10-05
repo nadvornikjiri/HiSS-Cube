@@ -31,7 +31,7 @@ class TreeStrategy(MetadataStrategy):
     def add_metadata(self, h5_connector, metadata, datasets, img_cnt=None, fits_name=None):
         """
         Adds metadata to the HDF5 data sets of the same image or spectrum in multiple resolutions. It also modifies the
-        spectrum_metadata for image where needed and adds the COMMENT and HISTORY attributes as datasets for optimization
+        metadata for image where needed and adds the COMMENT and HISTORY attributes as datasets for optimization
         purposes.
         Parameters
         ----------

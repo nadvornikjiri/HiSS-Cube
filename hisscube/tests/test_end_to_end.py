@@ -49,6 +49,23 @@ class TestHiSSCube(unittest.TestCase):
         diff_output = self.h5diff_whole(h5_path, h5_test_path)
         assert (diff_output == "")
 
+    def test_updates_metadata(self):
+        h5_dump_path = "../../results/SDSS_cube_dataset_dump.txt"
+        h5_testdump_path = "../../results/SDSS_cube_dataset_test_dump.txt"
+        h5_path = "../../results/SDSS_cube.h5"
+        input_path = "../../data/raw/galaxy_small/"
+        image_pattern = "frame-*-004136-*-0129.fits"
+        python_path = "../../venv_par/bin/python"
+        builders = ["fits-metadata-cache", "metadata", "data", "link", "visualization-cube", "ml-cube"]
+        for builder in builders:
+            cmd = "mpiexec -n 8 %s ../../hisscube.py --image-pattern %s %s %s update --%s" % (
+            python_path, image_pattern, input_path, h5_path, builder)
+            print("Running command: %s" % cmd)
+            output = os.popen(cmd).read()
+
+        diff_output = self.diff_dump(h5_dump_path, h5_path, h5_testdump_path)
+        assert (diff_output == "")
+
     @staticmethod
     def construct_serial():
         h5_path = "../../results/SDSS_cube.h5"

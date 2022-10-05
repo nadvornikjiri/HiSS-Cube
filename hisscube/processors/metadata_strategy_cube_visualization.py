@@ -47,7 +47,10 @@ class VisualizationProcessorStrategy(ABC):
             spectral_cube = self._construct_spectral_cube_table(zoom)
             res_grp = dense_cube_grp.require_group(str(zoom))
             visualization = res_grp.require_group("visualization")
-            ds = visualization.require_dataset("dense_cube_zoom_%d" % zoom,
+            dense_cube_ds_name = "dense_cube_zoom_%d" % zoom
+            if dense_cube_ds_name in visualization:
+                del visualization[dense_cube_ds_name]
+            ds = visualization.require_dataset(dense_cube_ds_name,
                                                spectral_cube.shape,
                                                spectral_cube.dtype,
                                                compression=self.config.COMPRESSION,
@@ -77,7 +80,7 @@ class VisualizationProcessorStrategy(ABC):
         This method constructs the dense cube from the semi-sparse cube tree in the HDF5 file for a given resolution.
         It iterates over the individual spectra, reads the "image_cutouts" attribute and de-references all of the
         region references there. Returns coordinates for every voxel of the constructed 4D spectral cube (ra, dec,
-        time, wavelength) + optional spectrum_metadata if enabled by the self.INCLUDE_ADDITIONAL_METADATA.
+        time, wavelength) + optional metadata if enabled by the self.INCLUDE_ADDITIONAL_METADATA.
 
         Parameters
         ----------

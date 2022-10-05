@@ -25,7 +25,7 @@ if __name__ == '__main__':
                                                   cube h5 file. They all work in the way that there respective group 
                                                   structure within the h5 file gets deleted and recreated from scratch at 
                                                   the moment.""")
-    update_parser.add_argument('--fits-spectrum_metadata-cache', action='store_true',
+    update_parser.add_argument('--fits-metadata-cache', action='store_true',
                                help="Recreate the FITS paths and serialized headers tables.")
     update_parser.add_argument('--metadata', action='store_true',
                                help="Recreate the semi-sparse group and everything beneath.")

@@ -123,13 +123,24 @@ class H5Connector(ABC):
         return self.create_dataset(group, file_name, img_data_shape, chunk_size)
 
     def create_dataset(self, group, file_name, img_data_shape, chunk_size):
-        dcpl, space, img_data_dtype = get_property_list(self.config, img_data_shape)
-        if chunk_size:
-            dcpl.set_chunk(chunk_size)
-        dsid = h5py.h5d.create(group.id, file_name.encode('utf-8'), img_data_dtype, space,
-                               dcpl=dcpl)
-        ds = h5py.Dataset(dsid)
+        ds_name = file_name.encode('utf-8')
+        if not ds_name in group:
+            dcpl, space, img_data_dtype = get_property_list(self.config, img_data_shape)
+            if chunk_size:
+                dcpl.set_chunk(chunk_size)
+            dsid = h5py.h5d.create(group.id, ds_name, img_data_dtype, space,
+                                   dcpl=dcpl)
+            ds = h5py.Dataset(dsid)
+        else:
+            ds = group[ds_name]
         return ds
+
+    def recreate_dataset(self, ds_name, spec_count, spec_zoom_group):
+        if ds_name in spec_zoom_group:
+            del spec_zoom_group[ds_name]
+        self.require_dataset(spec_zoom_group, ds_name,
+                             (spec_count, self.config.MAX_CUTOUT_REFS),
+                             dtype=h5py.regionref_dtype)
 
     def create_spectrum_h5_dataset(self, group, file_name, spec_data_shape, chunk_size=None):
         return self.create_dataset(group, file_name, spec_data_shape, chunk_size)
@@ -171,8 +182,11 @@ class SerialH5Writer(H5Connector):
         super().__init__(h5_path, config, io_strategy)
 
     def open_h5_file(self, truncate_file=False):
-        self.file = h5py.File(self.h5_path, 'r+', libver="latest")
-
+        try:
+            self.file = h5py.File(self.h5_path, 'r+', libver="latest")
+        except FileNotFoundError:
+            truncate(self.h5_path)
+            self.open_h5_file()
 
 class SerialH5Reader(H5Connector):
 

@@ -32,7 +32,13 @@ class ImageMetadataStrategy(ABC):
     def write_metadata_multiple(self, h5_connector, no_attrs=False, no_datasets=False):
         self._set_connector(h5_connector)
         fits_headers = get_image_header_dataset(h5_connector)
+        self.clear_sparse_cube(h5_connector)
         self._write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets)
+
+    def clear_sparse_cube(self, h5_connector):
+        grp_name = self.config.ORIG_CUBE_NAME
+        if grp_name in h5_connector.file:
+            del h5_connector.file[grp_name]
 
     def write_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
         self._set_connector(h5_connector)

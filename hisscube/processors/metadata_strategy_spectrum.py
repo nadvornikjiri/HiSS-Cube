@@ -383,13 +383,14 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
 
     def link_spectra_to_images(self, h5_connector: H5Connector):
         self.spec_cnt = 0
+        self.h5_connector = h5_connector
         spectra_metadata_ds = get_metadata_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
                                                     self.config.ORIG_CUBE_NAME)
-        image_data_cutout_ds = get_cutout_data_datasets(self.h5_connector, self.config.SPEC_ZOOM_CNT,
+        image_data_cutout_ds = get_cutout_data_datasets(h5_connector, self.config.SPEC_ZOOM_CNT,
                                                         self.config.ORIG_CUBE_NAME)
-        image_error_cutout_ds = get_cutout_error_datasets(self.h5_connector, self.config.SPEC_ZOOM_CNT,
+        image_error_cutout_ds = get_cutout_error_datasets(h5_connector, self.config.SPEC_ZOOM_CNT,
                                                           self.config.ORIG_CUBE_NAME)
-        image_metadata_cutout_ds = get_cutout_metadata_datasets(self.h5_connector, self.config.SPEC_ZOOM_CNT,
+        image_metadata_cutout_ds = get_cutout_metadata_datasets(h5_connector, self.config.SPEC_ZOOM_CNT,
                                                                 self.config.ORIG_CUBE_NAME)
         spec_total_cnt = h5_connector.get_spectrum_count()
         for i in tqdm(range(spec_total_cnt), desc="Adding image cutouts for spectrum", position=0, leave=True):
@@ -398,7 +399,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
 
     def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
         spectrum_count = h5_connector.get_spectrum_count()
-        spectrum_zoom_groups = require_zoom_grps("spectra", self.h5_connector, self.config.SPEC_ZOOM_CNT)
+        spectrum_zoom_groups = require_zoom_grps("spectra", h5_connector, self.config.SPEC_ZOOM_CNT)
         if not no_datasets:
             self._create_datasets(spectrum_zoom_groups, spectrum_count)
             super()._write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets)
@@ -428,15 +429,10 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             index_dtype = [("spatial", np.int64), ("time", np.float32), ("ds_slice_idx", np.int64)]
             create_additional_datasets(spec_count, spec_ds, spec_zoom_group, index_dtype, self.h5_connector,
                                        self.config.FITS_SPECTRUM_MAX_HEADER_SIZE, self.config.FITS_MAX_PATH_SIZE)
-            self.h5_connector.require_dataset(spec_zoom_group, "image_cutouts_data",
-                                              (spec_count, self.config.MAX_CUTOUT_REFS),
-                                              dtype=h5py.regionref_dtype)
-            self.h5_connector.require_dataset(spec_zoom_group, "image_cutouts_errors",
-                                              (spec_count, self.config.MAX_CUTOUT_REFS),
-                                              dtype=h5py.regionref_dtype)
-            self.h5_connector.require_dataset(spec_zoom_group, "image_cutouts_metadata",
-                                              (spec_count, self.config.MAX_CUTOUT_REFS),
-                                              dtype=h5py.regionref_dtype)
+
+            self.h5_connector.recreate_dataset("image_cutouts_data", spec_count, spec_zoom_group)
+            self.h5_connector.recreate_dataset("image_cutouts_errors", spec_count, spec_zoom_group)
+            self.h5_connector.recreate_dataset("image_cutouts_metadata", spec_count, spec_zoom_group)
 
     def _add_index_entry(self, metadata, spec_datasets):
         for img_ds in spec_datasets:

@@ -49,11 +49,11 @@ class HiSSCubeConstructionDirector:
                 truncate(self.h5_path)
             if self.args.fits_metadata_cache:
                 self.builders.append(self.serial_builders.metadata_cache_builder)
-            if self.args.spectrum_metadata:
+            if self.args.metadata:
                 self.append_metadata_builder()
             if self.args.data:
                 self.append_data_builder()
-            if self.args.link_images_spectra:
+            if self.args.link:
                 self.builders.append(self.serial_builders.link_builder)
             if self.args.visualization_cube:
                 self.builders.append(self.serial_builders.visualization_cube_builder)
@@ -230,14 +230,14 @@ class MetadataBuilder(SerialBuilder):
 class CBoosterMetadataBuilder(MetadataBuilder):
     def _build(self):
         with self.h5_connector as h5_connector:
-            self.logger.info("Creating image spectrum_metadata in memory.")
+            self.logger.info("Creating image metadata in memory.")
             self.image_processor.write_images_metadata(h5_connector)
-            self.logger.info("Creating spectra spectrum_metadata in memory.")
+            self.logger.info("Creating spectra metadata in memory.")
             self.spectrum_processor.write_spectra_metadata(h5_connector)
             self.c_write_hdf5_metadata(h5_connector)
 
     def c_write_hdf5_metadata(self, h5_connector: CBoostedMetadataBuildWriter):
-        self.logger.info("Initiating C booster for spectrum_metadata write.")
+        self.logger.info("Initiating C booster for metadata write.")
         if self.config.CHUNK_SIZE:
             chunk_size = literal_eval(self.config.CHUNK_SIZE)
             write_hdf5_metadata(h5_connector.h5_file_structure, h5_connector.h5_path, h5_connector.c_timing_log, 1,
@@ -436,7 +436,7 @@ class ParallelSWMRDataBuilder(ParallelDataBuilder):
 
     def process_response(self, h5_connector, processor, status):
         for response in self.comm_buffer:
-            metadata = response["spectrum_metadata"]
+            metadata = response["metadata"]
             data = response["data"]
             file_name = response["file_name"]
             res_grps = processor.get_resolution_groups(metadata, h5_connector)
@@ -450,7 +450,7 @@ class ParallelSWMRDataBuilder(ParallelDataBuilder):
         if "HISTORY" in metadata:
             del metadata["HISTORY"]
         processed_image_batch.append(
-            {"spectrum_metadata": dict(metadata), "data": data,
+            {"metadata": dict(metadata), "data": data,
              "file_name": str(file_name)})
 
 

@@ -146,6 +146,9 @@ def write_dataset(data, res_grp_list, should_compress, offset, coordinates=None)
 
 
 def create_additional_datasets(img_count, img_ds, img_zoom_group, index_dtype, h5_connector, header_size, path_size):
+    ds_name = "db_index"
+    if ds_name in img_zoom_group:
+        del img_zoom_group[ds_name]
     index_ds = h5_connector.require_dataset(img_zoom_group, "db_index", (img_count,), index_dtype)
     metadata_ds, metadata_ds_dtype = get_header_ds(img_count, path_size, header_size, img_zoom_group, "metadata")
     h5_connector.set_attr(img_ds, "metadata_ds_ref", metadata_ds.ref)
