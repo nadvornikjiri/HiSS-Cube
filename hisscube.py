@@ -27,7 +27,7 @@ if __name__ == '__main__':
                                                   the moment.""")
     update_parser.add_argument('--fits-spectrum_metadata-cache', action='store_true',
                                help="Recreate the FITS paths and serialized headers tables.")
-    update_parser.add_argument('--spectrum_metadata', action='store_true',
+    update_parser.add_argument('--metadata', action='store_true',
                                help="Recreate the semi-sparse group and everything beneath.")
     update_parser.add_argument('--data', action='store_true',
                                help="Update all the image and spectra datasets within the semi-sparse group.")
