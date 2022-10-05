@@ -6,7 +6,7 @@ import fitsio
 import h5py
 import numpy as np
 import ujson
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from hisscube.processors.data import float_compress
 from hisscube.processors.metadata_strategy import MetadataStrategy, require_zoom_grps
@@ -46,7 +46,7 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
     def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
         self.spec_cnt = 0
         self.h5_connector.fits_total_cnt = 0
-        for fits_path, header in tqdm(fits_headers, desc="Writing metadata from spectrum cache"):
+        for fits_path, header in tqdm(fits_headers, desc="Writing metadata from spectrum cache", position=0, leave=True):
             self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
 
     @log_timing("process_spectrum_metadata")
@@ -60,7 +60,6 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
         except ValueError as e:
             self.logger.warning(
                 "Unable to ingest spectrum %s, message: %s" % (fits_path, str(e)))
-            raise e
 
     def _write_image_cutouts(self, spec_zoom, image_cutout_ds, image_max_zoom_idx, image_refs):
         if len(image_refs) > 0:
@@ -393,7 +392,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         image_metadata_cutout_ds = get_cutout_metadata_datasets(self.h5_connector, self.config.SPEC_ZOOM_CNT,
                                                                 self.config.ORIG_CUBE_NAME)
         spec_total_cnt = h5_connector.get_spectrum_count()
-        for i in tqdm(range(spec_total_cnt), desc="Adding image cutouts for spectrum"):
+        for i in tqdm(range(spec_total_cnt), desc="Adding image cutouts for spectrum", position=0, leave=True):
             self._add_image_refs_to_spectra(spectra_metadata_ds, image_data_cutout_ds,
                                             image_error_cutout_ds, image_metadata_cutout_ds)
 

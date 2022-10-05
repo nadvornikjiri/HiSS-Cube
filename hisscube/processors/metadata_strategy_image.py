@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import ujson
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from hisscube.processors.data import float_compress
 from hisscube.processors.metadata_strategy import MetadataStrategy, require_zoom_grps
@@ -45,7 +45,7 @@ class ImageMetadataStrategy(ABC):
     def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
         self.img_cnt = 0
         self.h5_connector.fits_total_cnt = 0
-        for fits_path, header in tqdm(fits_headers, desc="Writing metadata from image cache"):
+        for fits_path, header in tqdm(fits_headers, desc="Writing metadata from image cache", position=0, leave=True):
             self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
 
     @log_timing("process_image_metadata")
@@ -59,7 +59,6 @@ class ImageMetadataStrategy(ABC):
         except RuntimeError as e:
             self.logger.warning(
                 "Unable to ingest image %s, message: %s" % (fits_path, str(e)))
-            raise e
 
     @abstractmethod
     def get_resolution_groups(self, metadata, h5_connector):

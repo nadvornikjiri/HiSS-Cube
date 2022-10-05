@@ -4,7 +4,7 @@ from bisect import bisect_left, bisect_right
 import h5py
 import numpy as np
 import ujson
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from hisscube.processors.metadata_strategy import MetadataStrategy, dereference_region_ref
 from hisscube.processors.metadata_strategy_dataset import DatasetStrategy, get_cutout_data_datasets, \
@@ -335,7 +335,7 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
         spectra_errors = get_error_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
                                             self.config.ORIG_CUBE_NAME)
         for spatial_index, from_idx, to_idx in tqdm(target_spatial_indices,
-                                                    desc="Building ML 3D cube for target"):
+                                                    desc="Building ML 3D cube for target", position=0, leave=True):
             self._append_target_3d_cube(h5_connector, spectra_data, spectra_errors, spatial_index,
                                         from_idx, to_idx)
         add_nexus_navigation_metadata(h5_connector, self.config)

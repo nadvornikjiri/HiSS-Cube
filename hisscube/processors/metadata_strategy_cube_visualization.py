@@ -7,7 +7,7 @@ import numpy as np
 import ujson
 from astropy.io.votable import from_table, writeto
 from astropy.table import QTable
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from hisscube.processors.metadata_strategy import dereference_region_ref
 from hisscube.processors.metadata_strategy_dataset import DatasetStrategy, get_cutout_data_datasets, \
@@ -344,7 +344,7 @@ class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
         cutout_metadata_refs = cutout_metadata_datasets_multiple_zoom[self.output_zoom]
 
         for spec_idx in tqdm(range(spec_cnt_total),
-                             desc="Building Visualization cube for zoom %d, target" % self.output_zoom):
+                             desc="Building Visualization cube for zoom %d, target" % self.output_zoom, position=0, leave=True):
             self._construct_spectrum_table(spec_ds, spec_idx, cutout_data_refs, cutout_error_refs, cutout_metadata_refs)
 
     def parse_str_path(self, image_path):
@@ -387,8 +387,7 @@ class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
                     self.spectral_cube[self.output_counter:self.output_counter + image_5d.shape[0]] = image_5d
                     self.output_counter += image_5d.shape[0]
                 except ValueError as e:
-                    raise e
-                    # self.logger.error("Could not process region for %s, message: %s" % (spectrum_ds, str(e)))
+                    self.logger.error("Could not process region for %s, message: %s" % (spectrum_ds, str(e)))
             else:
                 break  # necessary because of how null object references are tested in h5py dataset
 

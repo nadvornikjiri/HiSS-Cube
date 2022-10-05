@@ -5,7 +5,7 @@ import fitsio
 import h5py
 import numpy as np
 import ujson
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from hisscube.processors.metadata_strategy import MetadataStrategy, get_header_ds
 from hisscube.utils.io import get_path_patterns, H5Connector
@@ -31,7 +31,7 @@ class MetadataProcessor:
         buf = np.zeros(shape=(self.config.FITS_HEADER_BUF_SIZE,), dtype=header_ds_dtype)
         buf_i = 0
         fits_cnt = 0
-        for fits_path in tqdm(path_list, desc="Writing headers for %s" % fits_directory_path):
+        for fits_path in tqdm(path_list, desc="Writing headers for %s" % fits_directory_path, position=0, leave=True):
             buf_i, fits_cnt, offset = self._write_fits_header(buf, buf_i, fits_cnt, fits_path, header_ds, offset)
         if fits_cnt > 0:
             header_ds.write_direct(buf, source_sel=np.s_[0:buf_i], dest_sel=np.s_[offset:offset + buf_i])
