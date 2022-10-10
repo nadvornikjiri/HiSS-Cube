@@ -388,13 +388,17 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
         spec_dims = None
         spec_datasets_mean_sigma = self._get_mean_sigma(spec_datasets)
         for spec_idx, spec_ds in enumerate(spec_datasets):
-            spec_header = self._get_spectrum_header(from_idx, h5_connector, spec_idx, spectrum_original_headers)
-            if spec_idx == 0:
-                spec_dims = {"spatial": [spec_header["PLUG_RA"],
-                                         spec_header["PLUG_DEC"]],  # spatial is the same for every spectrum
-                             "wl": spec_ds[:, 0],  # wl is the same for every spectrum (binned)
-                             "time": []}  # time is different for every spectrum
-            spec_dims["time"].append(get_spectrum_time(spec_header))
+            try:
+                spec_header = self._get_spectrum_header(from_idx, h5_connector, spec_idx, spectrum_original_headers)
+                if spec_idx == 0:
+                    spec_dims = {"spatial": [spec_header["PLUG_RA"],
+                                             spec_header["PLUG_DEC"]],  # spatial is the same for every spectrum
+                                 "wl": spec_ds[:, 0],  # wl is the same for every spectrum (binned)
+                                 "time": []}  # time is different for every spectrum
+                spec_dims["time"].append(get_spectrum_time(spec_header))
+            except ValueError:
+                self.logger.debug("Unable to create dims for spectrum %d" % spec_idx)
+
         spectra = SparseTreeCube(spec_datasets_mean_sigma, spec_dims)
         return spec_ds, spectra
 

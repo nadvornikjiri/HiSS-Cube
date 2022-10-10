@@ -21,13 +21,17 @@ class MetadataProcessor:
         self.logger = HiSSCubeLogger.logger
         self.metadata_strategy = metadata_strategy
 
-    def reingest_fits_tables(self, h5_connector, image_path, spectra_path, image_pattern=None, spectra_pattern=None):
+    def reingest_fits_tables(self, h5_connector: H5Connector, image_path, spectra_path, image_pattern=None, spectra_pattern=None):
         image_path_list, spectra_path_list = self.parse_paths(image_path, image_pattern, spectra_path, spectra_pattern)
         self.clean_fits_header_tables(h5_connector)
         image_header_ds, image_header_ds_dtype, spec_header_ds, spec_header_ds_dtype = self.create_fits_header_datasets(
             h5_connector, max_images=len(image_path_list), max_spectra=len(spectra_path_list))
-        self.process_fits_headers(h5_connector, image_header_ds, image_header_ds_dtype, image_path, image_path_list)
-        self.process_fits_headers(h5_connector, spec_header_ds, spec_header_ds_dtype, spectra_path, spectra_path_list)
+        img_cnt = self.process_fits_headers(h5_connector, image_header_ds, image_header_ds_dtype, image_path,
+                                            image_path_list)
+        spec_cnt = self.process_fits_headers(h5_connector, spec_header_ds, spec_header_ds_dtype, spectra_path,
+                                             spectra_path_list)
+        h5_connector.set_image_count(img_cnt)
+        h5_connector.set_spectrum_count(spec_cnt)
 
     def parse_paths(self, image_path, image_pattern, spectra_path, spectra_pattern):
         image_pattern, spectra_pattern = get_path_patterns(self.config, image_pattern, spectra_pattern)

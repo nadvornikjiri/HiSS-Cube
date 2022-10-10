@@ -41,11 +41,11 @@ class TestExport(unittest.TestCase):
         args.ml_cube = True
         args.output_path = H5PATH
         self.config = Config()
+        self.config.MPIO = False
         self.config.METADATA_STRATEGY = self.metadata_strategy
         self.dependency_provider = HiSSCubeProvider(H5PATH, image_path=test_images, spectra_path=test_spectra,
                                                     image_pattern=image_pattern, spectra_pattern=spectra_pattern,
                                                     config=self.config)
-        self.dependency_provider.config.MPIO = False
         self.dependency_provider.config.INIT_ARRAY_SIZE = 10000
         director = HiSSCubeConstructionDirector(args, self.dependency_provider.config,
                                                 self.dependency_provider.serial_builders,
