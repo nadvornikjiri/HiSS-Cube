@@ -399,7 +399,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
                                                 image_error_cutout_ds, image_metadata_cutout_ds)
             except ZeroDivisionError as e:
                 self.logger.error(
-                        "Could not link spectrum with idx %d, message: %s" % (spec_total_cnt.name, str(e)))
+                        "Could not link spectrum with idx %d, message: %s" % (spec_total_cnt, str(e)))
 
     def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
         spectrum_count = h5_connector.get_spectrum_count()
