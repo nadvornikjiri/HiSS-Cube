@@ -1,9 +1,18 @@
 # hisscube.py
 import os
+
 import argparse
 
 from hisscube.dependency_injector import HiSSCubeProvider
 from hisscube.command import CLICommandInvoker
+
+# import pydevd_pycharm
+# import mpi4py
+# rank = mpi4py.MPI.COMM_WORLD.Get_rank()
+# port_mapping = [45659, 45285]
+# pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
+# print(os.getpid())
+# print("Rank: %d" % rank)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Import images and spectra in parallel')

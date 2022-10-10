@@ -19,11 +19,7 @@ mpi4py.MPI.pickle.__init__(lambda *x: msgpack.dumps(x[0]), msgpack.loads)
 
 rank = mpi4py.MPI.COMM_WORLD.Get_rank()
 
-# import pydevd_pycharm
 
-# port_mapping = [42381, 43567, 35945, 32785, 33119, 42433, 40641, 46823]
-# pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
-# print(os.getpid())
 
 
 def chunks(lst, n):
@@ -86,9 +82,9 @@ class MPIHelper:
             batch = batches.pop(0)
             msg = (batch, offset)
             tag = self.WORK_TAG
+            self.comm.send(obj=msg, dest=dest, tag=tag)
             self.logger.debug(
                 "Send work batch no. %02d to dest %02d: %d " % (self.sent_work_cnt, dest, hash(str(batch))))
-            self.comm.send(obj=msg, dest=dest, tag=tag)
             self.sent_work_cnt += 1
 
     def send_work_finished(self, dest):
@@ -98,7 +94,7 @@ class MPIHelper:
 
     def wait_for_message(self, source, tag, status):
         while not self.comm.Iprobe(source, tag, status):
-            time.sleep(self.config.POLL_INTERVAL)
+                time.sleep(self.config.POLL_INTERVAL)
         return
 
     def barrier(self, comm=None, tag=0):

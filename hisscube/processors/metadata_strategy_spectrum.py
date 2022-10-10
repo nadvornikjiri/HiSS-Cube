@@ -46,7 +46,7 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
     def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
         self.spec_cnt = 0
         self.h5_connector.fits_total_cnt = 0
-        for fits_path, header in tqdm(fits_headers, desc="Writing metadata from spectrum cache", position=0, leave=True):
+        for fits_path, header in tqdm(fits_headers, desc="Writing from spectrum cache", position=0, leave=True):
             self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
 
     @log_timing("process_spectrum_metadata")
@@ -393,9 +393,13 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         image_metadata_cutout_ds = get_cutout_metadata_datasets(h5_connector, self.config.SPEC_ZOOM_CNT,
                                                                 self.config.ORIG_CUBE_NAME)
         spec_total_cnt = h5_connector.get_spectrum_count()
-        for i in tqdm(range(spec_total_cnt), desc="Adding image cutouts for spectrum", position=0, leave=True):
-            self._add_image_refs_to_spectra(spectra_metadata_ds, image_data_cutout_ds,
-                                            image_error_cutout_ds, image_metadata_cutout_ds)
+        for i in tqdm(range(spec_total_cnt), desc="Linking spectrum", position=0, leave=True):
+            try:
+                self._add_image_refs_to_spectra(spectra_metadata_ds, image_data_cutout_ds,
+                                                image_error_cutout_ds, image_metadata_cutout_ds)
+            except ZeroDivisionError as e:
+                self.logger.error(
+                        "Could not link spectrum with idx %d, message: %s" % (spec_total_cnt.name, str(e)))
 
     def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
         spectrum_count = h5_connector.get_spectrum_count()
@@ -567,7 +571,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
 
     def _find_images_overlapping_spectrum(self, metadata):
         nside = 2 ** (self.config.IMG_SPAT_INDEX_ORDER - 1)
-        fact = 2 ** self.config.IMG_SPAT_INDEX_ORDER
+        fact = 2 ** self.config.SPEC_SPAT_INDEX_ORDER
         pix_ids = get_overlapping_healpix_pixel_ids(metadata, nside, fact,
                                                     self.config.IMG_DIAMETER_ANG_MIN)
         index_dataset_orig_res = get_index_datasets(self.h5_connector, "images", self.config.IMG_ZOOM_CNT,

@@ -15,7 +15,7 @@ from hisscube.processors.metadata_strategy_dataset import DatasetStrategy, get_c
 from hisscube.processors.metadata_strategy_tree import TreeStrategy
 from hisscube.utils.astrometry import get_cutout_pixel_coords
 from hisscube.utils.io import get_fits_path, \
-    get_spectrum_header_dataset
+    get_spectrum_header_dataset, H5Connector
 from hisscube.utils.logging import HiSSCubeLogger
 from hisscube.utils.photometry import Photometry
 
@@ -38,7 +38,7 @@ class VisualizationProcessorStrategy(ABC):
         self.spectral_cube = None
         self.output_zoom = None
 
-    def create_visualization_cube(self, h5_connector):
+    def create_visualization_cube(self, h5_connector: H5Connector):
         self.h5_connector = h5_connector
         self.h5_connector.file = h5_connector.file
         dense_cube_grp = self.h5_connector.file.require_group(self.config.DENSE_CUBE_NAME)
@@ -50,12 +50,8 @@ class VisualizationProcessorStrategy(ABC):
             dense_cube_ds_name = "dense_cube_zoom_%d" % zoom
             if dense_cube_ds_name in visualization:
                 del visualization[dense_cube_ds_name]
-            ds = visualization.require_dataset(dense_cube_ds_name,
-                                               spectral_cube.shape,
-                                               spectral_cube.dtype,
-                                               compression=self.config.COMPRESSION,
-                                               compression_opts=self.config.COMPRESSION_OPTS,
-                                               shuffle=self.config.SHUFFLE)
+            ds = h5_connector.create_dataset(visualization, dense_cube_ds_name, spectral_cube.shape,
+                                             dataset_type=spectral_cube.dtype)
             ds.write_direct(spectral_cube)
 
     def read_spectral_cube_table(self, h5_connector, zoom):
@@ -347,7 +343,7 @@ class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
         cutout_metadata_refs = cutout_metadata_datasets_multiple_zoom[self.output_zoom]
 
         for spec_idx in tqdm(range(spec_cnt_total),
-                             desc="Building Visualization cube for zoom %d, target" % self.output_zoom, position=0, leave=True):
+                             desc="Building zoom %d" % self.output_zoom, position=0, leave=True):
             self._construct_spectrum_table(spec_ds, spec_idx, cutout_data_refs, cutout_error_refs, cutout_metadata_refs)
 
     def parse_str_path(self, image_path):

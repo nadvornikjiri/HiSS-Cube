@@ -1,6 +1,6 @@
 import ujson
 
-from hisscube.processors.metadata import get_path_list
+from hisscube.processors.metadata import get_str_path_list
 from hisscube.processors.metadata_strategy_image import ImageMetadataStrategy
 from hisscube.utils.io import get_path_patterns, get_image_header_dataset
 from hisscube.utils.logging import HiSSCubeLogger, log_timing
@@ -22,12 +22,11 @@ class ImageProcessor:
             self.img_cnt = self.h5_connector.file.attrs["image_count"]  # header datasets not created yet
         except KeyError:
             self.img_cnt = 0
-            self.metadata_processor.create_fits_header_datasets(max_images=1)
+            self.metadata_processor.create_fits_header_datasets(h5_connector, max_images=1)
         image_header_ds = get_image_header_dataset(h5_connector)
-        image_path_list = get_path_list(image_path, image_pattern, self.config.LIMIT_IMAGE_COUNT)
-        self.img_cnt += self.metadata_processor.write_fits_headers(image_header_ds, image_header_ds.dtype, image_path,
-                                                                   image_path_list,
-                                                                   self.config.LIMIT_IMAGE_COUNT, offset=self.img_cnt)
+        image_path_list = get_str_path_list(image_path, image_pattern, self.config.LIMIT_IMAGE_COUNT)
+        self.img_cnt += self.metadata_processor.write_fits_headers(h5_connector, image_header_ds, image_header_ds.dtype, image_path,
+                                                                   image_path_list, offset=self.img_cnt)
         self.h5_connector.file.attrs["image_count"] = self.img_cnt
 
     def get_resolution_groups(self, metadata, h5_connector):

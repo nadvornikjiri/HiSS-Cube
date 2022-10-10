@@ -6,6 +6,7 @@ from sys import getsizeof, stderr
 
 import h5py
 import mpi4py.MPI
+import numpy as np
 from astropy.time import Time
 
 from hisscube.processors.data import get_property_list
@@ -122,14 +123,17 @@ class H5Connector(ABC):
     def create_image_h5_dataset(self, group, file_name, img_data_shape, chunk_size=None):
         return self.create_dataset(group, file_name, img_data_shape, chunk_size)
 
-    def create_dataset(self, group, file_name, img_data_shape, chunk_size):
-        ds_name = file_name.encode('utf-8')
+    def create_dataset(self, group, dataset_name, img_data_shape, chunk_size=None, dataset_type=None):
+        if not dataset_type:
+            dataset_type = h5py.h5t.py_create(np.dtype('<f4'))
+        else:
+            dataset_type = h5py.h5t.py_create(dataset_type)
+        ds_name = dataset_name.encode('utf-8')
         if not ds_name in group:
-            dcpl, space, img_data_dtype = get_property_list(self.config, img_data_shape)
+            dcpl, space = get_property_list(self.config, img_data_shape)
             if chunk_size:
                 dcpl.set_chunk(chunk_size)
-            dsid = h5py.h5d.create(group.id, ds_name, img_data_dtype, space,
-                                   dcpl=dcpl)
+            dsid = h5py.h5d.create(group.id, ds_name, dataset_type, space, dcpl=dcpl)
             ds = h5py.Dataset(dsid)
         else:
             ds = group[ds_name]
@@ -144,6 +148,12 @@ class H5Connector(ABC):
 
     def create_spectrum_h5_dataset(self, group, file_name, spec_data_shape, chunk_size=None):
         return self.create_dataset(group, file_name, spec_data_shape, chunk_size)
+
+    def set_spectrum_count(self, count):
+        self.set_attr(self.file, "spectrum_count", count)
+
+    def set_image_count(self, count):
+        self.set_attr(self.file, "image_count", count)
 
     def get_spectrum_count(self):
         return self.get_attr(self.file, "spectrum_count")
@@ -187,6 +197,7 @@ class SerialH5Writer(H5Connector):
         except FileNotFoundError:
             truncate(self.h5_path)
             self.open_h5_file()
+
 
 class SerialH5Reader(H5Connector):
 

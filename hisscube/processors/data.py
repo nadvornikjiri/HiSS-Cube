@@ -64,7 +64,6 @@ def get_property_list(config, dataset_shape):
     -------
 
     """
-    dataset_type = h5py.h5t.py_create(np.dtype('f4'))
     dcpl = h5py.h5p.create(h5py.h5p.DATASET_CREATE)
     dcpl.set_alloc_time(h5py.h5d.ALLOC_TIME_EARLY)
     dcpl.set_fill_time(h5py.h5d.FILL_TIME_NEVER)
@@ -73,6 +72,6 @@ def get_property_list(config, dataset_shape):
         dcpl.set_deflate(config.COMPRESSION_OPTS)
     if config.SHUFFLE:
         dcpl.set_shuffle()
-    return dcpl, space, dataset_type
+    return dcpl, space
 
 

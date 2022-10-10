@@ -2,8 +2,8 @@ import string
 from pathlib import Path
 
 from hisscube.builders import SingleImageBuilder, SingleSpectrumBuilder, MetadataCacheBuilder, MetadataBuilder, \
-    CBoosterMetadataBuilder, DataBuilder, LinkBuilder, MLCubeBuilder, VisualizationCubeBuilder, ParallelMWMRDataBuilder, \
-    ParallelSWMRDataBuilder
+    CBoosterMetadataBuilder, DataBuilder, LinkBuilder, MLCubeBuilder, VisualizationCubeBuilder
+from hisscube.builders_parallel import ParallelMWMRDataBuilder, ParallelSWMRDataBuilder, ParallelMetadataCacheBuilder
 from hisscube.processors.cube_ml import MLProcessor
 from hisscube.processors.cube_visualization import VisualizationProcessor
 from hisscube.processors.metadata import MetadataProcessor
@@ -55,9 +55,13 @@ class HiSSCubeProvider:
                                                                             self.processors, self.photometry,
                                                                             fits_image_pattern=image_pattern,
                                                                             fits_spectra_pattern=spectra_pattern)
-        self.parallel_builders: ParallelBuilderProvider = ParallelBuilderProvider(self.config, self.h5_parallel_writer,
+        self.parallel_builders: ParallelBuilderProvider = ParallelBuilderProvider(image_path, spectra_path, self.config,
+                                                                                  self.h5_serial_writer,
+                                                                                  self.h5_parallel_writer,
                                                                                   self.processors,
-                                                                                  self.mpi_helper, self.photometry)
+                                                                                  self.mpi_helper, self.photometry,
+                                                                                  fits_image_pattern=image_pattern,
+                                                                                  fits_spectra_pattern=spectra_pattern)
 
 
 class ProcessorProvider:
@@ -115,10 +119,17 @@ class SerialBuilderProvider:
 
 
 class ParallelBuilderProvider:
-    def __init__(self, config: Config,
+    def __init__(self, fits_image_path: string, fits_spectra_path: string, config: Config,
+                 serial_connector: SerialH5Writer,
                  h5_connector: ParallelH5Writer, processors: ProcessorProvider,
                  mpi_helper: MPIHelper,
-                 photometry: Photometry):
+                 photometry: Photometry, fits_image_pattern=None, fits_spectra_pattern=None):
+        self.metadata_cache_builder = ParallelMetadataCacheBuilder(fits_image_path, fits_spectra_path, config,
+                                                                   serial_connector,
+                                                                   h5_connector, mpi_helper,
+                                                                   processors.metadata_processor,
+                                                                   fits_image_pattern=fits_image_pattern,
+                                                                   fits_spectra_pattern=fits_spectra_pattern)
         self.data_builder_MWMR = ParallelMWMRDataBuilder(config, h5_connector, mpi_helper,
                                                          processors.metadata_processor,
                                                          processors.image_metadata_processor,

@@ -5,7 +5,7 @@ from hisscube.processors.data import float_compress
 from hisscube.processors.metadata_strategy import MetadataStrategy, write_naxis_values, get_lower_res_image_metadata, \
     get_header_ds
 from hisscube.utils.astrometry import get_optimized_wcs, get_cutout_bounds
-from hisscube.utils.io import get_time_from_image, get_image_header_dataset
+from hisscube.utils.io import get_time_from_image, get_image_header_dataset, H5Connector
 from hisscube.utils.io_strategy import write_path
 
 
@@ -145,11 +145,12 @@ def write_dataset(data, res_grp_list, should_compress, offset, coordinates=None)
     return datasets
 
 
-def create_additional_datasets(img_count, img_ds, img_zoom_group, index_dtype, h5_connector, header_size, path_size):
+def create_additional_datasets(img_count, img_ds, img_zoom_group, index_dtype, h5_connector:H5Connector, header_size, path_size):
     ds_name = "db_index"
     if ds_name in img_zoom_group:
         del img_zoom_group[ds_name]
-    index_ds = h5_connector.require_dataset(img_zoom_group, "db_index", (img_count,), index_dtype)
-    metadata_ds, metadata_ds_dtype = get_header_ds(img_count, path_size, header_size, img_zoom_group, "metadata")
+    index_ds = h5_connector.create_dataset(img_zoom_group, "db_index", (img_count,), dataset_type=index_dtype)
+    metadata_ds, metadata_ds_dtype = get_header_ds(h5_connector, img_count, path_size, header_size, img_zoom_group,
+                                                   "metadata")
     h5_connector.set_attr(img_ds, "metadata_ds_ref", metadata_ds.ref)
     h5_connector.set_attr(img_ds, "index_ds_ref", index_ds.ref)

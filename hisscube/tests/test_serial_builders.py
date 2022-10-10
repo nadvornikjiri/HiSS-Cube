@@ -9,7 +9,8 @@ import h5py
 import pytest
 from tqdm.auto import tqdm
 
-from hisscube.builders import SingleImageBuilder, HiSSCubeConstructionDirector
+from hisscube.builders import SingleImageBuilder
+from hisscube.director import HiSSCubeConstructionDirector
 from hisscube.dependency_injector import HiSSCubeProvider
 from hisscube.processors.data import float_compress
 from hisscube.utils.config import Config

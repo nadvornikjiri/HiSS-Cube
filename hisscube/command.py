@@ -1,4 +1,4 @@
-from hisscube.builders import HiSSCubeConstructionDirector
+from hisscube.director import HiSSCubeConstructionDirector
 
 
 class CLICommandInvoker:

@@ -12,7 +12,7 @@ from hisscube.processors.metadata_strategy_dataset import DatasetStrategy, get_c
 from hisscube.processors.metadata_strategy_tree import TreeStrategy
 from hisscube.processors.metadata_strategy_spectrum import get_spectrum_time
 from hisscube.utils.astrometry import get_cutout_pixel_coords
-from hisscube.utils.io import get_spectrum_header_dataset
+from hisscube.utils.io import get_spectrum_header_dataset, H5Connector
 from hisscube.utils.io_strategy import get_orig_header
 from hisscube.utils.logging import HiSSCubeLogger
 from hisscube.utils.nexus import add_nexus_navigation_metadata, set_nx_data, set_nx_interpretation, set_nx_signal
@@ -84,7 +84,8 @@ class MLProcessorStrategy(ABC):
                 time_coords)  # TODO might change time to probability distribution as well?
         return target_image_3d_cube, target_spectra_1d_cube1d_cube
 
-    def _create_datasets_for_zoom(self, h5_connector, cutout_size, dense_grp, target_count, rebin_samples, zoom):
+    def _create_datasets_for_zoom(self, h5_connector: H5Connector, cutout_size, dense_grp, target_count, rebin_samples,
+                                  zoom):
         spectral_dshape = (target_count,
                            int(rebin_samples / 2 ** zoom))
         image_dshape = (target_count,
@@ -102,19 +103,19 @@ class MLProcessorStrategy(ABC):
         ds_name = "cutout_3d_cube_zoom_%d" % zoom
         if ds_name in image_ml_grp:
             del image_ml_grp[ds_name]
-        image_ds = image_ml_grp.require_dataset(ds_name, image_dshape, dtype)
+        image_ds = h5_connector.create_dataset(image_ml_grp, ds_name, image_dshape, dataset_type=dtype)
         set_nx_interpretation(image_ds, "image", h5_connector)
         self.spec_3d_cube_datasets["image"][zoom] = image_ds
-        self._create_error_ds(image_ml_grp, image_ds, image_dshape, dtype)
+        self._create_error_ds(h5_connector, image_ml_grp, image_ds, image_dshape, dtype)
         set_nx_signal(image_ml_grp, ds_name, h5_connector)
 
         ds_name = "spectral_1d_cube_zoom_%d" % zoom
         if ds_name in image_ml_grp:
             del image_ml_grp[ds_name]
-        spec_ds = spec_ml_grp.require_dataset(ds_name, spectral_dshape, dtype)
+        spec_ds = h5_connector.create_dataset(spec_ml_grp, ds_name, spectral_dshape, dataset_type=dtype)
         set_nx_interpretation(spec_ds, "spectrum", h5_connector)
         self.spec_3d_cube_datasets["spectral"][zoom] = spec_ds
-        self._create_error_ds(spec_ml_grp, spec_ds, spectral_dshape, dtype)
+        self._create_error_ds(h5_connector, spec_ml_grp, spec_ds, spectral_dshape, dtype)
         set_nx_signal(spec_ml_grp, ds_name, h5_connector)
 
         self.target_cnt[zoom] = 0
@@ -132,14 +133,6 @@ class MLProcessorStrategy(ABC):
     def get_target_count(h5_connector):
         return h5_connector.file["dense_cube"].attrs["target_count"]
 
-    def _create_dimension_scales(self, ml_grp, zoom, dim_type, dim_names):
-        dim_ddtype = np.dtype('<f4')
-        for dim_idx, dim_item in enumerate(dim_names.items()):
-            dim_name, dim_dshape = dim_item
-            dim_ds = ml_grp.require_dataset("%s_%s" % (dim_type, dim_name), dim_dshape, dim_ddtype)
-            dim_ds.make_scale(dim_name)
-            self.spec_3d_cube_datasets[dim_type][zoom].dims[dim_idx].attach_scale(dim_ds)
-
     def _count_spatial_groups_with_depth(self, group, target_depth, curr_depth=0):
         my_cnt = 0
         if curr_depth == target_depth and group.attrs["type"] == "spatial":
@@ -152,11 +145,11 @@ class MLProcessorStrategy(ABC):
             return my_cnt
 
     @staticmethod
-    def _create_error_ds(ml_grp, ds, dshape, dtype):
+    def _create_error_ds(h5_connector, ml_grp, ds, dshape, dtype):
         error_ds_name = "errors"
         if error_ds_name in ml_grp:
             del ml_grp[error_ds_name]
-        error_ds = ml_grp.require_dataset(error_ds_name, dshape, dtype)
+        error_ds = h5_connector.create_dataset(ml_grp, error_ds_name, dshape, dataset_type=dtype)
         ds.attrs["error_ds"] = error_ds.ref
 
     def _process_cutout_cube(self, cutout_cube, h5_connector, spectra_cube, zoom):
@@ -341,7 +334,7 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
         spectra_errors = get_error_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
                                             self.config.ORIG_CUBE_NAME)
         for spatial_index, from_idx, to_idx in tqdm(target_spatial_indices,
-                                                    desc="Building ML 3D cube for target", position=0, leave=True):
+                                                    desc="Building ML cube", position=0, leave=True):
             self._append_target_3d_cube(h5_connector, spectra_data, spectra_errors, spatial_index,
                                         from_idx, to_idx)
         add_nexus_navigation_metadata(h5_connector, self.config)

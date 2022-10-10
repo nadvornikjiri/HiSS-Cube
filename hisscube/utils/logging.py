@@ -73,6 +73,7 @@ class TimingsCSVLogger:
         super().__init__()
         self.file = open(path, "w", newline='')
         self.logger = csv.writer(self.file, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        self.cnt = 0
 
     def __del__(self):
         self.file.close()
@@ -118,7 +119,8 @@ def log_timing(prefix, timings_path="logs/timings.csv"):
             start_time = time.time()
             result = func(self, *args, **kwargs)
             elapsed_time = time.time() - start_time
-            logger.log_timing([self.h5_connector.fits_total_cnt, self.h5_connector.grp_cnt, elapsed_time])
+            logger.log_timing([logger.cnt, elapsed_time])
+            logger.cnt += 1
             return result
 
         return wrapper
@@ -133,7 +135,7 @@ def get_timings_logger(timings_path, prefix):
         timing_path += "/"
     timing_log_path = "%s%s_%s" % (timing_path, prefix, timing_file_name)
     logger = TimingsCSVLogger(timing_log_path)
-    logger.log_timing(["Image/Spectrum count", "Group count", "Time"])
+    logger.log_timing(["Call Count", "Time"])
     return logger
 
 def get_application_logger():

@@ -10,7 +10,7 @@ from astropy.samp import SAMPIntegratedClient
 
 import pytest
 
-from hisscube.builders import HiSSCubeConstructionDirector
+from hisscube.director import HiSSCubeConstructionDirector
 from hisscube.dependency_injector import HiSSCubeProvider
 from hisscube.processors.cube_ml import MLProcessor
 from hisscube.processors.cube_visualization import VisualizationProcessor
