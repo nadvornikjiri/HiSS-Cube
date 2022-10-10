@@ -25,7 +25,7 @@ from hisscube.utils.photometry import Photometry
 
 class HiSSCubeProvider:
     def __init__(self, h5_output_path, input_path=None, image_path=None, spectra_path=None, image_pattern=None,
-                 spectra_pattern=None, config=None):
+                 spectra_pattern=None, config=None, image_list=None, spectra_list=None):
         if not image_path and input_path:
             image_path = Path(input_path).joinpath("images")
         if not spectra_path and input_path:
@@ -34,6 +34,8 @@ class HiSSCubeProvider:
             self.config = Config()
         else:
             self.config = config
+        self.image_list = image_list
+        self.spectra_list = spectra_list
         self.photometry = Photometry()
         if self.config.METADATA_STRATEGY == "TREE":
             self.io_strategy = SerialTreeIOStrategy()
@@ -48,7 +50,8 @@ class HiSSCubeProvider:
         self.h5_parallel_writer = ParallelH5Writer(h5_output_path, self.config, self.io_strategy)
 
         self.mpi_helper = MPIHelper(self.config)
-        self.processors: ProcessorProvider = ProcessorProvider(self.photometry, self.config)
+        self.processors: ProcessorProvider = ProcessorProvider(self.photometry, self.config, self.image_list,
+                                                               self.spectra_list)
         self.serial_builders: SerialBuilderProvider = SerialBuilderProvider(image_path, spectra_path, self.config,
                                                                             self.h5_serial_writer,
                                                                             self.h5_c_boosted_serial_writer,
@@ -65,7 +68,7 @@ class HiSSCubeProvider:
 
 
 class ProcessorProvider:
-    def __init__(self, photometry, config):
+    def __init__(self, photometry, config, image_list=None, spectra_list=None):
         if config.METADATA_STRATEGY == "TREE":
             self.metadata_strategy = TreeStrategy(config)
             self.image_metadata_strategy = TreeImageStrategy(self.metadata_strategy, config, photometry)
@@ -82,7 +85,8 @@ class ProcessorProvider:
         else:
             raise AttributeError(
                 "Unsupported METADATA_STRATEGY %s, supported options are: TREE, DATASET." % config.METADATA_STRATEGY)
-        self.metadata_processor = MetadataProcessor(config, photometry, self.metadata_strategy)
+        self.metadata_processor = MetadataProcessor(config, photometry, self.metadata_strategy, image_list=image_list,
+                                                    spectra_list=spectra_list)
         self.image_metadata_processor = ImageProcessor(config, self.metadata_processor,
                                                        self.image_metadata_strategy)
         self.spectrum_metadata_processor = SpectrumProcessor(config, self.metadata_processor,

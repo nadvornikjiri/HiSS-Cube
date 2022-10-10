@@ -9,7 +9,7 @@ from hisscube.command import CLICommandInvoker
 # import pydevd_pycharm
 # import mpi4py
 # rank = mpi4py.MPI.COMM_WORLD.Get_rank()
-# port_mapping = [45659, 45285]
+# port_mapping = [41687, 42749]
 # pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
 # print(os.getpid())
 # print("Rank: %d" % rank)
@@ -25,6 +25,10 @@ if __name__ == '__main__':
                         help="Regex pattern to match the images towards.")
     parser.add_argument('--spectra-pattern', dest='spectra_pattern', action='store', nargs='?', type=str,
                         help="Regex pattern to match the spectra towards.")
+    parser.add_argument('--image-list', dest='image_ist', action='store', nargs='?', type=str,
+                        help="CSV format for combination of run, camcol, field to search the image by.")
+    parser.add_argument('--spectra-list', dest='spectra_ist', action='store', nargs='?', type=str,
+                        help="CSV format for list of Plates to search the spectra by.")
 
     subparsers = parser.add_subparsers(help='commands', dest="command")
     create_parser = subparsers.add_parser("create",
@@ -50,7 +54,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     dependencies = HiSSCubeProvider(args.output_path, input_path=args.input_path, image_pattern=args.image_pattern,
-                                    spectra_pattern=args.spectra_pattern)
+                                    spectra_pattern=args.spectra_pattern, image_list=args.image_list,
+                                    spectra_list=args.spectra_list)
     cli_command_invoker = CLICommandInvoker(args, dependencies)
     cli_command_invoker.execute()
     dependencies.mpi_helper.log_proc_stats()
