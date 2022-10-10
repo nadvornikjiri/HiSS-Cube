@@ -1,5 +1,8 @@
+import glob
 import itertools
+import os
 import pathlib
+import re
 
 import fitsio
 import h5py
@@ -90,5 +93,5 @@ class MetadataProcessor:
 
 
 def get_str_path_list(dir_path, pattern, limit):
-    path_generator = [str(x) for x in pathlib.Path(dir_path).rglob(pattern)]
+    path_generator = [str(f) for f in glob.glob("%s/%s/**" % (os.getcwd(), dir_path)) if re.search(pattern, f)]
     return list(itertools.islice(path_generator, limit))
