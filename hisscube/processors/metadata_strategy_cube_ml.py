@@ -335,8 +335,11 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
                                             self.config.ORIG_CUBE_NAME)
         for spatial_index, from_idx, to_idx in tqdm(target_spatial_indices,
                                                     desc="Building ML cube", position=0, leave=True):
-            self._append_target_3d_cube(h5_connector, spectra_data, spectra_errors, spatial_index,
-                                        from_idx, to_idx)
+            try:
+                self._append_target_3d_cube(h5_connector, spectra_data, spectra_errors, spatial_index,
+                                            from_idx, to_idx)
+            except ValueError:
+                self.logger.debug("Unable to create dims for spectrum %d" % spatial_index)
         add_nexus_navigation_metadata(h5_connector, self.config)
 
     def _get_target_spectra_spatial_ranges(self, h5_connector):
@@ -388,16 +391,13 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
         spec_dims = None
         spec_datasets_mean_sigma = self._get_mean_sigma(spec_datasets)
         for spec_idx, spec_ds in enumerate(spec_datasets):
-            try:
-                spec_header = self._get_spectrum_header(from_idx, h5_connector, spec_idx, spectrum_original_headers)
-                if spec_idx == 0:
-                    spec_dims = {"spatial": [spec_header["PLUG_RA"],
-                                             spec_header["PLUG_DEC"]],  # spatial is the same for every spectrum
-                                 "wl": spec_ds[:, 0],  # wl is the same for every spectrum (binned)
-                                 "time": []}  # time is different for every spectrum
-                spec_dims["time"].append(get_spectrum_time(spec_header))
-            except ValueError:
-                self.logger.debug("Unable to create dims for spectrum %d" % spec_idx)
+            spec_header = self._get_spectrum_header(from_idx, h5_connector, spec_idx, spectrum_original_headers)
+            if spec_idx == 0:
+                spec_dims = {"spatial": [spec_header["PLUG_RA"],
+                                         spec_header["PLUG_DEC"]],  # spatial is the same for every spectrum
+                             "wl": spec_ds[:, 0],  # wl is the same for every spectrum (binned)
+                             "time": []}  # time is different for every spectrum
+            spec_dims["time"].append(get_spectrum_time(spec_header))
 
         spectra = SparseTreeCube(spec_datasets_mean_sigma, spec_dims)
         return spec_ds, spectra
