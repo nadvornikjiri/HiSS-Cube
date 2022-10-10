@@ -25,9 +25,9 @@ if __name__ == '__main__':
                         help="Regex pattern to match the images towards.")
     parser.add_argument('--spectra-pattern', dest='spectra_pattern', action='store', nargs='?', type=str,
                         help="Regex pattern to match the spectra towards.")
-    parser.add_argument('--image-list', dest='image_ist', action='store', nargs='?', type=str,
+    parser.add_argument('--image-list', dest='image_list', action='store', nargs='?', type=str,
                         help="CSV format for combination of run, camcol, field to search the image by.")
-    parser.add_argument('--spectra-list', dest='spectra_ist', action='store', nargs='?', type=str,
+    parser.add_argument('--spectra-list', dest='spectra_list', action='store', nargs='?', type=str,
                         help="CSV format for list of Plates to search the spectra by.")
 
     subparsers = parser.add_subparsers(help='commands', dest="command")
