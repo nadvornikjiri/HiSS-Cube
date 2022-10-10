@@ -1,8 +1,6 @@
-import glob
+import csv
 import itertools
-import os
 import pathlib
-import re
 
 import fitsio
 import h5py
@@ -16,15 +14,18 @@ from hisscube.utils.logging import log_timing, HiSSCubeLogger
 
 
 class MetadataProcessor:
-    def __init__(self, config, photometry, metadata_strategy: MetadataStrategy):
+    def __init__(self, config, photometry, metadata_strategy: MetadataStrategy, image_list=None, spectra_list=None):
         self.config = config
         self.h5_connector: H5Connector = None
         self.fits_path = None
         self.photometry = photometry
         self.logger = HiSSCubeLogger.logger
         self.metadata_strategy = metadata_strategy
+        self.image_list = image_list
+        self.spectra_list = spectra_list
 
-    def reingest_fits_tables(self, h5_connector: H5Connector, image_path, spectra_path, image_pattern=None, spectra_pattern=None):
+    def reingest_fits_tables(self, h5_connector: H5Connector, image_path, spectra_path, image_pattern=None,
+                             spectra_pattern=None):
         image_path_list, spectra_path_list = self.parse_paths(image_path, image_pattern, spectra_path, spectra_pattern)
         self.clean_fits_header_tables(h5_connector)
         image_header_ds, image_header_ds_dtype, spec_header_ds, spec_header_ds_dtype = self.create_fits_header_datasets(
@@ -38,8 +39,14 @@ class MetadataProcessor:
 
     def parse_paths(self, image_path, image_pattern, spectra_path, spectra_pattern):
         image_pattern, spectra_pattern = get_path_patterns(self.config, image_pattern, spectra_pattern)
-        image_path_list = get_str_path_list(image_path, image_pattern, self.config.LIMIT_IMAGE_COUNT)
-        spectra_path_list = get_str_path_list(spectra_path, spectra_pattern, self.config.LIMIT_SPECTRA_COUNT)
+        if not self.image_list:
+            image_path_list = get_str_path_list(image_path, image_pattern, self.config.LIMIT_IMAGE_COUNT)
+        else:
+            image_path_list = self.process_image_list(image_path, self.config.LIMIT_IMAGE_COUNT)
+        if not self.spectra_list:
+            spectra_path_list = get_str_path_list(spectra_path, spectra_pattern, self.config.LIMIT_SPECTRA_COUNT)
+        else:
+            spectra_path_list = self.process_spectra_list(spectra_path, self.config.LIMIT_SPECTRA_COUNT)
         return image_path_list, spectra_path_list
 
     def process_fits_headers(self, h5_connector, image_header_ds, image_header_ds_dtype, image_path, image_path_list,
@@ -91,7 +98,36 @@ class MetadataProcessor:
         h5_connector.fits_total_cnt += 1
         return buf_i, fits_cnt, offset
 
+    def process_image_list(self, image_path, limit):
+        with open(self.image_list, newline='') as csvfile:
+            image_params_reader = csv.DictReader(csvfile, delimiter=',', quotechar='|')
+            rerun = "301"
+            path_generator = self.process_image_csv_row(image_params_reader, image_path, limit, rerun)
+            return list(itertools.islice(path_generator, limit))
+
+    def process_image_csv_row(self, image_params_reader, image_path, limit, rerun):
+        for row in image_params_reader:
+            run = row["run"]
+            camcol = row["camcol"]
+            field = row["field"]
+            dir_path = pathlib.Path(image_path).joinpath(rerun).joinpath(run).joinpath(camcol)
+            pattern = "*%04d.fits" % int(field)
+            yield from [str(x) for x in pathlib.Path(dir_path).rglob(pattern)]
+
+    def process_spectra_list(self, spectra_path, limit):
+        with open(self.spectra_list, newline='') as csvfile:
+            spectrum_params_reader = csv.DictReader(csvfile, delimiter=',', quotechar='|')
+            path_generator = self.process_spectrum_csv_row(spectrum_params_reader, spectra_path, limit)
+            return list(itertools.islice(path_generator, limit))
+
+    def process_spectrum_csv_row(self, spectrum_params_reader, spectra_path, limit):
+        for row in spectrum_params_reader:
+            plate = row["plate"]
+            dir_path = pathlib.Path(spectra_path).joinpath(plate)
+            pattern = "*.fits"
+            yield from [str(x) for x in pathlib.Path(dir_path).rglob(pattern)]
+
 
 def get_str_path_list(dir_path, pattern, limit):
-    path_generator = [str(f) for f in glob.glob("%s/%s/**" % (os.getcwd(), dir_path)) if re.search(pattern, f)]
+    path_generator = [str(x) for x in pathlib.Path(dir_path).rglob(pattern)]
     return list(itertools.islice(path_generator, limit))
