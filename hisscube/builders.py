@@ -178,8 +178,8 @@ class CBoosterMetadataBuilder(MetadataBuilder):
 
     def c_write_hdf5_metadata(self, h5_connector: CBoostedMetadataBuildWriter):
         self.logger.info("Initiating C booster for metadata write.")
-        if self.config.CHUNK_SIZE:
-            chunk_size = literal_eval(self.config.CHUNK_SIZE)
+        if self.config.IMAGE_CHUNK_SIZE:
+            chunk_size = literal_eval(self.config.IMAGE_CHUNK_SIZE)
             write_hdf5_metadata(h5_connector.h5_file_structure, h5_connector.h5_path, h5_connector.c_timing_log, 1,
                                 chunk_size[0],
                                 chunk_size[1], chunk_size[2])

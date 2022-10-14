@@ -5,7 +5,7 @@ import pathlib
 class Config:
     def __init__(self):
         lib_path = pathlib.Path(__file__).parent.absolute()
-        self.config = configparser.ConfigParser(allow_no_value=True)
+        self.config = configparser.ConfigParser(allow_no_value=True, inline_comment_prefixes='#')
         self.config.read("%s/../config.ini" % lib_path)
 
         self.CREATE_REFERENCES = self.config.getboolean('Builder', 'CREATE_REFERENCES')
@@ -21,9 +21,9 @@ class Config:
         self.IMG_ZOOM_CNT = self.config.getint('Handler', 'IMG_ZOOM_CNT')
         self.SPEC_ZOOM_CNT = self.config.getint('Handler', 'SPEC_ZOOM_CNT')
         self.IMG_SPAT_INDEX_ORDER = self.config.getint('Handler', 'IMG_SPAT_INDEX_ORDER')
-        self.IMG_DIAMETER_ANG_MIN = self.config.getfloat('Handler', 'IMG_DIAMETER_ANG_MIN')
         self.SPEC_SPAT_INDEX_ORDER = self.config.getint('Handler', 'SPEC_SPAT_INDEX_ORDER')
-        self.CHUNK_SIZE = self.config.get('Handler', 'CHUNK_SIZE')
+        self.IMAGE_CHUNK_SIZE = self.config.get('Handler', 'IMAGE_CHUNK_SIZE')
+        self.ML_CUBE_CHUNK_SIZE = self.config.getint('Handler', 'ML_CUBE_CHUNK_SIZE')
         self.ORIG_CUBE_NAME = self.config.get('Handler', 'ORIG_CUBE_NAME')
         self.DENSE_CUBE_NAME = self.config.get('Handler', 'DENSE_CUBE_NAME')
         self.INCLUDE_ADDITIONAL_METADATA = self.config.getboolean('Handler', 'INCLUDE_ADDITIONAL_METADATA')
@@ -58,7 +58,20 @@ class Config:
         self.REBIN_SAMPLES = self.config.getint('SDSS', 'REBIN_SAMPLES')
         self.APPLY_REBIN = self.config.getboolean('SDSS', 'APPLY_REBIN')
         self.APPLY_TRANSMISSION_CURVE = self.config.getboolean('SDSS', 'APPLY_TRANSMISSION_CURVE')
+
         self.IMG_RES_X = self.config.getint('SDSS', 'IMG_RES_X')
+
         self.IMG_RES_Y = self.config.getint('SDSS', 'IMG_RES_Y')
+        self.IMG_DIAMETER_ANG_MIN = self.config.getfloat('SDSS', 'IMG_DIAMETER_ANG_MIN')
+
+        try:
+            self.IMG_X_SIZE_ANG_MIN = self.config.getfloat('SDSS', 'IMG_X_SIZE_ANG_MIN')
+        except ValueError:
+            self.IMG_X_SIZE_ANG_MIN = None
+        try:
+            self.IMG_Y_SIZE_ANG_MIN = self.config.getfloat('SDSS', 'IMG_Y_SIZE_ANG_MIN')
+        except ValueError:
+            self.IMG_Y_SIZE_ANG_MIN = None
+
 
 
