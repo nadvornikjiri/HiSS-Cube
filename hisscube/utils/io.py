@@ -161,6 +161,12 @@ class H5Connector(ABC):
     def get_image_count(self):
         return self.get_attr(self.file, "image_count")
 
+    def set_target_count(self, count):
+        self.set_attr(self.file[self.config.DENSE_CUBE_NAME], "target_count", count)
+
+    def get_target_count(self):
+        return self.get_attr(self.file[self.config.DENSE_CUBE_NAME], "target_count")
+
     @staticmethod
     def get_name(grp):
         return grp.name

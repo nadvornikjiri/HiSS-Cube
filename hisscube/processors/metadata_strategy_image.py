@@ -149,8 +149,8 @@ class TreeImageStrategy(ImageMetadataStrategy):
                         list(group), file_name))
             res_tuple = self.h5_connector.get_name(group).split('/')[-1]
             img_data_shape = tuple(reversed(literal_eval(res_tuple))) + (2,)
-            if self.config.CHUNK_SIZE:
-                chunk_size = literal_eval(self.config.CHUNK_SIZE)
+            if self.config.IMAGE_CHUNK_SIZE:
+                chunk_size = literal_eval(self.config.IMAGE_CHUNK_SIZE)
             ds = self.h5_connector.create_image_h5_dataset(group, file_name, img_data_shape, chunk_size)
             self.h5_connector.set_attr(ds, "mime-type", "image")
             self.h5_connector.set_attr(ds, "interpretation", "image")

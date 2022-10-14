@@ -23,11 +23,13 @@ def aggregate_inverse_variance_weighting(arr, axis=0):  # TODO rescale by 1e-17 
     arr = arr.astype('<f8')  # necessary conversion as the numbers are small
     flux = arr[..., 0]
     flux_sigma = arr[..., 1]
-    weighted_mean = np.nansum(flux / flux_sigma ** 2, axis=axis) / \
-                    np.nansum(1 / flux_sigma ** 2, axis=0)
-    weighed_sigma = np.sqrt(1 /
-                            np.nansum(1 / flux_sigma ** 2, axis=axis))
-    res = np.stack((weighted_mean, weighed_sigma), axis=-1)
+    weighted_flux_axis = np.divide(flux, flux_sigma ** 2, np.zeros_like(flux), where=flux_sigma != 0)
+    weighted_flux_sigma = np.divide(1, flux_sigma ** 2, np.zeros_like(flux_sigma), where=flux_sigma != 0)
+    weighted_mean = np.nansum(weighted_flux_axis, axis=axis) / np.nansum(weighted_flux_sigma, axis=0)
+    sigma_sum = np.nansum(weighted_flux_sigma, axis=axis)
+    sigma_ratio = np.divide(1, sigma_sum, np.zeros_like(sigma_sum), where=sigma_sum != 0)
+    weighted_sigma = np.sqrt(sigma_ratio)
+    res = np.stack((weighted_mean, weighted_sigma), axis=-1)
     return res.astype('<f4')
 
 
@@ -60,8 +62,8 @@ class MLProcessorStrategy(ABC):
         self.photometry = photometry
         self.logger = HiSSCubeLogger.logger
         self.spectral_3d_cube = None
-        self.spec_3d_cube_datasets = {"spectral": {}, "image": {}}
-        self.target_cnt = {}
+        self.spec_3d_cube_datasets = {"spectrum": {}, "image": {}}
+        self.target_complete_cnt = {}
 
     @abstractmethod
     def create_3d_cube(self, h5_connector):
@@ -88,22 +90,29 @@ class MLProcessorStrategy(ABC):
                                   zoom):
         spectral_dshape = (target_count,
                            int(rebin_samples / 2 ** zoom))
+        spectral_chunk_size = (self.config.ML_CUBE_CHUNK_SIZE,) + spectral_dshape[1:]
         image_dshape = (target_count,
                         5,  # no image bands that can cover spectrum.
                         int(cutout_size / 2 ** zoom),
                         int(cutout_size / 2 ** zoom))
+        image_chunk_size = (self.config.ML_CUBE_CHUNK_SIZE,) + image_dshape[1:]
         dtype = np.dtype('<f4')  # both mean and sigma values are float
         res_grp = dense_grp.require_group(str(zoom))
+        if "ml_image" in res_grp:
+            del res_grp["ml_image"]
         image_ml_grp = res_grp.require_group("ml_image")
         set_nx_data(image_ml_grp, h5_connector)
 
+        if "ml_spectrum" in res_grp:
+            del res_grp["ml_spectrum"]
         spec_ml_grp = res_grp.require_group("ml_spectrum")
 
         set_nx_data(spec_ml_grp, h5_connector)
         ds_name = "cutout_3d_cube_zoom_%d" % zoom
         if ds_name in image_ml_grp:
             del image_ml_grp[ds_name]
-        image_ds = h5_connector.create_dataset(image_ml_grp, ds_name, image_dshape, dataset_type=dtype)
+        image_ds = h5_connector.create_dataset(image_ml_grp, ds_name, image_dshape, chunk_size=image_chunk_size,
+                                               dataset_type=dtype)
         set_nx_interpretation(image_ds, "image", h5_connector)
         self.spec_3d_cube_datasets["image"][zoom] = image_ds
         self._create_error_ds(h5_connector, image_ml_grp, image_ds, image_dshape, dtype)
@@ -112,13 +121,14 @@ class MLProcessorStrategy(ABC):
         ds_name = "spectral_1d_cube_zoom_%d" % zoom
         if ds_name in image_ml_grp:
             del image_ml_grp[ds_name]
-        spec_ds = h5_connector.create_dataset(spec_ml_grp, ds_name, spectral_dshape, dataset_type=dtype)
+        spec_ds = h5_connector.create_dataset(spec_ml_grp, ds_name, spectral_dshape, chunk_size=spectral_chunk_size,
+                                              dataset_type=dtype)
         set_nx_interpretation(spec_ds, "spectrum", h5_connector)
-        self.spec_3d_cube_datasets["spectral"][zoom] = spec_ds
+        self.spec_3d_cube_datasets["spectrum"][zoom] = spec_ds
         self._create_error_ds(h5_connector, spec_ml_grp, spec_ds, spectral_dshape, dtype)
         set_nx_signal(spec_ml_grp, ds_name, h5_connector)
 
-        self.target_cnt[zoom] = 0
+        self.target_complete_cnt[zoom] = 0
 
     @staticmethod
     def get_spectrum_3d_cube(h5_connector, zoom):
@@ -153,24 +163,24 @@ class MLProcessorStrategy(ABC):
         ds.attrs["error_ds"] = error_ds.ref
 
     def _process_cutout_cube(self, cutout_cube, h5_connector, spectra_cube, zoom):
-        if cutout_cube:
+        if cutout_cube and len(cutout_cube.data) == len(self.photometry.filter_midpoints):  # all filters have cutout
             cutout_data, cutout_dims = cutout_cube.data, cutout_cube.dims
             spec_data, spec_dims = spectra_cube.data, spectra_cube.dims
-            spec_cube_ds = self.spec_3d_cube_datasets["spectral"][zoom]
+            spec_cube_ds = self.spec_3d_cube_datasets["spectrum"][zoom]
             image_cube_ds = self.spec_3d_cube_datasets["image"][zoom]
 
             target_image_3d_cube, target_spectra_1d_cube = self._aggregate_3d_cube(cutout_data, cutout_dims,
                                                                                    spec_data, spec_dims)
-            image_cube_ds[self.target_cnt[zoom]] = target_image_3d_cube[:, :, :, 0]  # Writing values
+            image_cube_ds[self.target_complete_cnt[zoom]] = target_image_3d_cube[:, :, :, 0]  # Writing values
             image_error_ds_ref = image_cube_ds.attrs["error_ds"]
             image_error_ds = h5_connector.file[image_error_ds_ref]
-            image_error_ds[self.target_cnt[zoom]] = target_image_3d_cube[:, :, :, 1]  # Writing errors
+            image_error_ds[self.target_complete_cnt[zoom]] = target_image_3d_cube[:, :, :, 1]  # Writing errors
 
-            spec_cube_ds[self.target_cnt[zoom]] = target_spectra_1d_cube[:, 0]  # Writing values
+            spec_cube_ds[self.target_complete_cnt[zoom]] = target_spectra_1d_cube[:, 0]  # Writing values
             spec_error_ds_ref = spec_cube_ds.attrs["error_ds"]
             spec_error_ds = h5_connector.file[spec_error_ds_ref]
-            spec_error_ds[self.target_cnt[zoom]] = target_spectra_1d_cube[:, 1]  # Writing errors
-            self.target_cnt[zoom] += 1
+            spec_error_ds[self.target_complete_cnt[zoom]] = target_spectra_1d_cube[:, 1]  # Writing errors
+            self.target_complete_cnt[zoom] += 1
 
     def _process_cutout_bounds(self, cutout_bounds, cutout_data, cutout_dims, cutout_wl, image_cutouts, image_region,
                                time, w):
@@ -181,19 +191,16 @@ class MLProcessorStrategy(ABC):
             cutout_data = image_cutouts.data
             cutout_dims["spatial"] = np.stack((ra, dec), axis=2)
             cutout_dims["child_dim"] = {}
-            for cutout_desired_wl in self.photometry.get_midpoints():
-                cutout_data[cutout_desired_wl] = [np.zeros(image_region.shape)]
         wl_dim = cutout_dims["child_dim"]
         if cutout_wl not in wl_dim:
             wl_dim[cutout_wl] = {"child_dim": {"time": []}}
+            cutout_data[cutout_wl] = []
             time_dim = wl_dim[cutout_wl]["child_dim"]["time"]
 
         else:
             time_dim = cutout_dims["child_dim"][cutout_wl]["child_dim"]["time"]
-        if cutout_data[cutout_wl][0].flat[0] == 0:  # array is only initialized, otherwise empty
-            cutout_data[cutout_wl][0] = image_region
-        else:
-            cutout_data[cutout_wl].append(image_region)
+        cutout_dense_data = cutout_data[cutout_wl]
+        cutout_dense_data.append(image_region)
         time_dim.append(time)
         return cutout_data, cutout_dims, image_cutouts
 
@@ -323,9 +330,8 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
         target_spatial_indices = list(self._get_target_spectra_spatial_ranges(h5_connector))
         target_count = len(target_spatial_indices)
         dense_grp.attrs["target_count"] = target_count
-
-        for zoom in range(min(self.config.IMG_ZOOM_CNT,
-                              self.config.SPEC_ZOOM_CNT)):
+        final_zoom = min(self.config.IMG_ZOOM_CNT, self.config.SPEC_ZOOM_CNT)
+        for zoom in range(final_zoom):
             self._create_datasets_for_zoom(h5_connector, self.config.IMAGE_CUTOUT_SIZE, dense_grp, target_count,
                                            self.config.REBIN_SAMPLES, zoom)
 
@@ -338,8 +344,13 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
             try:
                 self._append_target_3d_cube(h5_connector, spectra_data, spectra_errors, spatial_index,
                                             from_idx, to_idx)
-            except ValueError:
+            except ValueError as e:
                 self.logger.debug("Unable to create dims for spectrum %d" % spatial_index)
+                raise e
+        h5_connector.set_target_count(self.target_complete_cnt[0])
+        for zoom in range(final_zoom):
+            self.spec_3d_cube_datasets["image"][zoom].resize(self.target_complete_cnt[zoom], axis=0)
+            self.spec_3d_cube_datasets["spectrum"][zoom].resize(self.target_complete_cnt[zoom], axis=0)
         add_nexus_navigation_metadata(h5_connector, self.config)
 
     def _get_target_spectra_spatial_ranges(self, h5_connector):

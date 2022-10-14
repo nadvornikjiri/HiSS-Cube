@@ -124,11 +124,13 @@ def is_cutout_whole(cutout_bounds, image_ds):
            0 <= cutout_bounds[1][0][1] <= cutout_bounds[1][1][1] <= image_ds.shape[0]
 
 
-def get_potential_overlapping_image_spatial_paths(fits_header, radius_arcmin, image_index_depth):
+def get_potential_overlapping_image_spatial_paths(fits_header, radius_arcmin, image_index_depth, image_size_x=None,
+                                                  image_size_y=None):
     nsides = 2 ** arange(image_index_depth)
     reference_nside = nsides[-1]
     fact = 2 ** image_index_depth
-    pix_ids = get_overlapping_healpix_pixel_ids(fits_header, reference_nside, fact, radius_arcmin)
+    pix_ids = get_overlapping_healpix_pixel_ids(fits_header, reference_nside, fact, radius_arcmin, image_size_x,
+                                                image_size_y)
     paths = []
     for ipix in pix_ids:
         path = str(ipix)
@@ -140,14 +142,30 @@ def get_potential_overlapping_image_spatial_paths(fits_header, radius_arcmin, im
     return paths
 
 
-def get_overlapping_healpix_pixel_ids(fits_header, nside, fact, radius_arcmin):
+def get_overlapping_healpix_pixel_ids(fits_header, nside, fact, radius_arcmin, image_size_x=None, image_size_y=None):
     spec_ra = fits_header["PLUG_RA"]
     spec_dec = fits_header["PLUG_DEC"]
     vec = hp.ang2vec(spec_ra, spec_dec, lonlat=True)
-    radius_rad = radius_arcmin * math.pi / (60 * 180)
-    pix_ids = hp.query_disc(nside, vec, inclusive=True, fact=fact, radius=radius_rad, nest=True)
-    return pix_ids
+    if not (image_size_x and image_size_y):
+        radius_rad = radius_arcmin * math.pi / (60 * 180)
+        pix_ids = hp.query_disc(nside, vec, inclusive=True, fact=fact, radius=radius_rad, nest=True)
+    else:
+        center_ra = SkyCoord(spec_ra, spec_dec, unit='deg')
+        potential_image_region = RectangleSkyRegion
 
+        half_image_x = image_size_x / 60 / 2
+        half_image_y = image_size_y / 60 / 2
+        ra_poly, dec_poly = (np.array())
+        bound_0 = (spec_ra + half_image_y, spec_dec - half_image_x)
+        vec_0 = hp.ang2vec(bound_0[0], bound_0[1], lonlat=True)
+        bound_1 = (spec_ra + half_image_y, spec_dec + half_image_x)
+        vec_1 = hp.ang2vec(bound_1[0], bound_1[1], lonlat=True)
+        bound_2 = (spec_ra - half_image_y, spec_dec - half_image_x)
+        vec_2 = hp.ang2vec(bound_2[0], bound_2[1], lonlat=True)
+        bound_3 = (spec_ra - half_image_y, spec_dec + half_image_x)
+        vec_3 = hp.ang2vec(bound_3[0], bound_3[1], lonlat=True)
+        pix_ids = hp.query_polygon(nside, [vec_0, vec_1, vec_2, vec_3], inclusive=True, fact=fact)
+    return pix_ids
 
 
 def get_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx=0):
@@ -196,4 +214,3 @@ def get_cutout_pixel_coords(cutout_bounds, w):
     ra, dec = w.wcs_pix2world(X, Y, 0)
 
     return ra, dec
-
