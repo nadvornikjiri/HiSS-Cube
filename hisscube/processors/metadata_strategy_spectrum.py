@@ -562,7 +562,8 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         return image_max_zoom_idx
 
     def _write_image_cutout(self, image_cutout_ds, zoom, image_refs, no_references):
-        image_cutout_ds.write_direct(image_refs[zoom], dest_sel=np.s_[self.spec_cnt, 0:no_references])
+        if no_references > 0:
+            image_cutout_ds.write_direct(image_refs[zoom], dest_sel=np.s_[self.spec_cnt, 0:no_references])
 
     def _get_region_ref(self, image_zoom, image_metadata_dataset, image_ds, image_idx, spec_fits_header,
                         image_cutout_size):
