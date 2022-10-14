@@ -390,12 +390,9 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             h5_connector)
         spec_total_cnt = h5_connector.get_spectrum_count()
         for i in tqdm(range(spec_total_cnt), desc="Linking spectrum", position=0, leave=True):
-            try:
-                self._add_image_links_to_spectra(spectra_metadata_ds, image_data_cutout_ds,
-                                                 image_error_cutout_ds, image_metadata_cutout_ds)
-            except ZeroDivisionError as e:
-                self.logger.error(
-                    "Could not link spectrum with idx %d, message: %s" % (i, str(e)))
+            self._add_image_links_to_spectra(spectra_metadata_ds, image_data_cutout_ds,
+                                             image_error_cutout_ds, image_metadata_cutout_ds)
+
 
     def _get_datasets_for_linking(self, h5_connector):
         spectra_metadata_ds = get_metadata_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
