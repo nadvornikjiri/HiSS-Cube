@@ -12,7 +12,7 @@ from hisscube.processors.metadata_strategy_dataset import DatasetStrategy, get_c
 from hisscube.processors.metadata_strategy_tree import TreeStrategy
 from hisscube.processors.metadata_strategy_spectrum import get_spectrum_time
 from hisscube.utils.astrometry import get_cutout_pixel_coords
-from hisscube.utils.io import get_spectrum_header_dataset, H5Connector
+from hisscube.utils.io import get_spectrum_header_dataset, H5Connector, get_error_ds
 from hisscube.utils.io_strategy import get_orig_header
 from hisscube.utils.logging import HiSSCubeLogger
 from hisscube.utils.nexus import add_nexus_navigation_metadata, set_nx_data, set_nx_interpretation, set_nx_signal
@@ -115,7 +115,7 @@ class MLProcessorStrategy(ABC):
                                                dataset_type=dtype)
         set_nx_interpretation(image_ds, "image", h5_connector)
         self.spec_3d_cube_datasets["image"][zoom] = image_ds
-        self._create_error_ds(h5_connector, image_ml_grp, image_ds, image_dshape, dtype)
+        self._create_error_ds(h5_connector, image_ml_grp, image_ds, image_dshape, dtype, chunk_size=image_chunk_size)
         set_nx_signal(image_ml_grp, ds_name, h5_connector)
 
         ds_name = "spectral_1d_cube_zoom_%d" % zoom
@@ -125,7 +125,7 @@ class MLProcessorStrategy(ABC):
                                               dataset_type=dtype)
         set_nx_interpretation(spec_ds, "spectrum", h5_connector)
         self.spec_3d_cube_datasets["spectrum"][zoom] = spec_ds
-        self._create_error_ds(h5_connector, spec_ml_grp, spec_ds, spectral_dshape, dtype)
+        self._create_error_ds(h5_connector, spec_ml_grp, spec_ds, spectral_dshape, dtype, chunk_size=spectral_chunk_size)
         set_nx_signal(spec_ml_grp, ds_name, h5_connector)
 
         self.target_complete_cnt[zoom] = 0
@@ -155,12 +155,13 @@ class MLProcessorStrategy(ABC):
             return my_cnt
 
     @staticmethod
-    def _create_error_ds(h5_connector, ml_grp, ds, dshape, dtype):
+    def _create_error_ds(h5_connector, ml_grp, ds, dshape, dtype, chunk_size=None):
         error_ds_name = "errors"
         if error_ds_name in ml_grp:
             del ml_grp[error_ds_name]
-        error_ds = h5_connector.create_dataset(ml_grp, error_ds_name, dshape, dataset_type=dtype)
+        error_ds = h5_connector.create_dataset(ml_grp, error_ds_name, dshape, chunk_size=chunk_size, dataset_type=dtype)
         ds.attrs["error_ds"] = error_ds.ref
+        return error_ds
 
     def _process_cutout_cube(self, cutout_cube, h5_connector, spectra_cube, zoom):
         if cutout_cube and len(cutout_cube.data) == len(self.photometry.filter_midpoints):  # all filters have cutout
@@ -172,13 +173,11 @@ class MLProcessorStrategy(ABC):
             target_image_3d_cube, target_spectra_1d_cube = self._aggregate_3d_cube(cutout_data, cutout_dims,
                                                                                    spec_data, spec_dims)
             image_cube_ds[self.target_complete_cnt[zoom]] = target_image_3d_cube[:, :, :, 0]  # Writing values
-            image_error_ds_ref = image_cube_ds.attrs["error_ds"]
-            image_error_ds = h5_connector.file[image_error_ds_ref]
+            image_error_ds = get_error_ds(h5_connector, image_cube_ds)
             image_error_ds[self.target_complete_cnt[zoom]] = target_image_3d_cube[:, :, :, 1]  # Writing errors
 
             spec_cube_ds[self.target_complete_cnt[zoom]] = target_spectra_1d_cube[:, 0]  # Writing values
-            spec_error_ds_ref = spec_cube_ds.attrs["error_ds"]
-            spec_error_ds = h5_connector.file[spec_error_ds_ref]
+            spec_error_ds = get_error_ds(h5_connector, spec_cube_ds)
             spec_error_ds[self.target_complete_cnt[zoom]] = target_spectra_1d_cube[:, 1]  # Writing errors
             self.target_complete_cnt[zoom] += 1
 
@@ -349,8 +348,14 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
                 raise e
         h5_connector.set_target_count(self.target_complete_cnt[0])
         for zoom in range(final_zoom):
-            self.spec_3d_cube_datasets["image"][zoom].resize(self.target_complete_cnt[zoom], axis=0)
-            self.spec_3d_cube_datasets["spectrum"][zoom].resize(self.target_complete_cnt[zoom], axis=0)
+            image_data_ds = self.spec_3d_cube_datasets["image"][zoom]
+            image_error_ds = get_error_ds(h5_connector, image_data_ds)
+            image_data_ds.resize(self.target_complete_cnt[zoom], axis=0)
+            image_error_ds.resize(self.target_complete_cnt[zoom], axis=0)
+            spec_data_ds = self.spec_3d_cube_datasets["spectrum"][zoom]
+            spec_error_ds = get_error_ds(h5_connector, spec_data_ds)
+            spec_data_ds.resize(self.target_complete_cnt[zoom], axis=0)
+            spec_error_ds.resize(self.target_complete_cnt[zoom], axis=0)
         add_nexus_navigation_metadata(h5_connector, self.config)
 
     def _get_target_spectra_spatial_ranges(self, h5_connector):

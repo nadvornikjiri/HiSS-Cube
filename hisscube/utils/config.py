@@ -30,6 +30,7 @@ class Config:
         self.INIT_ARRAY_SIZE = self.config.getint('Handler', 'INIT_ARRAY_SIZE')
         self.FITS_MEM_MAP = self.config.getboolean('Handler', 'FITS_MEM_MAP')
         self.LOG_LEVEL = self.config.get('Handler', 'LOG_LEVEL')
+        self.METADATA_CHUNK_SIZE = self.config.getint('Handler', 'METADATA_CHUNK_SIZE')
 
         self.COMPRESSION = self.config.get('Writer', 'COMPRESSION')
         self.COMPRESSION_OPTS = self.config.get('Writer', 'COMPRESSION_OPTS')

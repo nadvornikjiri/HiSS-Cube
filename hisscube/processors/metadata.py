@@ -71,10 +71,12 @@ class MetadataProcessor:
         image_header_ds, image_header_ds_dtype = get_header_ds(h5_connector, max_images,
                                                                self.config.FITS_MAX_PATH_SIZE,
                                                                self.config.FITS_IMAGE_MAX_HEADER_SIZE,
-                                                               h5_connector.file, 'fits_images_metadata')
+                                                               h5_connector.file, 'fits_images_metadata',
+                                                               chunk_size=self.config.METADATA_CHUNK_SIZE)
         spec_header_ds, spec_header_ds_dtype = get_header_ds(h5_connector, max_spectra, self.config.FITS_MAX_PATH_SIZE,
                                                              self.config.FITS_SPECTRUM_MAX_HEADER_SIZE,
-                                                             h5_connector.file, 'fits_spectra_metadata')
+                                                             h5_connector.file, 'fits_spectra_metadata',
+                                                             chunk_size=self.config.METADATA_CHUNK_SIZE)
         h5_connector.file.attrs["image_count"] = 0
         h5_connector.file.attrs["spectrum_count"] = 0
         return image_header_ds, image_header_ds_dtype, spec_header_ds, spec_header_ds_dtype
