@@ -393,7 +393,6 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             self._add_image_links_to_spectra(spectra_metadata_ds, image_data_cutout_ds,
                                              image_error_cutout_ds, image_metadata_cutout_ds)
 
-
     def _get_datasets_for_linking(self, h5_connector):
         spectra_metadata_ds = get_metadata_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
                                                     self.config.ORIG_CUBE_NAME)
@@ -436,11 +435,12 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             set_nx_axes(spec_zoom_group, [".", "wl"], self.h5_connector)
             index_dtype = [("spatial", np.int64), ("time", np.float32), ("ds_slice_idx", np.int64)]
             create_additional_datasets(spec_count, spec_ds, spec_zoom_group, index_dtype, self.h5_connector,
-                                       self.config.FITS_SPECTRUM_MAX_HEADER_SIZE, self.config.FITS_MAX_PATH_SIZE)
+                                       self.config.FITS_SPECTRUM_MAX_HEADER_SIZE, self.config.FITS_MAX_PATH_SIZE,
+                                       self.config.METADATA_CHUNK_SIZE)
 
-            self.h5_connector.recreate_dataset("image_cutouts_data", spec_count, spec_zoom_group)
-            self.h5_connector.recreate_dataset("image_cutouts_errors", spec_count, spec_zoom_group)
-            self.h5_connector.recreate_dataset("image_cutouts_metadata", spec_count, spec_zoom_group)
+            self.h5_connector.recreate_regionref_dataset("image_cutouts_data", spec_count, spec_zoom_group)
+            self.h5_connector.recreate_regionref_dataset("image_cutouts_errors", spec_count, spec_zoom_group)
+            self.h5_connector.recreate_regionref_dataset("image_cutouts_metadata", spec_count, spec_zoom_group)
 
     def _add_index_entry(self, metadata, spec_datasets):
         for img_ds in spec_datasets:

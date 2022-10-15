@@ -255,7 +255,8 @@ class DatasetImageStrategy(ImageMetadataStrategy):
             self.h5_connector.set_attr(img_ds, "error_ds_ref", error_ds.ref)
             index_dtype = [("spatial", np.int64), ("time", np.float32), ("wl", np.int32), ("ds_slice_idx", np.int64)]
             create_additional_datasets(img_count, img_ds, img_zoom_group, index_dtype, self.h5_connector,
-                                       self.config.FITS_IMAGE_MAX_HEADER_SIZE, self.config.FITS_MAX_PATH_SIZE)
+                                       self.config.FITS_IMAGE_MAX_HEADER_SIZE, self.config.FITS_MAX_PATH_SIZE,
+                                       self.config.METADATA_CHUNK_SIZE)
 
     def add_index_entry(self, metadata, img_datasets):
         for img_ds in img_datasets:

@@ -145,12 +145,13 @@ def write_dataset(data, res_grp_list, should_compress, offset, coordinates=None)
     return datasets
 
 
-def create_additional_datasets(img_count, img_ds, img_zoom_group, index_dtype, h5_connector:H5Connector, header_size, path_size):
+def create_additional_datasets(img_count, img_ds, img_zoom_group, index_dtype, h5_connector: H5Connector, header_size,
+                               path_size, chunk_size):
     ds_name = "db_index"
     if ds_name in img_zoom_group:
         del img_zoom_group[ds_name]
     index_ds = h5_connector.create_dataset(img_zoom_group, "db_index", (img_count,), dataset_type=index_dtype)
     metadata_ds, metadata_ds_dtype = get_header_ds(h5_connector, img_count, path_size, header_size, img_zoom_group,
-                                                   "metadata")
+                                                   "metadata", chunk_size)
     h5_connector.set_attr(img_ds, "metadata_ds_ref", metadata_ds.ref)
     h5_connector.set_attr(img_ds, "index_ds_ref", index_ds.ref)

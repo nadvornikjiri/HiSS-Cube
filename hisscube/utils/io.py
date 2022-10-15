@@ -139,7 +139,7 @@ class H5Connector(ABC):
             ds = group[ds_name]
         return ds
 
-    def recreate_dataset(self, ds_name, spec_count, spec_zoom_group):
+    def recreate_regionref_dataset(self, ds_name, spec_count, spec_zoom_group):
         if ds_name in spec_zoom_group:
             del spec_zoom_group[ds_name]
         self.require_dataset(spec_zoom_group, ds_name,
@@ -345,3 +345,7 @@ def get_time_from_image(orig_image_header):
     except ValueError:
         time = Time(datetime.strptime(time_attr, "%d/%m/%y")).mjd
     return time
+
+
+def get_error_ds(h5_connector, ds):
+    return h5_connector.file[ds.attrs["error_ds"]]
