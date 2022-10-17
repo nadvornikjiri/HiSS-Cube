@@ -42,6 +42,7 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
         for i in range(0, self.mpi_helper.active_workers):
             self.process_response(h5_connector, processor, status)
         self.mpi_helper.active_workers = 0
+        return offset
 
     def process_response(self, h5_connector, processor, status):
         self.mpi_helper.comm.recv(source=self.mpi_helper.MPI.ANY_SOURCE, tag=self.mpi_helper.FINISHED_TAG,
@@ -76,6 +77,8 @@ class ParallelMetadataCacheBuilder(ParallelBuilder):
         self.fits_image_pattern = fits_image_pattern
         self.fits_spectra_pattern = fits_spectra_pattern
         self.parallel_connector = parallel_h5_connector
+        self.image_count = 0
+        self.spectrum_count = 0
 
     def build(self):
         if self.rank == 0:
@@ -84,8 +87,12 @@ class ParallelMetadataCacheBuilder(ParallelBuilder):
                                                                                          self.fits_image_pattern,
                                                                                          self.fits_spectra_path,
                                                                                          self.fits_spectra_pattern)
-                image_count = len(image_path_list)
-                spectrum_count = len(spectra_path_list)
+                try:
+                    image_count = len(image_path_list)
+                    spectrum_count = len(spectra_path_list)
+                except TypeError:
+                    image_count = self.config.LIMIT_IMAGE_COUNT
+                    spectrum_count = self.config.LIMIT_SPECTRA_COUNT
                 self.metadata_processor.clean_fits_header_tables(h5_connector)
                 self.metadata_processor.create_fits_header_datasets(h5_connector, max_images=image_count,
                                                                     max_spectra=spectrum_count)
@@ -94,21 +101,29 @@ class ParallelMetadataCacheBuilder(ParallelBuilder):
         self.mpi_helper.barrier()
         with self.parallel_connector as h5_connector:
             if self.rank == 0:
-                self.distribute_work(h5_connector, image_path_list, self.metadata_processor)
+                self.image_count = self.distribute_work(h5_connector, image_path_list, self.metadata_processor)
                 self.mpi_helper.barrier()
-                self.distribute_work(h5_connector, spectra_path_list, self.metadata_processor)
+                self.spectrum_count = self.distribute_work(h5_connector, spectra_path_list, self.metadata_processor)
             else:
                 image_header_ds = get_image_header_dataset(h5_connector)
                 image_header_ds_dtype = image_header_ds.dtype
                 spectrum_header_ds = get_spectrum_header_dataset(h5_connector)
                 spectrum_header_ds_dtype = spectrum_header_ds.dtype
-                self.process_metadata_cache(h5_connector, image_header_ds, image_header_ds_dtype, "image_count")
+                self.process_metadata_cache(h5_connector, image_header_ds, image_header_ds_dtype)
                 self.mpi_helper.barrier()
-                self.process_metadata_cache(h5_connector, spectrum_header_ds, spectrum_header_ds_dtype,
-                                            "spectrum_count")
-            self.mpi_helper.barrier()
+                self.process_metadata_cache(h5_connector, spectrum_header_ds, spectrum_header_ds_dtype)
+        self.mpi_helper.barrier()
+        if self.rank == 0:
+            with self.h5_connector as h5_connector:
+                h5_connector.set_image_count(self.image_count)
+                h5_connector.set_spectrum_count(self.spectrum_count)
+                image_header_ds = get_image_header_dataset(h5_connector)
+                spectrum_header_ds = get_spectrum_header_dataset(h5_connector)
+                image_header_ds.resize(self.image_count, axis=0)
+                spectrum_header_ds.resize(self.spectrum_count, axis=0)
 
-    def process_metadata_cache(self, h5_connector, header_ds, header_ds_dtype, count_type):
+
+    def process_metadata_cache(self, h5_connector, header_ds, header_ds_dtype):
         status = self.mpi_helper.MPI.Status()
         path_list, offset = self.mpi_helper.receive_work_parsed(status)
         while status.Get_tag() != self.mpi_helper.KILL_TAG:

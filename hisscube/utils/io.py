@@ -123,15 +123,15 @@ class H5Connector(ABC):
     def create_image_h5_dataset(self, group, file_name, img_data_shape, chunk_size=None):
         return self.create_dataset(group, file_name, img_data_shape, chunk_size)
 
-    def create_dataset(self, group, dataset_name, img_data_shape, chunk_size=None, dataset_type=None):
+    def create_dataset(self, group, dataset_name, dataset_shape, chunk_size=None, dataset_type=None):
         if not dataset_type:
             dataset_type = h5py.h5t.py_create(np.dtype('<f4'))
         else:
             dataset_type = h5py.h5t.py_create(dataset_type)
         ds_name = dataset_name.encode('utf-8')
         if not ds_name in group:
-            dcpl, space = get_property_list(self.config, img_data_shape)
-            if chunk_size:
+            dcpl, space = get_property_list(self.config, dataset_shape)
+            if chunk_size and not (any(dataset_shape) == 0):
                 dcpl.set_chunk(chunk_size)
             dsid = h5py.h5d.create(group.id, ds_name, dataset_type, space, dcpl=dcpl)
             ds = h5py.Dataset(dsid)

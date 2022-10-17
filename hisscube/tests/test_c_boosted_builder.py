@@ -24,6 +24,7 @@ class TestCBoostedBuilder(unittest.TestCase):
         truncate(H5_PATH)
         config = Config()
         config.METADATA_STRATEGY = "TREE"
+        config.IMG_SPAT_INDEX_ORDER = 9
         self.dependency_provider = HiSSCubeProvider(H5_PATH, image_path=FITS_IMAGE_PATH,
                                                     spectra_path=FITS_SPECTRA_PATH, config=config)
         self.dependency_provider.config.MPIO = False
@@ -33,7 +34,6 @@ class TestCBoostedBuilder(unittest.TestCase):
     def test_build(self):
         c_builder = self.dependency_provider.serial_builders.c_boosted_metadata_builder
         c_builder.build()
-
         h5_file = h5py.File(H5_PATH, libver="latest")
         test_ds = h5_file[
             "/semi_sparse_cube/5/22/90/362/1450/5802/23208/92833/371334/4604806627.9/6166/(1024, 744)/frame-r-004899-2-0260.fits"]

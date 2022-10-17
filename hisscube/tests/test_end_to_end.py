@@ -18,17 +18,17 @@ def get_dump_strip_cmd(path):
 
 class TestHiSSCube(unittest.TestCase):
     def test_serial_metadata(self):
-        h5_dump_path = "../../results/SDSS_cube_dump.txt"
-        h5_testdump_path = "../../results/SDSS_cube_test_dump.txt"
+        h5_dump_path = "SDSS_cube_dump.txt"
+        h5_testdump_path = "SDSS_cube_test_dump.txt"
         h5_path = self.construct_serial()
         diff_output = self.diff_dump(h5_dump_path, h5_path, h5_testdump_path)
 
         assert (diff_output == "")
 
-    # @pytest.mark.skip(reason="Requires lots of images not versioned within Git.")
+    @pytest.mark.skip(reason="Requires lots of images not versioned within Git.")
     def test_parallel_metadata(self):
-        h5_dump_path = "../../results/SDSS_cube_c_par_dump.txt"
-        h5_testdump_path = "../../results/SDSS_cube_c_par_test_dump.txt"
+        h5_dump_path = "SDSS_cube_c_par_dump.txt"
+        h5_testdump_path = "SDSS_cube_c_par_test_dump.txt"
         h5_path = self.construct_parallel()
 
         diff_output = self.diff_dump(h5_dump_path, h5_path, h5_testdump_path)
@@ -50,8 +50,8 @@ class TestHiSSCube(unittest.TestCase):
         assert (diff_output == "")
 
     def test_updates_metadata(self):
-        h5_dump_path = "../../results/SDSS_cube_dataset_dump.txt"
-        h5_testdump_path = "../../results/SDSS_cube_dataset_test_dump.txt"
+        h5_dump_path = "SDSS_cube_dataset_dump.txt"
+        h5_testdump_path = "SDSS_cube_dataset_test_dump.txt"
         h5_path = "../../results/SDSS_cube.h5"
         input_path = "../../data/raw/galaxy_small/"
         image_pattern = "frame-*-004136-*-0129.fits"

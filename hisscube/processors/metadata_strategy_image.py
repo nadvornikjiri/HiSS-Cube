@@ -140,11 +140,11 @@ class TreeImageStrategy(ImageMetadataStrategy):
             chunk_size = None
             if self.config.C_BOOSTER:
                 if "image_dataset" in group:
-                    raise RuntimeError(
+                    raise AssertionError(
                         "There is already an image dataset %s within this resolution group. Trying to insert image %s." % (
                             list(group["image_dataset"]), file_name))
             elif len(group) > 0:
-                raise RuntimeError(
+                raise AssertionError(
                     "There is already an image dataset %s within this resolution group. Trying to insert image %s." % (
                         list(group), file_name))
             res_tuple = self.h5_connector.get_name(group).split('/')[-1]

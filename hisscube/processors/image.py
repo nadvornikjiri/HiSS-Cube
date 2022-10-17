@@ -24,8 +24,10 @@ class ImageProcessor:
             self.img_cnt = 0
             self.metadata_processor.create_fits_header_datasets(h5_connector, max_images=1)
         image_header_ds = get_image_header_dataset(h5_connector)
-        image_path_list = get_str_path_list(image_path, image_pattern, self.config.LIMIT_IMAGE_COUNT)
-        self.img_cnt += self.metadata_processor.write_fits_headers(h5_connector, image_header_ds, image_header_ds.dtype, image_path,
+        image_path_list = get_str_path_list(image_path, image_pattern, self.config.LIMIT_IMAGE_COUNT,
+                                            self.config.PATH_WAIT_TOTAL)
+        self.img_cnt += self.metadata_processor.write_fits_headers(h5_connector, image_header_ds, image_header_ds.dtype,
+                                                                   image_path,
                                                                    image_path_list, offset=self.img_cnt)
         self.h5_connector.file.attrs["image_count"] = self.img_cnt
 
@@ -44,8 +46,3 @@ class ImageProcessor:
     def _set_connector(self, h5_connector):
         self.h5_connector = h5_connector
         self.metadata_processor.h5_connector = h5_connector
-
-
-
-
-

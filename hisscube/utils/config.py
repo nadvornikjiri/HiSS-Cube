@@ -16,6 +16,7 @@ class Config:
         self.C_BOOSTER = self.config.getboolean('Builder', 'C_BOOSTER')
         self.METADATA_STRATEGY = self.config.get('Builder', 'METADATA_STRATEGY')
         self.DATASET_STRATEGY_CHUNKED = self.config.getboolean('Builder', 'DATASET_STRATEGY_CHUNKED')
+        self.PATH_WAIT_TOTAL = self.config.getboolean('Builder', 'PATH_WAIT_TOTAL')
 
         self.IMAGE_CUTOUT_SIZE = self.config.getint('Handler', 'IMAGE_CUTOUT_SIZE')
         self.IMG_ZOOM_CNT = self.config.getint('Handler', 'IMG_ZOOM_CNT')

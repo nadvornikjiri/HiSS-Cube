@@ -29,8 +29,10 @@ class SpectrumProcessor:
             self.spec_cnt = 0
             self.metadata_processor.create_fits_header_datasets(h5_connector, max_spectra=1)
         spec_header_ds = get_spectrum_header_dataset(h5_connector)
-        spec_path_list = get_str_path_list(spec_path, spectra_pattern, self.config.LIMIT_SPECTRA_COUNT)
-        self.spec_cnt += self.metadata_processor.write_fits_headers(h5_connector, spec_header_ds, spec_header_ds.dtype, spec_path,
+        spec_path_list = get_str_path_list(spec_path, spectra_pattern, self.config.LIMIT_SPECTRA_COUNT,
+                                           self.config.PATH_WAIT_TOTAL)
+        self.spec_cnt += self.metadata_processor.write_fits_headers(h5_connector, spec_header_ds, spec_header_ds.dtype,
+                                                                    spec_path,
                                                                     spec_path_list, offset=self.spec_cnt)
         self.h5_connector.file.attrs["spectrum_count"] = self.spec_cnt
 

@@ -112,7 +112,7 @@ class TestSerialBuilder(unittest.TestCase):
         dependency_provider, director = self.get_image_test(image_pattern, test_images)
 
         dependency_provider.config.IMG_SPAT_INDEX_ORDER = 8
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(AssertionError):
             director.construct()
 
     def test_add_spec_refs(self):
