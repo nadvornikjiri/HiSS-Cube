@@ -1,6 +1,5 @@
 import pathlib
 from distutils.core import setup, Extension
-import sysconfig
 
 setup_path = pathlib.Path(__file__).parent.absolute()
 

@@ -3,8 +3,6 @@ from math import log
 import h5py
 import numpy as np
 
-from hisscube.utils.config import Config
-
 
 def float_compress(data, ndig=10):
     """

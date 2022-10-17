@@ -1,4 +1,3 @@
-import numpy
 import builtins
 
 # temporary measure to shut up astropy's configuration parser.

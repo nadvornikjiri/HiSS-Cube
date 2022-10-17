@@ -1,12 +1,7 @@
-import fitsio
-import ujson
-import numpy as np
-
-from hisscube.processors.data import float_compress
 from hisscube.processors.metadata import get_str_path_list
 from hisscube.processors.metadata_strategy_spectrum import SpectrumMetadataStrategy
 from hisscube.utils.io import get_path_patterns, get_spectrum_header_dataset
-from hisscube.utils.logging import HiSSCubeLogger, log_timing
+from hisscube.utils.logging import HiSSCubeLogger
 
 
 class SpectrumProcessor:

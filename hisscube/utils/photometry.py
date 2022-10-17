@@ -1,6 +1,5 @@
 import csv
 import pathlib
-from pathlib import Path
 
 import cv2
 import numpy as np

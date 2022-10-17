@@ -9,7 +9,6 @@ from astropy.time import Time
 from hisscube.processors.cube_visualization import VisualizationProcessor
 from hisscube.utils import astrometry
 from hisscube.utils.astrometry import NoCoverageFoundError, is_cutout_whole
-from hisscube.utils.config import Config
 
 
 class FITSProcessor(VisualizationProcessor):

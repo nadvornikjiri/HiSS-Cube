@@ -3,7 +3,6 @@ import itertools
 import pathlib
 
 import fitsio
-import h5py
 import numpy as np
 import ujson
 from tqdm.auto import tqdm

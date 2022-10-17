@@ -4,18 +4,16 @@ import warnings
 from pathlib import Path
 from unittest.mock import Mock
 
-import fitsio
 import h5py
 import pytest
 from tqdm.auto import tqdm
 
-from hisscube.builders import SingleImageBuilder
-from hisscube.director import HiSSCubeConstructionDirector
 from hisscube.dependency_injector import HiSSCubeProvider
+from hisscube.director import HiSSCubeConstructionDirector
 from hisscube.processors.data import float_compress
-from hisscube.utils.config import Config
-from hisscube.utils.io import SerialH5Writer, truncate
 from hisscube.utils.astrometry import is_cutout_whole
+from hisscube.utils.config import Config
+from hisscube.utils.io import truncate
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
