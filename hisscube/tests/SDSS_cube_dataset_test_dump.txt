@@ -1,4 +1,4 @@
-HDF5 "../../results/SDSS_cube.h5" {
+HDF5 "SDSS_cube.h5" {
 SUPER_BLOCK {
    SUPERBLOCK_VERSION 3
    FREELIST_VERSION 0
