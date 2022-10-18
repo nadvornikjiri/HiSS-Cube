@@ -1,0 +1,2367 @@
+HDF5 "../../results/SDSS_cube.h5" {
+SUPER_BLOCK {
+   SUPERBLOCK_VERSION 3
+   FREELIST_VERSION 0
+   SYMBOLTABLE_VERSION 0
+   OBJECTHEADER_VERSION 0
+   OFFSET_SIZE 8
+   LENGTH_SIZE 8
+   BTREE_RANK 16
+   BTREE_LEAF 4
+   ISTORE_K 32
+   FILE_SPACE_STRATEGY H5F_FSPACE_STRATEGY_PAGE
+   FREE_SPACE_PERSIST FALSE
+   FREE_SPACE_SECTION_THRESHOLD 1
+   FILE_SPACE_PAGE_SIZE 4096
+   USER_BLOCK {
+      USERBLOCK_SIZE 0
+   }
+}
+GROUP "/" {
+   ATTRIBUTE "NX_class" {
+      DATATYPE  H5T_STRING {
+         STRSIZE H5T_VARIABLE;
+         STRPAD H5T_STR_NULLTERM;
+         CSET H5T_CSET_UTF8;
+         CTYPE H5T_C_S1;
+      }
+      DATASPACE  SCALAR
+   }
+   ATTRIBUTE "default" {
+      DATATYPE  H5T_STRING {
+         STRSIZE H5T_VARIABLE;
+         STRPAD H5T_STR_NULLTERM;
+         CSET H5T_CSET_UTF8;
+         CTYPE H5T_C_S1;
+      }
+      DATASPACE  SCALAR
+   }
+   ATTRIBUTE "image_count" {
+      DATATYPE  H5T_STD_I64LE
+      DATASPACE  SCALAR
+   }
+   ATTRIBUTE "spectrum_count" {
+      DATATYPE  H5T_STD_I64LE
+      DATASPACE  SCALAR
+   }
+   GROUP "dense_cube" {
+      ATTRIBUTE "NX_class" {
+         DATATYPE  H5T_STRING {
+            STRSIZE H5T_VARIABLE;
+            STRPAD H5T_STR_NULLTERM;
+            CSET H5T_CSET_UTF8;
+            CTYPE H5T_C_S1;
+         }
+         DATASPACE  SCALAR
+      }
+      ATTRIBUTE "default" {
+         DATATYPE  H5T_STRING {
+            STRSIZE H5T_VARIABLE;
+            STRPAD H5T_STR_NULLTERM;
+            CSET H5T_CSET_UTF8;
+            CTYPE H5T_C_S1;
+         }
+         DATASPACE  SCALAR
+      }
+      ATTRIBUTE "target_count" {
+         DATATYPE  H5T_STD_I64LE
+         DATASPACE  SCALAR
+      }
+      GROUP "0" {
+         ATTRIBUTE "default" {
+            DATATYPE  H5T_STRING {
+               STRSIZE H5T_VARIABLE;
+               STRPAD H5T_STR_NULLTERM;
+               CSET H5T_CSET_UTF8;
+               CTYPE H5T_C_S1;
+            }
+            DATASPACE  SCALAR
+         }
+         GROUP "ml_image" {
+            ATTRIBUTE "NX_class" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "default" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "signal" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            DATASET "cutout_3d_cube_zoom_0" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2, 5, 64, 64 ) / ( 2, 5, 64, 64 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 5, 64, 64 )
+                  SIZE 163840
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+               ATTRIBUTE "error_ds" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "interpretation" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+            }
+            DATASET "errors" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2, 5, 64, 64 ) / ( 2, 5, 64, 64 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 5, 64, 64 )
+                  SIZE 163840
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+         }
+         GROUP "ml_spectrum" {
+            ATTRIBUTE "NX_class" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "signal" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            DATASET "errors" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2, 4620 ) / ( 2, 4620 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 4620 )
+                  SIZE 36960
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "spectral_1d_cube_zoom_0" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2, 4620 ) / ( 2, 4620 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 4620 )
+                  SIZE 36960
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+               ATTRIBUTE "error_ds" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "interpretation" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+            }
+         }
+         GROUP "visualization" {
+            DATASET "dense_cube_zoom_0" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STD_I64LE "heal_id";
+                  H5T_IEEE_F32LE "ra";
+                  H5T_IEEE_F32LE "dec";
+                  H5T_IEEE_F32LE "time";
+                  H5T_IEEE_F32LE "wl";
+                  H5T_IEEE_F32LE "mean";
+                  H5T_IEEE_F32LE "sigma";
+                  H5T_IEEE_F32LE "spec_ra";
+                  H5T_IEEE_F32LE "spec_dec";
+                  H5T_STRING {
+                     STRSIZE 32;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_ASCII;
+                     CTYPE H5T_C_S1;
+                  } "fits_name";
+                  H5T_STRING {
+                     STRSIZE 32;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_ASCII;
+                     CTYPE H5T_C_S1;
+                  } "spec_fits_name";
+               }
+               DATASPACE  SIMPLE { ( 276100 ) / ( 276100 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 28714400
+                  OFFSET 2774884352
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+         }
+      }
+      GROUP "1" {
+         GROUP "ml_image" {
+            ATTRIBUTE "NX_class" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "signal" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            DATASET "cutout_3d_cube_zoom_1" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2, 5, 32, 32 ) / ( 2, 5, 32, 32 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 5, 32, 32 )
+                  SIZE 40960
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+               ATTRIBUTE "error_ds" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "interpretation" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+            }
+            DATASET "errors" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2, 5, 32, 32 ) / ( 2, 5, 32, 32 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 5, 32, 32 )
+                  SIZE 40960
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+         }
+         GROUP "ml_spectrum" {
+            ATTRIBUTE "NX_class" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "signal" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            DATASET "errors" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2, 2310 ) / ( 2, 2310 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 2310 )
+                  SIZE 18480
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "spectral_1d_cube_zoom_1" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2, 2310 ) / ( 2, 2310 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 2310 )
+                  SIZE 18480
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+               ATTRIBUTE "error_ds" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "interpretation" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+            }
+         }
+         GROUP "visualization" {
+            DATASET "dense_cube_zoom_1" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STD_I64LE "heal_id";
+                  H5T_IEEE_F32LE "ra";
+                  H5T_IEEE_F32LE "dec";
+                  H5T_IEEE_F32LE "time";
+                  H5T_IEEE_F32LE "wl";
+                  H5T_IEEE_F32LE "mean";
+                  H5T_IEEE_F32LE "sigma";
+                  H5T_IEEE_F32LE "spec_ra";
+                  H5T_IEEE_F32LE "spec_dec";
+                  H5T_STRING {
+                     STRSIZE 32;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_ASCII;
+                     CTYPE H5T_C_S1;
+                  } "fits_name";
+                  H5T_STRING {
+                     STRSIZE 32;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_ASCII;
+                     CTYPE H5T_C_S1;
+                  } "spec_fits_name";
+               }
+               DATASPACE  SIMPLE { ( 81730 ) / ( 81730 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 8499920
+                  OFFSET 2803601408
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+         }
+      }
+      GROUP "2" {
+         GROUP "ml_image" {
+            ATTRIBUTE "NX_class" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "signal" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            DATASET "cutout_3d_cube_zoom_2" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2, 5, 16, 16 ) / ( 2, 5, 16, 16 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 5, 16, 16 )
+                  SIZE 10240
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+               ATTRIBUTE "error_ds" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "interpretation" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+            }
+            DATASET "errors" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2, 5, 16, 16 ) / ( 2, 5, 16, 16 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 5, 16, 16 )
+                  SIZE 10240
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+         }
+         GROUP "ml_spectrum" {
+            ATTRIBUTE "NX_class" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "signal" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            DATASET "errors" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2, 1155 ) / ( 2, 1155 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 1155 )
+                  SIZE 9240
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "spectral_1d_cube_zoom_2" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2, 1155 ) / ( 2, 1155 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 1155 )
+                  SIZE 9240
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+               ATTRIBUTE "error_ds" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "interpretation" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+            }
+         }
+         GROUP "visualization" {
+            DATASET "dense_cube_zoom_2" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STD_I64LE "heal_id";
+                  H5T_IEEE_F32LE "ra";
+                  H5T_IEEE_F32LE "dec";
+                  H5T_IEEE_F32LE "time";
+                  H5T_IEEE_F32LE "wl";
+                  H5T_IEEE_F32LE "mean";
+                  H5T_IEEE_F32LE "sigma";
+                  H5T_IEEE_F32LE "spec_ra";
+                  H5T_IEEE_F32LE "spec_dec";
+                  H5T_STRING {
+                     STRSIZE 32;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_ASCII;
+                     CTYPE H5T_C_S1;
+                  } "fits_name";
+                  H5T_STRING {
+                     STRSIZE 32;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_ASCII;
+                     CTYPE H5T_C_S1;
+                  } "spec_fits_name";
+               }
+               DATASPACE  SIMPLE { ( 26785 ) / ( 26785 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 2785640
+                  OFFSET 2812104704
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+         }
+      }
+      GROUP "3" {
+         GROUP "ml_image" {
+            ATTRIBUTE "NX_class" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "signal" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            DATASET "cutout_3d_cube_zoom_3" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2, 5, 8, 8 ) / ( 2, 5, 8, 8 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 5, 8, 8 )
+                  SIZE 2560
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+               ATTRIBUTE "error_ds" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "interpretation" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+            }
+            DATASET "errors" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2, 5, 8, 8 ) / ( 2, 5, 8, 8 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 5, 8, 8 )
+                  SIZE 2560
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+         }
+         GROUP "ml_spectrum" {
+            ATTRIBUTE "NX_class" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "signal" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            DATASET "errors" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2, 577 ) / ( 2, 577 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 577 )
+                  SIZE 4616
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "spectral_1d_cube_zoom_3" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2, 577 ) / ( 2, 577 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 577 )
+                  SIZE 4616
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+               ATTRIBUTE "error_ds" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "interpretation" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+            }
+         }
+         GROUP "visualization" {
+            DATASET "dense_cube_zoom_3" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STD_I64LE "heal_id";
+                  H5T_IEEE_F32LE "ra";
+                  H5T_IEEE_F32LE "dec";
+                  H5T_IEEE_F32LE "time";
+                  H5T_IEEE_F32LE "wl";
+                  H5T_IEEE_F32LE "mean";
+                  H5T_IEEE_F32LE "sigma";
+                  H5T_IEEE_F32LE "spec_ra";
+                  H5T_IEEE_F32LE "spec_dec";
+                  H5T_STRING {
+                     STRSIZE 32;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_ASCII;
+                     CTYPE H5T_C_S1;
+                  } "fits_name";
+                  H5T_STRING {
+                     STRSIZE 32;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_ASCII;
+                     CTYPE H5T_C_S1;
+                  } "spec_fits_name";
+               }
+               DATASPACE  SIMPLE { ( 9867 ) / ( 9867 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 1026168
+                  OFFSET 2814894080
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+         }
+      }
+   }
+   DATASET "fits_images_metadata" {
+      DATATYPE  H5T_COMPOUND {
+         H5T_STRING {
+            STRSIZE 256;
+            STRPAD H5T_STR_NULLPAD;
+            CSET H5T_CSET_UTF8;
+            CTYPE H5T_C_S1;
+         } "path";
+         H5T_STRING {
+            STRSIZE 4096;
+            STRPAD H5T_STR_NULLPAD;
+            CSET H5T_CSET_UTF8;
+            CTYPE H5T_C_S1;
+         } "header";
+      }
+      DATASPACE  SIMPLE { ( 5 ) / ( 300000 ) }
+      STORAGE_LAYOUT {
+         CHUNKED ( 1 )
+         SIZE 21760
+      }
+      FILTERS {
+         NONE
+      }
+      FILLVALUE {
+         FILL_TIME H5D_FILL_TIME_NEVER
+         VALUE  H5D_FILL_VALUE_DEFAULT
+      }
+      ALLOCATION_TIME {
+         H5D_ALLOC_TIME_EARLY
+      }
+   }
+   DATASET "fits_spectra_metadata" {
+      DATATYPE  H5T_COMPOUND {
+         H5T_STRING {
+            STRSIZE 256;
+            STRPAD H5T_STR_NULLPAD;
+            CSET H5T_CSET_UTF8;
+            CTYPE H5T_C_S1;
+         } "path";
+         H5T_STRING {
+            STRSIZE 4096;
+            STRPAD H5T_STR_NULLPAD;
+            CSET H5T_CSET_UTF8;
+            CTYPE H5T_C_S1;
+         } "header";
+      }
+      DATASPACE  SIMPLE { ( 11 ) / ( 300000 ) }
+      STORAGE_LAYOUT {
+         CHUNKED ( 1 )
+         SIZE 47872
+      }
+      FILTERS {
+         NONE
+      }
+      FILLVALUE {
+         FILL_TIME H5D_FILL_TIME_NEVER
+         VALUE  H5D_FILL_VALUE_DEFAULT
+      }
+      ALLOCATION_TIME {
+         H5D_ALLOC_TIME_EARLY
+      }
+   }
+   GROUP "semi_sparse_cube" {
+      ATTRIBUTE "NX_class" {
+         DATATYPE  H5T_STRING {
+            STRSIZE H5T_VARIABLE;
+            STRPAD H5T_STR_NULLTERM;
+            CSET H5T_CSET_UTF8;
+            CTYPE H5T_C_S1;
+         }
+         DATASPACE  SCALAR
+      }
+      GROUP "0" {
+         GROUP "images" {
+            ATTRIBUTE "NX_class" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "signal" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            DATASET "data" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 5, 1489, 2048 ) / ( 5, 1489, 2048 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 1489, 2048 )
+                  SIZE 60989440
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+               ATTRIBUTE "error_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "index_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "interpretation" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "metadata_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "mime-type" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+            }
+            DATASET "db_index" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STD_I64LE "spatial";
+                  H5T_IEEE_F32LE "time";
+                  H5T_STD_I32LE "wl";
+                  H5T_STD_I64LE "ds_slice_idx";
+               }
+               DATASPACE  SIMPLE { ( 5 ) / ( 5 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 120
+                  OFFSET 2773602304
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "errors" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 5, 1489, 2048 ) / ( 5, 1489, 2048 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 1489, 2048 )
+                  SIZE 60989440
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "metadata" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 256;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "path";
+                  H5T_STRING {
+                     STRSIZE 4096;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "header";
+               }
+               DATASPACE  SIMPLE { ( 5 ) / ( 5 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1 )
+                  SIZE 21760
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+         }
+         GROUP "spectra" {
+            ATTRIBUTE "NX_class" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "axes" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SIMPLE { ( 2 ) / ( 2 ) }
+            }
+            ATTRIBUTE "signal" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            DATASET "data" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 11, 4620 ) / ( 11, 4620 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 4620 )
+                  SIZE 203280
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+               ATTRIBUTE "error_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "index_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "interpretation" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "metadata_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "mime-type" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+            }
+            DATASET "db_index" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STD_I64LE "spatial";
+                  H5T_IEEE_F32LE "time";
+                  H5T_STD_I64LE "ds_slice_idx";
+               }
+               DATASPACE  SIMPLE { ( 11 ) / ( 11 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 220
+                  OFFSET 2773602784
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "errors" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 11, 4620 ) / ( 11, 4620 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 4620 )
+                  SIZE 203280
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "image_cutouts_data" {
+               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 264000
+                  OFFSET 5549727744
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_IFSET
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_LATE
+               }
+            }
+            DATASET "image_cutouts_errors" {
+               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 264000
+                  OFFSET 5549993984
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_IFSET
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_LATE
+               }
+            }
+            DATASET "image_cutouts_metadata" {
+               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 264000
+                  OFFSET 5550260224
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_IFSET
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_LATE
+               }
+            }
+            DATASET "metadata" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 256;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "path";
+                  H5T_STRING {
+                     STRSIZE 4096;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "header";
+               }
+               DATASPACE  SIMPLE { ( 11 ) / ( 11 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1 )
+                  SIZE 47872
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "wl" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 4620 ) / ( 4620 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 18480
+                  OFFSET 2774392832
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+         }
+      }
+      GROUP "1" {
+         GROUP "images" {
+            ATTRIBUTE "NX_class" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "signal" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            DATASET "data" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 5, 744, 1024 ) / ( 5, 744, 1024 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 744, 1024 )
+                  SIZE 15237120
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+               ATTRIBUTE "error_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "index_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "interpretation" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "metadata_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "mime-type" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+            }
+            DATASET "db_index" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STD_I64LE "spatial";
+                  H5T_IEEE_F32LE "time";
+                  H5T_STD_I32LE "wl";
+                  H5T_STD_I64LE "ds_slice_idx";
+               }
+               DATASPACE  SIMPLE { ( 5 ) / ( 5 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 120
+                  OFFSET 2773602424
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "errors" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 5, 744, 1024 ) / ( 5, 744, 1024 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 744, 1024 )
+                  SIZE 15237120
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "metadata" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 256;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "path";
+                  H5T_STRING {
+                     STRSIZE 4096;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "header";
+               }
+               DATASPACE  SIMPLE { ( 5 ) / ( 5 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1 )
+                  SIZE 21760
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+         }
+         GROUP "spectra" {
+            ATTRIBUTE "NX_class" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "axes" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SIMPLE { ( 2 ) / ( 2 ) }
+            }
+            ATTRIBUTE "signal" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            DATASET "data" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 11, 2310 ) / ( 11, 2310 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 2310 )
+                  SIZE 101640
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+               ATTRIBUTE "error_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "index_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "interpretation" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "metadata_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "mime-type" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+            }
+            DATASET "db_index" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STD_I64LE "spatial";
+                  H5T_IEEE_F32LE "time";
+                  H5T_STD_I64LE "ds_slice_idx";
+               }
+               DATASPACE  SIMPLE { ( 11 ) / ( 11 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 220
+                  OFFSET 2773603004
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "errors" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 11, 2310 ) / ( 11, 2310 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 2310 )
+                  SIZE 101640
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "image_cutouts_data" {
+               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 264000
+                  OFFSET 5550526464
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_IFSET
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_LATE
+               }
+            }
+            DATASET "image_cutouts_errors" {
+               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 264000
+                  OFFSET 5550792704
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_IFSET
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_LATE
+               }
+            }
+            DATASET "image_cutouts_metadata" {
+               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 264000
+                  OFFSET 5551058944
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_IFSET
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_LATE
+               }
+            }
+            DATASET "metadata" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 256;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "path";
+                  H5T_STRING {
+                     STRSIZE 4096;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "header";
+               }
+               DATASPACE  SIMPLE { ( 11 ) / ( 11 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1 )
+                  SIZE 47872
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "wl" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 2310 ) / ( 2310 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 9240
+                  OFFSET 2773450752
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+         }
+      }
+      GROUP "2" {
+         GROUP "images" {
+            ATTRIBUTE "NX_class" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "signal" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            DATASET "data" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 5, 372, 512 ) / ( 5, 372, 512 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 372, 512 )
+                  SIZE 3809280
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+               ATTRIBUTE "error_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "index_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "interpretation" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "metadata_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "mime-type" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+            }
+            DATASET "db_index" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STD_I64LE "spatial";
+                  H5T_IEEE_F32LE "time";
+                  H5T_STD_I32LE "wl";
+                  H5T_STD_I64LE "ds_slice_idx";
+               }
+               DATASPACE  SIMPLE { ( 5 ) / ( 5 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 120
+                  OFFSET 2773602544
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "errors" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 5, 372, 512 ) / ( 5, 372, 512 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 372, 512 )
+                  SIZE 3809280
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "metadata" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 256;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "path";
+                  H5T_STRING {
+                     STRSIZE 4096;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "header";
+               }
+               DATASPACE  SIMPLE { ( 5 ) / ( 5 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1 )
+                  SIZE 21760
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+         }
+         GROUP "spectra" {
+            ATTRIBUTE "NX_class" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "axes" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SIMPLE { ( 2 ) / ( 2 ) }
+            }
+            ATTRIBUTE "signal" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            DATASET "data" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 11, 1155 ) / ( 11, 1155 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 1155 )
+                  SIZE 50820
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+               ATTRIBUTE "error_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "index_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "interpretation" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "metadata_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "mime-type" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+            }
+            DATASET "db_index" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STD_I64LE "spatial";
+                  H5T_IEEE_F32LE "time";
+                  H5T_STD_I64LE "ds_slice_idx";
+               }
+               DATASPACE  SIMPLE { ( 11 ) / ( 11 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 220
+                  OFFSET 2773603224
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "errors" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 11, 1155 ) / ( 11, 1155 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 1155 )
+                  SIZE 50820
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "image_cutouts_data" {
+               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 264000
+                  OFFSET 5551325184
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_IFSET
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_LATE
+               }
+            }
+            DATASET "image_cutouts_errors" {
+               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 264000
+                  OFFSET 5551591424
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_IFSET
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_LATE
+               }
+            }
+            DATASET "image_cutouts_metadata" {
+               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 264000
+                  OFFSET 5551857664
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_IFSET
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_LATE
+               }
+            }
+            DATASET "metadata" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 256;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "path";
+                  H5T_STRING {
+                     STRSIZE 4096;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "header";
+               }
+               DATASPACE  SIMPLE { ( 11 ) / ( 11 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1 )
+                  SIZE 47872
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "wl" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 1155 ) / ( 1155 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 4620
+                  OFFSET 2773729280
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+         }
+      }
+      GROUP "3" {
+         GROUP "images" {
+            ATTRIBUTE "NX_class" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "signal" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            DATASET "data" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 5, 186, 256 ) / ( 5, 186, 256 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 186, 256 )
+                  SIZE 952320
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+               ATTRIBUTE "error_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "index_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "interpretation" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "metadata_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "mime-type" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+            }
+            DATASET "db_index" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STD_I64LE "spatial";
+                  H5T_IEEE_F32LE "time";
+                  H5T_STD_I32LE "wl";
+                  H5T_STD_I64LE "ds_slice_idx";
+               }
+               DATASPACE  SIMPLE { ( 5 ) / ( 5 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 120
+                  OFFSET 2773602664
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "errors" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 5, 186, 256 ) / ( 5, 186, 256 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 186, 256 )
+                  SIZE 952320
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "metadata" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 256;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "path";
+                  H5T_STRING {
+                     STRSIZE 4096;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "header";
+               }
+               DATASPACE  SIMPLE { ( 5 ) / ( 5 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1 )
+                  SIZE 21760
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+         }
+         GROUP "spectra" {
+            ATTRIBUTE "NX_class" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            ATTRIBUTE "axes" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SIMPLE { ( 2 ) / ( 2 ) }
+            }
+            ATTRIBUTE "signal" {
+               DATATYPE  H5T_STRING {
+                  STRSIZE H5T_VARIABLE;
+                  STRPAD H5T_STR_NULLTERM;
+                  CSET H5T_CSET_UTF8;
+                  CTYPE H5T_C_S1;
+               }
+               DATASPACE  SCALAR
+            }
+            DATASET "data" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 11, 577 ) / ( 11, 577 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 577 )
+                  SIZE 25388
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+               ATTRIBUTE "error_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "index_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "interpretation" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "metadata_ds_ref" {
+                  DATATYPE  H5T_REFERENCE { H5T_STD_REF_OBJECT }
+                  DATASPACE  SCALAR
+               }
+               ATTRIBUTE "mime-type" {
+                  DATATYPE  H5T_STRING {
+                     STRSIZE H5T_VARIABLE;
+                     STRPAD H5T_STR_NULLTERM;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  }
+                  DATASPACE  SCALAR
+               }
+            }
+            DATASET "db_index" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STD_I64LE "spatial";
+                  H5T_IEEE_F32LE "time";
+                  H5T_STD_I64LE "ds_slice_idx";
+               }
+               DATASPACE  SIMPLE { ( 11 ) / ( 11 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 220
+                  OFFSET 2773605752
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "errors" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 11, 577 ) / ( 11, 577 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1, 577 )
+                  SIZE 25388
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "image_cutouts_data" {
+               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 264000
+                  OFFSET 5552123904
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_IFSET
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_LATE
+               }
+            }
+            DATASET "image_cutouts_errors" {
+               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 264000
+                  OFFSET 5552390144
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_IFSET
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_LATE
+               }
+            }
+            DATASET "image_cutouts_metadata" {
+               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 264000
+                  OFFSET 5552656384
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_IFSET
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_LATE
+               }
+            }
+            DATASET "metadata" {
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 256;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "path";
+                  H5T_STRING {
+                     STRSIZE 4096;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "header";
+               }
+               DATASPACE  SIMPLE { ( 11 ) / ( 11 ) }
+               STORAGE_LAYOUT {
+                  CHUNKED ( 1 )
+                  SIZE 47872
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+            DATASET "wl" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 577 ) / ( 577 ) }
+               STORAGE_LAYOUT {
+                  CONTIGUOUS
+                  SIZE 2308
+                  OFFSET 2773603444
+               }
+               FILTERS {
+                  NONE
+               }
+               FILLVALUE {
+                  FILL_TIME H5D_FILL_TIME_NEVER
+                  VALUE  H5D_FILL_VALUE_DEFAULT
+               }
+               ALLOCATION_TIME {
+                  H5D_ALLOC_TIME_EARLY
+               }
+            }
+         }
+      }
+   }
+}
+}
