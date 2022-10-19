@@ -124,7 +124,7 @@ class MetadataProcessor:
             field = row["field"]
             dir_path = pathlib.Path(image_path).joinpath(rerun).joinpath(run).joinpath(camcol)
             pattern = "*%04d.fits" % int(field)
-            yield from [str(x) for x in pathlib.Path(dir_path).rglob(pattern)]
+            yield from (str(x) for x in pathlib.Path(dir_path).rglob(pattern))
 
     def process_spectra_list(self, spectra_path, limit):
         with open(self.spectra_list, newline='') as csvfile:
@@ -138,7 +138,7 @@ class MetadataProcessor:
             plate = row["plate"]
             dir_path = pathlib.Path(spectra_path).joinpath(plate)
             pattern = "*.fits"
-            yield from [str(x) for x in pathlib.Path(dir_path).rglob(pattern)]
+            yield from (str(x) for x in pathlib.Path(dir_path).rglob(pattern))
 
 
 def get_generator(path_generator, limit, wait_total):
@@ -149,5 +149,5 @@ def get_generator(path_generator, limit, wait_total):
 
 
 def get_str_path_list(dir_path, pattern, limit, wait_total):
-    path_generator = [str(x) for x in pathlib.Path(dir_path).rglob(pattern)]
+    path_generator = (str(x) for x in pathlib.Path(dir_path).rglob(pattern))
     return get_generator(path_generator, limit, wait_total)
