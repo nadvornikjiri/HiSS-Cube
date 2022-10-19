@@ -23,19 +23,20 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
 
     def distribute_work(self, h5_connector, path_list, processor):
         status = self.mpi_helper.MPI.Status()
-        path_list = list(path_list)
-        batches = list(chunks(path_list, self.config.BATCH_SIZE))
+        path_list = path_list
+        batches = chunks(path_list, self.config.BATCH_SIZE)
         offset = 0
-        for i in tqdm(range(1, len(batches) + 1), desc=("%s progress" % self.__class__.__name__)):
-            next_batch_size = len(batches[0])
+        for i, batch in tqdm(enumerate(batches, 1), desc=("%s progress" % self.__class__.__name__)):
+            batch = list(batch)
+            next_batch_size = len(batch)
             if i < self.mpi_helper.size:
-                self.mpi_helper.send_work(batches, dest=i, offset=offset)
+                self.mpi_helper.send_work(batch, dest=i, offset=offset)
                 self.mpi_helper.active_workers += 1
             else:
                 self.mpi_helper.wait_for_message(source=self.mpi_helper.MPI.ANY_SOURCE,
                                                  tag=self.mpi_helper.FINISHED_TAG, status=status)
                 self.process_response(h5_connector, processor, status)
-                self.mpi_helper.send_work(batches, status.Get_source(), offset=offset)
+                self.mpi_helper.send_work(batch, status.Get_source(), offset=offset)
             offset += next_batch_size
         for i in range(1, self.mpi_helper.size):
             self.mpi_helper.send_work_finished(dest=i)
@@ -121,7 +122,6 @@ class ParallelMetadataCacheBuilder(ParallelBuilder):
                 spectrum_header_ds = get_spectrum_header_dataset(h5_connector)
                 image_header_ds.resize(self.image_count, axis=0)
                 spectrum_header_ds.resize(self.spectrum_count, axis=0)
-
 
     def process_metadata_cache(self, h5_connector, header_ds, header_ds_dtype):
         status = self.mpi_helper.MPI.Status()

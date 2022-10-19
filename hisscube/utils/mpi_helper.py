@@ -1,6 +1,8 @@
 import csv
 import os
 import time
+from itertools import chain, islice
+
 from hisscube.utils.logging import HiSSCubeLogger
 import numpy as np
 import re
@@ -20,12 +22,10 @@ mpi4py.MPI.pickle.__init__(lambda *x: msgpack.dumps(x[0]), msgpack.loads)
 rank = mpi4py.MPI.COMM_WORLD.Get_rank()
 
 
-
-
-def chunks(lst, n):
-    """Yield successive n-sized chunks from lst."""
-    for i in range(0, len(lst), n):
-        yield lst[i:i + n]
+def chunks(iterable, size=10):
+    iterator = iter(iterable)
+    for first in iterator:
+        yield chain([first], islice(iterator, size - 1))
 
 
 def get_stats(pid):
@@ -73,19 +73,17 @@ class MPIHelper:
         msg = self.comm.recv(source=0, tag=mpi4py.MPI.ANY_TAG, status=status)
         self.logger.debug(
             "Rank %02d: Received work no. %02d from master: %d, tag: %d." % (
-            self.rank, self.sent_work_cnt, hash(str(msg)), status.Get_tag()))
+                self.rank, self.sent_work_cnt, hash(str(msg)), status.Get_tag()))
         self.received_work_cnt += 1
         return msg
 
-    def send_work(self, batches, dest, offset=0):
-        if len(batches) > 0:
-            batch = batches.pop(0)
-            msg = (batch, offset)
-            tag = self.WORK_TAG
-            self.comm.send(obj=msg, dest=dest, tag=tag)
-            self.logger.debug(
-                "Send work batch no. %02d to dest %02d: %d " % (self.sent_work_cnt, dest, hash(str(batch))))
-            self.sent_work_cnt += 1
+    def send_work(self, batch, dest, offset=0):
+        msg = (batch, offset)
+        tag = self.WORK_TAG
+        self.comm.send(obj=msg, dest=dest, tag=tag)
+        self.logger.debug(
+            "Send work batch no. %02d to dest %02d: %d " % (self.sent_work_cnt, dest, hash(str(batch))))
+        self.sent_work_cnt += 1
 
     def send_work_finished(self, dest):
         tag = self.KILL_TAG
@@ -94,7 +92,7 @@ class MPIHelper:
 
     def wait_for_message(self, source, tag, status):
         while not self.comm.Iprobe(source, tag, status):
-                time.sleep(self.config.POLL_INTERVAL)
+            time.sleep(self.config.POLL_INTERVAL)
         return
 
     def barrier(self, comm=None, tag=0):
