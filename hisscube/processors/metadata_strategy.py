@@ -12,6 +12,8 @@ def get_header_ds(h5_connector: H5Connector, max_entries, path_size, header_size
     path_dtype = h5py.string_dtype(encoding="utf-8", length=path_size)
     header_dtype = h5py.string_dtype(encoding="utf-8", length=header_size)
     header_ds_dtype = [("path", path_dtype), ("header", header_dtype)]
+    if chunk_size > max_entries:
+        chunk_size = 1
     header_ds = h5_connector.create_dataset(grp, ds_name, (max_entries,), chunk_size=(chunk_size,),
                                             dataset_type=header_ds_dtype)
     return header_ds, header_ds_dtype

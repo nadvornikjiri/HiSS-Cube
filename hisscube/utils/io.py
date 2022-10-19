@@ -131,7 +131,7 @@ class H5Connector(ABC):
         ds_name = dataset_name.encode('utf-8')
         if not ds_name in group:
             dcpl, space = get_property_list(self.config, dataset_shape)
-            if chunk_size and not (any(dataset_shape) == 0) and chunk_size[0] <= dataset_shape[0]:
+            if chunk_size and not (any(dataset_shape) == 0):
                 dcpl.set_chunk(chunk_size)
             dsid = h5py.h5d.create(group.id, ds_name, dataset_type, space, dcpl=dcpl)
             ds = h5py.Dataset(dsid)

@@ -1,4 +1,4 @@
-HDF5 "SDSS_cube.h5" {
+HDF5 "../../results/SDSS_cube.h5" {
 SUPER_BLOCK {
    SUPERBLOCK_VERSION 3
    FREELIST_VERSION 0
@@ -835,8 +835,8 @@ GROUP "/" {
       }
       DATASPACE  SIMPLE { ( 5 ) / ( 300000 ) }
       STORAGE_LAYOUT {
-         CHUNKED ( 1 )
-         SIZE 21760
+         CHUNKED ( 1000 )
+         SIZE 4352000
       }
       FILTERS {
          NONE
@@ -866,8 +866,8 @@ GROUP "/" {
       }
       DATASPACE  SIMPLE { ( 11 ) / ( 300000 ) }
       STORAGE_LAYOUT {
-         CHUNKED ( 1 )
-         SIZE 47872
+         CHUNKED ( 1000 )
+         SIZE 4352000
       }
       FILTERS {
          NONE
