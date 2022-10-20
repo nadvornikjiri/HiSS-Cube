@@ -23,7 +23,6 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
 
     def distribute_work(self, h5_connector, path_list, processor):
         status = self.mpi_helper.MPI.Status()
-        path_list = path_list
         batches = chunks(path_list, self.config.BATCH_SIZE)
         offset = 0
         for i, batch in tqdm(enumerate(batches, 1), desc=("%s progress" % self.__class__.__name__)):

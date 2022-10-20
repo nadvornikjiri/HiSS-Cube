@@ -114,7 +114,7 @@ class MetadataProcessor:
             image_params_reader = csv.DictReader(csvfile, delimiter=',', quotechar='|')
             rerun = "301"
             path_generator = self.process_image_csv_row(image_params_reader, image_path, rerun)
-            return get_generator(path_generator, limit, self.config.PATH_WAIT_TOTAL)
+            yield from get_generator(path_generator, limit, self.config.PATH_WAIT_TOTAL)
 
     @staticmethod
     def process_image_csv_row(image_params_reader, image_path, rerun):
@@ -130,7 +130,7 @@ class MetadataProcessor:
         with open(self.spectra_list, newline='') as csvfile:
             spectrum_params_reader = csv.DictReader(csvfile, delimiter=',', quotechar='|')
             path_generator = self.process_spectrum_csv_row(spectrum_params_reader, spectra_path)
-            return get_generator(path_generator, limit, self.config.PATH_WAIT_TOTAL)
+            yield from get_generator(path_generator, limit, self.config.PATH_WAIT_TOTAL)
 
     @staticmethod
     def process_spectrum_csv_row(spectrum_params_reader, spectra_path):
@@ -145,9 +145,9 @@ def get_generator(path_generator, limit, wait_total):
     if wait_total:
         return list(itertools.islice(path_generator, limit))
     else:
-        return itertools.islice(path_generator, limit)
+        yield from itertools.islice(path_generator, limit)
 
 
 def get_str_path_list(dir_path, pattern, limit, wait_total):
     path_generator = (str(x) for x in pathlib.Path(dir_path).rglob(pattern))
-    return get_generator(path_generator, limit, wait_total)
+    yield from get_generator(path_generator, limit, wait_total)
