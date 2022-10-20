@@ -247,7 +247,11 @@ class DatasetImageStrategy(ImageMetadataStrategy):
                          int(self.config.IMG_RES_Y / (2 ** img_zoom)),
                          int(self.config.IMG_RES_X / (2 ** img_zoom)))
             if self.config.DATASET_STRATEGY_CHUNKED:
-                chunk_size = (1,) + img_shape[1:]
+                if self.config.BATCH_SIZE > img_count:
+                    chunk_stack_size = 1
+                else:
+                    chunk_stack_size = self.config.BATCH_SIZE
+                chunk_size = (chunk_stack_size,) + img_shape[1:]
             img_ds = self.h5_connector.create_image_h5_dataset(img_zoom_group, "data", img_shape, chunk_size)
             self.h5_connector.set_attr(img_ds, "mime-type", "image")
             set_nx_interpretation(img_ds, "image", self.h5_connector)
