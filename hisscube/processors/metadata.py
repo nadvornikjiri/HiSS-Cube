@@ -14,6 +14,8 @@ from hisscube.utils.logging import log_timing, HiSSCubeLogger
 
 class MetadataProcessor:
     def __init__(self, config, photometry, metadata_strategy: MetadataStrategy, image_list=None, spectra_list=None):
+        self.spec_csv_file = None
+        self.image_csv_file = None
         self.config = config
         self.h5_connector: H5Connector = None
         self.fits_path = None
@@ -36,13 +38,25 @@ class MetadataProcessor:
         image_header_ds, image_header_ds_dtype, spec_header_ds, spec_header_ds_dtype = self.create_fits_header_datasets(
             h5_connector, max_images=image_count, max_spectra=spectrum_count)
         image_count = self.process_fits_headers(h5_connector, image_header_ds, image_header_ds_dtype, image_path,
-                                            image_path_list)
+                                                image_path_list)
         spectrum_count = self.process_fits_headers(h5_connector, spec_header_ds, spec_header_ds_dtype, spectra_path,
-                                             spectra_path_list)
+                                                   spectra_path_list)
         h5_connector.set_image_count(image_count)
         h5_connector.set_spectrum_count(spectrum_count)
         image_header_ds.resize(image_count, axis=0)
         spec_header_ds.resize(spectrum_count, axis=0)
+
+    def open_csv_files(self):
+        if self.image_list:
+            self.image_csv_file = open(self.image_list, newline='')
+        if self.spectra_list:
+            self.spec_csv_file = open(self.spectra_list, newline='')
+
+    def close_csv_files(self):
+        if self.image_list:
+            self.image_csv_file.close()
+        if self.spectra_list:
+            self.spec_csv_file.close()
 
     def parse_paths(self, image_path, image_pattern, spectra_path, spectra_pattern):
         image_pattern, spectra_pattern = get_path_patterns(self.config, image_pattern, spectra_pattern)
@@ -50,12 +64,13 @@ class MetadataProcessor:
             image_path_list = get_str_path_list(image_path, image_pattern, self.config.LIMIT_IMAGE_COUNT,
                                                 self.config.PATH_WAIT_TOTAL)
         else:
-            image_path_list = self.process_image_list(image_path, self.config.LIMIT_IMAGE_COUNT)
+            image_path_list = self.process_image_list(self.image_csv_file, image_path, self.config.LIMIT_IMAGE_COUNT)
         if not self.spectra_list:
             spectra_path_list = get_str_path_list(spectra_path, spectra_pattern, self.config.LIMIT_SPECTRA_COUNT,
                                                   self.config.PATH_WAIT_TOTAL)
         else:
-            spectra_path_list = self.process_spectra_list(spectra_path, self.config.LIMIT_SPECTRA_COUNT)
+            spectra_path_list = self.process_spectra_list(self.spec_csv_file, spectra_path,
+                                                          self.config.LIMIT_SPECTRA_COUNT)
         return image_path_list, spectra_path_list
 
     def process_fits_headers(self, h5_connector, image_header_ds, image_header_ds_dtype, image_path, image_path_list,
@@ -109,12 +124,11 @@ class MetadataProcessor:
         h5_connector.fits_total_cnt += 1
         return buf_i, fits_cnt, offset
 
-    def process_image_list(self, image_path, limit):
-        with open(self.image_list, newline='') as csvfile:
-            image_params_reader = csv.DictReader(csvfile, delimiter=',', quotechar='|')
-            rerun = "301"
-            path_generator = self.process_image_csv_row(image_params_reader, image_path, rerun)
-            yield from get_generator(path_generator, limit, self.config.PATH_WAIT_TOTAL)
+    def process_image_list(self, csvfile, image_path, limit):
+        image_params_reader = csv.DictReader(csvfile, delimiter=',', quotechar='|')
+        rerun = "301"
+        path_generator = self.process_image_csv_row(image_params_reader, image_path, rerun)
+        yield from get_generator(path_generator, limit, self.config.PATH_WAIT_TOTAL)
 
     @staticmethod
     def process_image_csv_row(image_params_reader, image_path, rerun):
@@ -126,11 +140,10 @@ class MetadataProcessor:
             pattern = "*%04d.fits" % int(field)
             yield from (str(x) for x in pathlib.Path(dir_path).rglob(pattern))
 
-    def process_spectra_list(self, spectra_path, limit):
-        with open(self.spectra_list, newline='') as csvfile:
-            spectrum_params_reader = csv.DictReader(csvfile, delimiter=',', quotechar='|')
-            path_generator = self.process_spectrum_csv_row(spectrum_params_reader, spectra_path)
-            yield from get_generator(path_generator, limit, self.config.PATH_WAIT_TOTAL)
+    def process_spectra_list(self, csvfile, spectra_path, limit):
+        spectrum_params_reader = csv.DictReader(csvfile, delimiter=',', quotechar='|')
+        path_generator = self.process_spectrum_csv_row(spectrum_params_reader, spectra_path)
+        yield from get_generator(path_generator, limit, self.config.PATH_WAIT_TOTAL)
 
     @staticmethod
     def process_spectrum_csv_row(spectrum_params_reader, spectra_path):

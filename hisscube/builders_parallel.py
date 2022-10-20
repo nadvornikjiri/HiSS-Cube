@@ -27,6 +27,7 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
         offset = 0
         for i, batch in tqdm(enumerate(batches, 1), desc=("%s progress" % self.__class__.__name__)):
             batch = list(batch)
+            print(batch)
             next_batch_size = len(batch)
             if i < self.mpi_helper.size:
                 self.mpi_helper.send_work(batch, dest=i, offset=offset)
@@ -83,6 +84,7 @@ class ParallelMetadataCacheBuilder(ParallelBuilder):
     def build(self):
         if self.rank == 0:
             with self.h5_connector as h5_connector:
+                self.metadata_processor.open_csv_files()
                 image_path_list, spectra_path_list = self.metadata_processor.parse_paths(self.fits_image_path,
                                                                                          self.fits_image_pattern,
                                                                                          self.fits_spectra_path,
@@ -121,6 +123,7 @@ class ParallelMetadataCacheBuilder(ParallelBuilder):
                 spectrum_header_ds = get_spectrum_header_dataset(h5_connector)
                 image_header_ds.resize(self.image_count, axis=0)
                 spectrum_header_ds.resize(self.spectrum_count, axis=0)
+            self.metadata_processor.close_csv_files()
 
     def process_metadata_cache(self, h5_connector, header_ds, header_ds_dtype):
         status = self.mpi_helper.MPI.Status()
