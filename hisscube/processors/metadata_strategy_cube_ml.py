@@ -90,12 +90,16 @@ class MLProcessorStrategy(ABC):
                                   zoom):
         spectral_dshape = (target_count,
                            int(rebin_samples / 2 ** zoom))
-        spectral_chunk_size = (self.config.ML_CUBE_CHUNK_SIZE,) + spectral_dshape[1:]
+        if self.config.ML_CUBE_CHUNK_SIZE > target_count:
+            spectral_stack_chunk = target_count
+        else:
+            spectral_stack_chunk = self.config.ML_CUBE_CHUNK_SIZE
+        spectral_chunk_size = (spectral_stack_chunk,) + spectral_dshape[1:]
         image_dshape = (target_count,
                         5,  # no image bands that can cover spectrum.
                         int(cutout_size / 2 ** zoom),
                         int(cutout_size / 2 ** zoom))
-        image_chunk_size = (self.config.ML_CUBE_CHUNK_SIZE,) + image_dshape[1:]
+        image_chunk_size = (spectral_stack_chunk,) + image_dshape[1:]
         dtype = np.dtype('<f4')  # both mean and sigma values are float
         res_grp = dense_grp.require_group(str(zoom))
         if "ml_image" in res_grp:
@@ -328,35 +332,37 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
 
         target_spatial_indices = list(self._get_target_spectra_spatial_ranges(h5_connector))
         target_count = len(target_spatial_indices)
-        dense_grp.attrs["target_count"] = target_count
-        final_zoom = min(self.config.IMG_ZOOM_CNT, self.config.SPEC_ZOOM_CNT)
-        for zoom in range(final_zoom):
-            self._create_datasets_for_zoom(h5_connector, self.config.IMAGE_CUTOUT_SIZE, dense_grp, target_count,
-                                           self.config.REBIN_SAMPLES, zoom)
+        print ("Target count: %d" % target_count)
+        if target_count > 0:
+            dense_grp.attrs["target_count"] = target_count
+            final_zoom = min(self.config.IMG_ZOOM_CNT, self.config.SPEC_ZOOM_CNT)
+            for zoom in range(final_zoom):
+                self._create_datasets_for_zoom(h5_connector, self.config.IMAGE_CUTOUT_SIZE, dense_grp, target_count,
+                                               self.config.REBIN_SAMPLES, zoom)
 
-        spectra_data = get_data_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
-                                         self.config.ORIG_CUBE_NAME)
-        spectra_errors = get_error_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
-                                            self.config.ORIG_CUBE_NAME)
-        for spatial_index, from_idx, to_idx in tqdm(target_spatial_indices,
-                                                    desc="Building ML cube", position=0, leave=True):
-            try:
-                self._append_target_3d_cube(h5_connector, spectra_data, spectra_errors, spatial_index,
-                                            from_idx, to_idx)
-            except ValueError as e:
-                self.logger.debug("Unable to create dims for spectrum %d" % spatial_index)
-                raise e
-        h5_connector.set_target_count(self.target_complete_cnt[0])
-        for zoom in range(final_zoom):
-            image_data_ds = self.spec_3d_cube_datasets["image"][zoom]
-            image_error_ds = get_error_ds(h5_connector, image_data_ds)
-            image_data_ds.resize(self.target_complete_cnt[zoom], axis=0)
-            image_error_ds.resize(self.target_complete_cnt[zoom], axis=0)
-            spec_data_ds = self.spec_3d_cube_datasets["spectrum"][zoom]
-            spec_error_ds = get_error_ds(h5_connector, spec_data_ds)
-            spec_data_ds.resize(self.target_complete_cnt[zoom], axis=0)
-            spec_error_ds.resize(self.target_complete_cnt[zoom], axis=0)
-        add_nexus_navigation_metadata(h5_connector, self.config)
+            spectra_data = get_data_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
+                                             self.config.ORIG_CUBE_NAME)
+            spectra_errors = get_error_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
+                                                self.config.ORIG_CUBE_NAME)
+            for spatial_index, from_idx, to_idx in tqdm(target_spatial_indices,
+                                                        desc="Building ML cube", position=0, leave=True):
+                try:
+                    self._append_target_3d_cube(h5_connector, spectra_data, spectra_errors, spatial_index,
+                                                from_idx, to_idx)
+                except ValueError as e:
+                    self.logger.debug("Unable to create dims for spectrum %d" % spatial_index)
+                    raise e
+            h5_connector.set_target_count(self.target_complete_cnt[0])
+            for zoom in range(final_zoom):
+                image_data_ds = self.spec_3d_cube_datasets["image"][zoom]
+                image_error_ds = get_error_ds(h5_connector, image_data_ds)
+                image_data_ds.resize(self.target_complete_cnt[zoom], axis=0)
+                image_error_ds.resize(self.target_complete_cnt[zoom], axis=0)
+                spec_data_ds = self.spec_3d_cube_datasets["spectrum"][zoom]
+                spec_error_ds = get_error_ds(h5_connector, spec_data_ds)
+                spec_data_ds.resize(self.target_complete_cnt[zoom], axis=0)
+                spec_error_ds.resize(self.target_complete_cnt[zoom], axis=0)
+            add_nexus_navigation_metadata(h5_connector, self.config)
 
     def _get_target_spectra_spatial_ranges(self, h5_connector):
         spectrum_db_index_orig_zoom = get_index_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,

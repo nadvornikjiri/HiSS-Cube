@@ -38,9 +38,9 @@ class MetadataProcessor:
         image_header_ds, image_header_ds_dtype, spec_header_ds, spec_header_ds_dtype = self.create_fits_header_datasets(
             h5_connector, max_images=image_count, max_spectra=spectrum_count)
         image_count = self.process_fits_headers(h5_connector, image_header_ds, image_header_ds_dtype, image_path,
-                                                image_path_list)
+                                                "image")
         spectrum_count = self.process_fits_headers(h5_connector, spec_header_ds, spec_header_ds_dtype, spectra_path,
-                                                   spectra_path_list)
+                                                   "spectrum")
         h5_connector.set_image_count(image_count)
         h5_connector.set_spectrum_count(spectrum_count)
         image_header_ds.resize(image_count, axis=0)
@@ -73,17 +73,16 @@ class MetadataProcessor:
                                                           self.config.LIMIT_SPECTRA_COUNT)
         return image_path_list, spectra_path_list
 
-    def process_fits_headers(self, h5_connector, image_header_ds, image_header_ds_dtype, image_path, image_path_list,
+    def process_fits_headers(self, h5_connector, image_header_ds, image_header_ds_dtype, image_path, data_type,
                              offset=0):
         inserted_cnt = self.write_fits_headers(h5_connector, image_header_ds, image_header_ds_dtype, image_path,
-                                               image_path_list, offset)
+                                               data_type, offset)
         return inserted_cnt
 
-    def write_fits_headers(self, h5_connector, header_ds, header_ds_dtype, fits_directory_path, path_list, offset=0):
+    def write_fits_headers(self, h5_connector, header_ds, header_ds_dtype, data_type, path_list, offset=0):
         buf = np.zeros(shape=(self.config.FITS_HEADER_BUF_SIZE,), dtype=header_ds_dtype)
         buf_i = 0
         fits_cnt = 0
-        data_type = pathlib.Path(fits_directory_path).name
         for fits_path in tqdm(path_list, desc="Headers for %s" % data_type, position=0, leave=True):
             buf_i, fits_cnt, offset = self._write_fits_header(h5_connector, buf, buf_i, fits_cnt, fits_path, header_ds,
                                                               offset)

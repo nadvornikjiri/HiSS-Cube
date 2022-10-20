@@ -110,9 +110,9 @@ class ParallelMetadataCacheBuilder(ParallelBuilder):
                 image_header_ds_dtype = image_header_ds.dtype
                 spectrum_header_ds = get_spectrum_header_dataset(h5_connector)
                 spectrum_header_ds_dtype = spectrum_header_ds.dtype
-                self.process_metadata_cache(h5_connector, image_header_ds, image_header_ds_dtype)
+                self.process_metadata_cache(h5_connector, image_header_ds, image_header_ds_dtype, "image")
                 self.mpi_helper.barrier()
-                self.process_metadata_cache(h5_connector, spectrum_header_ds, spectrum_header_ds_dtype)
+                self.process_metadata_cache(h5_connector, spectrum_header_ds, spectrum_header_ds_dtype, "spectrum")
         self.mpi_helper.barrier()
         if self.rank == 0:
             with self.h5_connector as h5_connector:
@@ -124,13 +124,13 @@ class ParallelMetadataCacheBuilder(ParallelBuilder):
                 spectrum_header_ds.resize(self.spectrum_count, axis=0)
             self.metadata_processor.close_csv_files()
 
-    def process_metadata_cache(self, h5_connector, header_ds, header_ds_dtype):
+    def process_metadata_cache(self, h5_connector, header_ds, header_ds_dtype, data_type):
         status = self.mpi_helper.MPI.Status()
         path_list, offset = self.mpi_helper.receive_work_parsed(status)
         while status.Get_tag() != self.mpi_helper.KILL_TAG:
             try:
                 inserted_cnt = self.metadata_processor.process_fits_headers(h5_connector, header_ds, header_ds_dtype,
-                                                                            self.fits_image_path, path_list, offset)
+                                                                            data_type, path_list, offset)
             except Exception as e:
                 self.logger.warning("Could not process %s, message: %s" % (path_list, str(e)))
                 inserted_cnt = 0
