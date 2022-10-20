@@ -149,7 +149,8 @@ class MetadataProcessor:
     def process_spectrum_csv_row(spectrum_params_reader, spectra_path):
         for row in spectrum_params_reader:
             plate = row["plate"]
-            dir_path = pathlib.Path(spectra_path).joinpath(plate)
+            plate_str = "%04d" % int(plate)
+            dir_path = pathlib.Path(spectra_path).joinpath(plate_str)
             pattern = "*.fits"
             yield from (str(x) for x in pathlib.Path(dir_path).rglob(pattern))
 
