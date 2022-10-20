@@ -27,7 +27,6 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
         offset = 0
         for i, batch in tqdm(enumerate(batches, 1), desc=("%s progress" % self.__class__.__name__)):
             batch = list(batch)
-            print(batch)
             next_batch_size = len(batch)
             if i < self.mpi_helper.size:
                 self.mpi_helper.send_work(batch, dest=i, offset=offset)
