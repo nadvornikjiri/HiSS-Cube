@@ -103,6 +103,7 @@ class ParallelMetadataCacheBuilder(ParallelBuilder):
         with self.parallel_connector as h5_connector:
             if self.rank == 0:
                 self.image_count = self.distribute_work(h5_connector, image_path_list, self.metadata_processor)
+                self.mpi_helper.sent_work_cnt = 0
                 self.mpi_helper.barrier()
                 self.spectrum_count = self.distribute_work(h5_connector, spectra_path_list, self.metadata_processor)
             else:
