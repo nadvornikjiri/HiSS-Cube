@@ -49,7 +49,7 @@ class TestHiSSCube(unittest.TestCase):
         diff_output = self.h5diff_whole(h5_path, h5_test_path)
         assert (diff_output == "")
 
-    def test_updates_metadata(self):
+    def test_updates_metadata_pattern(self):
         h5_dump_path = "SDSS_cube_dataset_dump.txt"
         h5_testdump_path = "SDSS_cube_dataset_test_dump.txt"
         h5_path = "../../results/SDSS_cube.h5"
@@ -59,7 +59,25 @@ class TestHiSSCube(unittest.TestCase):
         builders = ["fits-metadata-cache", "metadata", "data", "link", "visualization-cube", "ml-cube"]
         for builder in builders:
             cmd = "mpiexec -n 8 %s ../../hisscube.py --image-pattern %s %s %s update --%s" % (
-            python_path, image_pattern, input_path, h5_path, builder)
+                python_path, image_pattern, input_path, h5_path, builder)
+            print("Running command: %s" % cmd)
+            output = os.popen(cmd).read()
+
+        diff_output = self.diff_dump(h5_dump_path, h5_path, h5_testdump_path)
+        assert (diff_output == "")
+
+    def test_updates_metadata_csv_list(self):
+        h5_dump_path = "SDSS_cube_dataset_dump.txt"
+        h5_testdump_path = "SDSS_cube_dataset_test_dump.txt"
+        h5_path = "../../results/SDSS_cube.h5"
+        input_path = "../../data/raw/galaxy_small/"
+        image_csv = "../../data/test_images.csv"
+        spectra_csv = "../../data/test_spectra.csv"
+        python_path = "../../venv_par/bin/python"
+        builders = ["fits-metadata-cache", "metadata", "data", "link", "visualization-cube", "ml-cube"]
+        for builder in builders:
+            cmd = "mpiexec -n 8 %s ../../hisscube.py --image-list %s --spectra-list %s %s %s update --%s" % (
+                python_path, image_csv, spectra_csv, input_path, h5_path, builder)
             print("Running command: %s" % cmd)
             output = os.popen(cmd).read()
 

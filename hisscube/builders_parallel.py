@@ -131,7 +131,7 @@ class ParallelMetadataCacheBuilder(ParallelBuilder):
         while status.Get_tag() != self.mpi_helper.KILL_TAG:
             try:
                 inserted_cnt = self.metadata_processor.process_fits_headers(h5_connector, header_ds, header_ds_dtype,
-                                                                            data_type, path_list, offset)
+                                                                            path_list, data_type, offset)
             except Exception as e:
                 self.logger.warning("Could not process %s, message: %s" % (path_list, str(e)))
                 inserted_cnt = 0

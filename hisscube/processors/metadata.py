@@ -37,9 +37,9 @@ class MetadataProcessor:
         self.clean_fits_header_tables(h5_connector)
         image_header_ds, image_header_ds_dtype, spec_header_ds, spec_header_ds_dtype = self.create_fits_header_datasets(
             h5_connector, max_images=image_count, max_spectra=spectrum_count)
-        image_count = self.process_fits_headers(h5_connector, image_header_ds, image_header_ds_dtype, image_path,
+        image_count = self.process_fits_headers(h5_connector, image_header_ds, image_header_ds_dtype, image_path_list,
                                                 "image")
-        spectrum_count = self.process_fits_headers(h5_connector, spec_header_ds, spec_header_ds_dtype, spectra_path,
+        spectrum_count = self.process_fits_headers(h5_connector, spec_header_ds, spec_header_ds_dtype, spectra_path_list,
                                                    "spectrum")
         h5_connector.set_image_count(image_count)
         h5_connector.set_spectrum_count(spectrum_count)
@@ -73,10 +73,9 @@ class MetadataProcessor:
                                                           self.config.LIMIT_SPECTRA_COUNT)
         return image_path_list, spectra_path_list
 
-    def process_fits_headers(self, h5_connector, image_header_ds, image_header_ds_dtype, image_path, data_type,
+    def process_fits_headers(self, h5_connector, header_ds, header_ds_dtype, path_list, data_type,
                              offset=0):
-        inserted_cnt = self.write_fits_headers(h5_connector, image_header_ds, image_header_ds_dtype, image_path,
-                                               data_type, offset)
+        inserted_cnt = self.write_fits_headers(h5_connector, header_ds, header_ds_dtype, data_type, path_list, offset)
         return inserted_cnt
 
     def write_fits_headers(self, h5_connector, header_ds, header_ds_dtype, data_type, path_list, offset=0):

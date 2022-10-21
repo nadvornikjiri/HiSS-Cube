@@ -52,7 +52,7 @@ class TestSerialBuilder(unittest.TestCase):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
     def test_build_image_single(self):
-        test_path = "../../data/raw/galaxy_small/images/frame-r-004136-3-0129.fits"
+        test_path = "../../data/raw/galaxy_small/images/301/4136/3/frame-r-004136-3-0129.fits"
         builder = self.dependency_provider.serial_builders.single_image_builder
         builder.image_path = test_path
         h5_datasets = builder.build()
