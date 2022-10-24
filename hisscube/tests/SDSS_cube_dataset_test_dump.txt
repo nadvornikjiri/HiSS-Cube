@@ -1,4 +1,4 @@
-HDF5 "../../results/SDSS_cube.h5" {
+HDF5 "SDSS_cube.h5" {
 SUPER_BLOCK {
    SUPERBLOCK_VERSION 3
    FREELIST_VERSION 0
@@ -253,7 +253,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 28714400
-                  OFFSET 5511335936
+                  OFFSET 2778234880
                }
                FILTERS {
                   NONE
@@ -436,7 +436,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 8499920
-                  OFFSET 5540052992
+                  OFFSET 2806951936
                }
                FILTERS {
                   NONE
@@ -619,7 +619,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 2785640
-                  OFFSET 5548556288
+                  OFFSET 2815455232
                }
                FILTERS {
                   NONE
@@ -802,7 +802,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 1026168
-                  OFFSET 5551345664
+                  OFFSET 2818244608
                }
                FILTERS {
                   NONE
@@ -969,7 +969,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 120
-                  OFFSET 2773602304
+                  OFFSET 2733195264
                }
                FILTERS {
                   NONE
@@ -1064,8 +1064,8 @@ GROUP "/" {
                DATATYPE  H5T_IEEE_F32LE
                DATASPACE  SIMPLE { ( 11, 4620 ) / ( 11, 4620 ) }
                STORAGE_LAYOUT {
-                  CHUNKED ( 1, 4620 )
-                  SIZE 203280
+                  CHUNKED ( 10, 4620 )
+                  SIZE 369600
                }
                FILTERS {
                   NONE
@@ -1118,7 +1118,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 220
-                  OFFSET 2773602784
+                  OFFSET 2733195744
                }
                FILTERS {
                   NONE
@@ -1135,8 +1135,8 @@ GROUP "/" {
                DATATYPE  H5T_IEEE_F32LE
                DATASPACE  SIMPLE { ( 11, 4620 ) / ( 11, 4620 ) }
                STORAGE_LAYOUT {
-                  CHUNKED ( 1, 4620 )
-                  SIZE 203280
+                  CHUNKED ( 10, 4620 )
+                  SIZE 369600
                }
                FILTERS {
                   NONE
@@ -1155,7 +1155,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 264000
-                  OFFSET 5508071424
+                  OFFSET 8371630080
                }
                FILTERS {
                   NONE
@@ -1174,7 +1174,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 264000
-                  OFFSET 5508337664
+                  OFFSET 8371896320
                }
                FILTERS {
                   NONE
@@ -1193,7 +1193,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 264000
-                  OFFSET 5508603904
+                  OFFSET 8372162560
                }
                FILTERS {
                   NONE
@@ -1243,7 +1243,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 18480
-                  OFFSET 2774392832
+                  OFFSET 2774052864
                }
                FILTERS {
                   NONE
@@ -1337,7 +1337,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 120
-                  OFFSET 2773602424
+                  OFFSET 2733195384
                }
                FILTERS {
                   NONE
@@ -1432,8 +1432,8 @@ GROUP "/" {
                DATATYPE  H5T_IEEE_F32LE
                DATASPACE  SIMPLE { ( 11, 2310 ) / ( 11, 2310 ) }
                STORAGE_LAYOUT {
-                  CHUNKED ( 1, 2310 )
-                  SIZE 101640
+                  CHUNKED ( 10, 2310 )
+                  SIZE 184800
                }
                FILTERS {
                   NONE
@@ -1486,7 +1486,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 220
-                  OFFSET 2773603004
+                  OFFSET 2733195964
                }
                FILTERS {
                   NONE
@@ -1503,8 +1503,8 @@ GROUP "/" {
                DATATYPE  H5T_IEEE_F32LE
                DATASPACE  SIMPLE { ( 11, 2310 ) / ( 11, 2310 ) }
                STORAGE_LAYOUT {
-                  CHUNKED ( 1, 2310 )
-                  SIZE 101640
+                  CHUNKED ( 10, 2310 )
+                  SIZE 184800
                }
                FILTERS {
                   NONE
@@ -1523,7 +1523,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 264000
-                  OFFSET 5508870144
+                  OFFSET 8372428800
                }
                FILTERS {
                   NONE
@@ -1542,7 +1542,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 264000
-                  OFFSET 5509136384
+                  OFFSET 8372695040
                }
                FILTERS {
                   NONE
@@ -1561,7 +1561,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 264000
-                  OFFSET 5509402624
+                  OFFSET 8372961280
                }
                FILTERS {
                   NONE
@@ -1611,7 +1611,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 9240
-                  OFFSET 2773450752
+                  OFFSET 2774503424
                }
                FILTERS {
                   NONE
@@ -1705,7 +1705,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 120
-                  OFFSET 2773602544
+                  OFFSET 2733195504
                }
                FILTERS {
                   NONE
@@ -1800,8 +1800,8 @@ GROUP "/" {
                DATATYPE  H5T_IEEE_F32LE
                DATASPACE  SIMPLE { ( 11, 1155 ) / ( 11, 1155 ) }
                STORAGE_LAYOUT {
-                  CHUNKED ( 1, 1155 )
-                  SIZE 50820
+                  CHUNKED ( 10, 1155 )
+                  SIZE 92400
                }
                FILTERS {
                   NONE
@@ -1854,7 +1854,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 220
-                  OFFSET 2773603224
+                  OFFSET 2733196184
                }
                FILTERS {
                   NONE
@@ -1871,8 +1871,8 @@ GROUP "/" {
                DATATYPE  H5T_IEEE_F32LE
                DATASPACE  SIMPLE { ( 11, 1155 ) / ( 11, 1155 ) }
                STORAGE_LAYOUT {
-                  CHUNKED ( 1, 1155 )
-                  SIZE 50820
+                  CHUNKED ( 10, 1155 )
+                  SIZE 92400
                }
                FILTERS {
                   NONE
@@ -1891,7 +1891,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 264000
-                  OFFSET 5509668864
+                  OFFSET 8373227520
                }
                FILTERS {
                   NONE
@@ -1910,7 +1910,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 264000
-                  OFFSET 5509935104
+                  OFFSET 8373493760
                }
                FILTERS {
                   NONE
@@ -1929,7 +1929,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 264000
-                  OFFSET 5510201344
+                  OFFSET 8373760000
                }
                FILTERS {
                   NONE
@@ -1979,7 +1979,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 4620
-                  OFFSET 2773729280
+                  OFFSET 5594066944
                }
                FILTERS {
                   NONE
@@ -2073,7 +2073,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 120
-                  OFFSET 2773602664
+                  OFFSET 2733195624
                }
                FILTERS {
                   NONE
@@ -2168,8 +2168,8 @@ GROUP "/" {
                DATATYPE  H5T_IEEE_F32LE
                DATASPACE  SIMPLE { ( 11, 577 ) / ( 11, 577 ) }
                STORAGE_LAYOUT {
-                  CHUNKED ( 1, 577 )
-                  SIZE 25388
+                  CHUNKED ( 10, 577 )
+                  SIZE 46160
                }
                FILTERS {
                   NONE
@@ -2222,7 +2222,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 220
-                  OFFSET 2773605752
+                  OFFSET 2733198712
                }
                FILTERS {
                   NONE
@@ -2239,8 +2239,8 @@ GROUP "/" {
                DATATYPE  H5T_IEEE_F32LE
                DATASPACE  SIMPLE { ( 11, 577 ) / ( 11, 577 ) }
                STORAGE_LAYOUT {
-                  CHUNKED ( 1, 577 )
-                  SIZE 25388
+                  CHUNKED ( 10, 577 )
+                  SIZE 46160
                }
                FILTERS {
                   NONE
@@ -2259,7 +2259,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 264000
-                  OFFSET 5510467584
+                  OFFSET 8374026240
                }
                FILTERS {
                   NONE
@@ -2278,7 +2278,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 264000
-                  OFFSET 5510733824
+                  OFFSET 8374292480
                }
                FILTERS {
                   NONE
@@ -2297,7 +2297,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 264000
-                  OFFSET 5511000064
+                  OFFSET 8374558720
                }
                FILTERS {
                   NONE
@@ -2347,7 +2347,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 2308
-                  OFFSET 2773603444
+                  OFFSET 2733196404
                }
                FILTERS {
                   NONE
