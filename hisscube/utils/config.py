@@ -46,10 +46,13 @@ class Config:
         self.FITS_SPECTRUM_MAX_HEADER_SIZE = self.config.getint('Writer', 'FITS_SPECTRUM_MAX_HEADER_SIZE')
         self.MAX_STORED_IMAGE_HEADERS = self.config.getint('Writer', 'MAX_STORED_IMAGE_HEADERS')
         self.MAX_STORED_SPECTRA_HEADERS = self.config.getint('Writer', 'MAX_STORED_SPECTRA_HEADERS')
-        self.FITS_HEADER_BUF_SIZE = self.config.getint('Writer', 'FITS_HEADER_BUF_SIZE')
         self.FITS_MAX_PATH_SIZE = self.config.getint('Writer', 'FITS_MAX_PATH_SIZE')
-        self.BATCH_SIZE = self.config.getint('Writer', 'BATCH_SIZE')
-        self.POLL_INTERVAL = self.config.getfloat('Writer', 'POLL_INTERVAL')
+
+        self.FITS_HEADER_BATCH_SIZE = self.config.getint('MPI', 'FITS_HEADER_BATCH_SIZE')
+        self.METADATA_BATCH_SIZE = self.config.getint('MPI', 'METADATA_BATCH_SIZE')
+        self.IMAGE_DATA_BATCH_SIZE = self.config.getint('MPI', 'IMAGE_DATA_BATCH_SIZE')
+        self.SPECTRUM_DATA_BATCH_SIZE = self.config.getint('MPI', 'SPECTRUM_DATA_BATCH_SIZE')
+        self.POLL_INTERVAL = self.config.getfloat('MPI', 'POLL_INTERVAL')
 
         self.OUTPUT_HEAL_ORDER = self.config.getint('Reader', 'OUTPUT_HEAL_ORDER')
 

@@ -87,7 +87,7 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def write_datasets(self, res_grp_list, data, file_name, offset, coordinates=None):
+    def write_datasets(self, res_grp_list, data, file_name, offset, batch_i, batch_size, coordinates=None):
         raise NotImplementedError
 
     @abstractmethod
@@ -115,7 +115,7 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
         for res_grp in time_grp:
             yield time_grp[res_grp]
 
-    def write_datasets(self, res_grp_list, data, file_name, offset, coordinates=None):
+    def write_datasets(self, res_grp_list, data, file_name, offset, batch_i, batch_size, coordinates=None):
         spec_datasets = []
         for group in res_grp_list:
             res = group.name.split('/')[-1]
@@ -375,9 +375,15 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
 
 class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
 
-    def write_datasets(self, res_grp_list, data, file_name, offset, coordinates=None):
+    def __init__(self, metadata_strategy: MetadataStrategy, config: Config, photometry: Photometry):
+
+        super().__init__(metadata_strategy, config, photometry)
+        self.buffer = {}
+
+    def write_datasets(self, res_grp_list, data, file_name, offset, batch_i, batch_size, coordinates=None):
         coordinates = True
-        return write_dataset(data, res_grp_list, self.config.FLOAT_COMPRESS, offset, coordinates)
+        return write_dataset(data, res_grp_list, self.config.FLOAT_COMPRESS, offset, coordinates, self.buffer,
+                             batch_size=batch_size, batch_i=batch_i)
 
     def get_resolution_groups(self, metadata, h5_connector):
         return get_dataset_resolution_groups(h5_connector, self.config.ORIG_CUBE_NAME, self.config.SPEC_ZOOM_CNT,
@@ -425,7 +431,11 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             chunk_size = None
             spec_shape = (spec_count, int(self.config.REBIN_SAMPLES / (2 ** spec_zoom)))
             if self.config.DATASET_STRATEGY_CHUNKED:
-                chunk_size = (1,) + spec_shape[1:]
+                if self.config.SPECTRUM_DATA_BATCH_SIZE > spec_count:
+                    chunk_stack_size = 1
+                else:
+                    chunk_stack_size = self.config.SPECTRUM_DATA_BATCH_SIZE
+                chunk_size = (chunk_stack_size,) + spec_shape[1:]
             spec_ds = self.h5_connector.create_spectrum_h5_dataset(spec_zoom_group, "data", spec_shape, chunk_size)
             self.h5_connector.set_attr(spec_ds, "mime-type", "spectrum")
             set_nx_interpretation(spec_ds, "spectrum", self.h5_connector)

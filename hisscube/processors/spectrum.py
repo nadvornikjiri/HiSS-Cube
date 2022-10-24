@@ -40,8 +40,9 @@ class SpectrumProcessor:
     def write_spectrum_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
         self.metadata_strategy.write_metadata(h5_connector, fits_path, fits_header, no_attrs, no_datasets)
 
-    def write_datasets(self, res_grp_list, data, file_name, offset=0, coordinates=None):
-        return self.metadata_strategy.write_datasets(res_grp_list, data, file_name, offset, coordinates)
+    def write_datasets(self, res_grp_list, data, file_name, offset=0, batch_i=0, batch_size=1, coordinates=None):
+        return self.metadata_strategy.write_datasets(res_grp_list, data, file_name, offset, batch_i,
+                                                     batch_size=batch_size, coordinates=coordinates)
 
     def link_spectra_to_images(self, h5_connector):
         self.metadata_strategy.link_spectra_to_images(h5_connector)

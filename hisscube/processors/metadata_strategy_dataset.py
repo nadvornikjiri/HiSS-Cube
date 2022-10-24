@@ -119,11 +119,10 @@ def get_dataset_resolution_groups(h5_connector, semi_sparse_group_name, zoom_cnt
         yield data_group
 
 
-def write_dataset(data, res_grp_list, should_compress, offset, coordinates=None):
+def write_dataset(data, res_grp_list, should_compress, offset, coordinates=None, buffer=None, batch_size=None,
+                  batch_i=None):
     datasets = []
     for zoom_idx, grp in enumerate(res_grp_list):
-        data_ds = grp["data"]
-        error_ds = grp["errors"]
         wanted_resolution = data[zoom_idx]
         data_mean = wanted_resolution["flux_mean"]
         data_errors = wanted_resolution["flux_sigma"]
@@ -139,9 +138,18 @@ def write_dataset(data, res_grp_list, should_compress, offset, coordinates=None)
         if should_compress:
             data_mean = float_compress(data_mean)
             data_errors = float_compress(data_errors)
-        data_ds.write_direct(data_mean, dest_sel=np.s_[offset, ...])
-        error_ds.write_direct(data_errors, dest_sel=np.s_[offset, ...])
-        datasets.append([data_ds, error_ds])
+        if zoom_idx not in buffer:
+            buffer[zoom_idx] = np.zeros((2,) + (batch_size,) + data_mean.shape, data_mean.dtype)
+        buffer[zoom_idx][0, batch_i, ...] = data_mean
+        buffer[zoom_idx][1, batch_i, ...] = data_errors
+        if batch_i == (batch_size - 1):
+            data_ds = grp["data"]
+            error_ds = grp["errors"]
+            data_ds.write_direct(buffer[zoom_idx][0], source_sel=np.s_[0:batch_size, ...],
+                                 dest_sel=np.s_[offset:offset + batch_i + 1, ...])
+            error_ds.write_direct(buffer[zoom_idx][1], source_sel=np.s_[0:batch_size, ...],
+                                  dest_sel=np.s_[offset:offset + batch_i + 1, ...])
+            datasets.append([data_ds, error_ds])
     return datasets
 
 

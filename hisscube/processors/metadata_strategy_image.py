@@ -75,7 +75,7 @@ class ImageMetadataStrategy(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def write_datasets(self, res_grp_list, data, file_name, offset):
+    def write_datasets(self, res_grp_list, data, file_name, offset, batch_i, batch_size=1):
         raise NotImplementedError
 
 
@@ -97,7 +97,7 @@ class TreeImageStrategy(ImageMetadataStrategy):
         for res_grp in spectral_grp:
             yield spectral_grp[res_grp]
 
-    def write_datasets(self, res_grp_list, data, file_name, offset):
+    def write_datasets(self, res_grp_list, data, file_name, offset, batch_i, batch_size=1):
         img_datasets = []
         for group in res_grp_list:
             res_tuple = group.name.split('/')[-1]
@@ -215,9 +215,13 @@ class TreeImageStrategy(ImageMetadataStrategy):
 
 
 class DatasetImageStrategy(ImageMetadataStrategy):
+    def __init__(self, metadata_strategy: MetadataStrategy, config: Config, photometry: Photometry):
+        super().__init__(metadata_strategy, config, photometry)
+        self.buffer = {}
 
-    def write_datasets(self, res_grp_list, data, file_name, offset):
-        return write_dataset(data, res_grp_list, self.config.FLOAT_COMPRESS, offset)
+    def write_datasets(self, res_grp_list, data, file_name, offset, batch_i, batch_size=1):
+        return write_dataset(data, res_grp_list, self.config.FLOAT_COMPRESS, offset, buffer=self.buffer,
+                             batch_size=batch_size, batch_i=batch_i)
 
     def get_resolution_groups(self, metadata, h5_connector):
         yield from get_dataset_resolution_groups(h5_connector, self.config.ORIG_CUBE_NAME, self.config.IMG_ZOOM_CNT,
@@ -247,10 +251,10 @@ class DatasetImageStrategy(ImageMetadataStrategy):
                          int(self.config.IMG_RES_Y / (2 ** img_zoom)),
                          int(self.config.IMG_RES_X / (2 ** img_zoom)))
             if self.config.DATASET_STRATEGY_CHUNKED:
-                if self.config.BATCH_SIZE > img_count:
+                if self.config.IMAGE_DATA_BATCH_SIZE > img_count:
                     chunk_stack_size = 1
                 else:
-                    chunk_stack_size = self.config.BATCH_SIZE
+                    chunk_stack_size = self.config.IMAGE_DATA_BATCH_SIZE
                 chunk_size = (chunk_stack_size,) + img_shape[1:]
             img_ds = self.h5_connector.create_image_h5_dataset(img_zoom_group, "data", img_shape, chunk_size)
             self.h5_connector.set_attr(img_ds, "mime-type", "image")

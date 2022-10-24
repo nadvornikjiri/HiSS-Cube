@@ -39,7 +39,8 @@ class MetadataProcessor:
             h5_connector, max_images=image_count, max_spectra=spectrum_count)
         image_count = self.process_fits_headers(h5_connector, image_header_ds, image_header_ds_dtype, image_path_list,
                                                 "image")
-        spectrum_count = self.process_fits_headers(h5_connector, spec_header_ds, spec_header_ds_dtype, spectra_path_list,
+        spectrum_count = self.process_fits_headers(h5_connector, spec_header_ds, spec_header_ds_dtype,
+                                                   spectra_path_list,
                                                    "spectrum")
         h5_connector.set_image_count(image_count)
         h5_connector.set_spectrum_count(spectrum_count)
@@ -79,7 +80,7 @@ class MetadataProcessor:
         return inserted_cnt
 
     def write_fits_headers(self, h5_connector, header_ds, header_ds_dtype, data_type, path_list, offset=0):
-        buf = np.zeros(shape=(self.config.FITS_HEADER_BUF_SIZE,), dtype=header_ds_dtype)
+        buf = np.zeros(shape=(self.config.FITS_HEADER_BATCH_SIZE,), dtype=header_ds_dtype)
         buf_i = 0
         fits_cnt = 0
         for fits_path in tqdm(path_list, desc="Headers for %s" % data_type, position=0, leave=True):
@@ -111,7 +112,7 @@ class MetadataProcessor:
 
     @log_timing("fits_headers")
     def _write_fits_header(self, h5_connector, buf, buf_i, fits_cnt, fits_path, header_ds, offset):
-        if buf_i >= self.config.FITS_HEADER_BUF_SIZE:
+        if buf_i >= self.config.FITS_HEADER_BATCH_SIZE:
             header_ds.write_direct(buf, source_sel=np.s_[0:buf_i], dest_sel=np.s_[offset:offset + buf_i])
             offset += buf_i
             buf_i = 0
