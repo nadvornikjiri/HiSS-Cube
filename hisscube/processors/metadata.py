@@ -25,6 +25,9 @@ class MetadataProcessor:
         self.image_list = image_list
         self.spectra_list = spectra_list
 
+    def clear_sparse_cube(self, h5_connector):
+        self.metadata_strategy.clear_sparse_cube(h5_connector)
+
     def reingest_fits_tables(self, h5_connector: H5Connector, image_path, spectra_path, image_pattern=None,
                              spectra_pattern=None):
         image_path_list, spectra_path_list = self.parse_paths(image_path, image_pattern, spectra_path, spectra_pattern)

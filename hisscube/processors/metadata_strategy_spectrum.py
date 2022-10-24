@@ -33,28 +33,41 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
         self.logger = HiSSCubeLogger.logger
         self.spec_cnt = 0
 
-    def write_metadata_multiple(self, h5_connector, no_attrs=False, no_datasets=False):
+    def write_metadata_multiple(self, h5_connector, no_attrs=False, no_datasets=False, range_min=None, range_max=None,
+                                batch_size=None):
         self._set_connector(h5_connector)
         fits_headers = get_spectrum_header_dataset(h5_connector)
-        self._write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets)
+        self._write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets, range_min, range_max,
+                                        batch_size)
 
-    def write_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
+    def write_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False, offset=0,
+                       batch_size=None):
         self._set_connector(h5_connector)
         metadata = ujson.loads(fits_header)
-        self._write_parsed_spectrum_metadata(metadata, fits_path, no_attrs, no_datasets)
+        self._write_parsed_metadata(metadata, fits_path, no_attrs, no_datasets, offset, batch_size)
 
-    def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
+    def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets, range_min=None,
+                                   range_max=None, batch_size=None):
         self.spec_cnt = 0
         self.h5_connector.fits_total_cnt = 0
-        for fits_path, header in tqdm(fits_headers, desc="Writing from spectrum cache", position=0, leave=True):
-            self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
+        if not range_min:
+            range_min = 0
+        if not range_max:
+            range_max = len(fits_headers)
+        if not batch_size:
+            batch_size = len(fits_headers)
+        headers_batch = fits_headers[range_min:range_max]
+        for fits_path, header in tqdm(headers_batch, desc="Writing from spectrum cache", position=0, leave=True):
+            self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets, range_min,
+                                             batch_size)
 
     @log_timing("process_spectrum_metadata")
-    def _write_metadata_from_header(self, h5_connector, fits_path, header, no_attrs, no_datasets):
+    def _write_metadata_from_header(self, h5_connector, fits_path, header, no_attrs, no_datasets, offset=0,
+                                    batch_size=None):
         fits_path = fits_path.decode('utf-8')
         self._set_connector(h5_connector)
         try:
-            self.write_metadata(h5_connector, fits_path, header, no_attrs, no_datasets)
+            self.write_metadata(h5_connector, fits_path, header, no_attrs, no_datasets, offset, batch_size)
             self.spec_cnt += 1
             self.h5_connector.fits_total_cnt += 1
         except ValueError as e:
@@ -91,7 +104,7 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def _write_parsed_spectrum_metadata(self, metadata, fits_path, no_attrs, no_datasets):
+    def _write_parsed_metadata(self, metadata, fits_path, no_attrs, no_datasets, offset, batch_size):
         raise NotImplementedError
 
     @abstractmethod
@@ -133,7 +146,7 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
         self.h5_connector = h5_connector
         self._add_image_refs(h5_connector.file)
 
-    def _write_parsed_spectrum_metadata(self, metadata, fits_path, no_attrs, no_datasets):
+    def _write_parsed_metadata(self, metadata, fits_path, no_attrs, no_datasets, offset, batch_size):
         if self.config.APPLY_REBIN is False:
             spectrum_length = fitsio.read_header(fits_path, 1)["NAXIS2"]
         else:
@@ -378,7 +391,19 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
     def __init__(self, metadata_strategy: MetadataStrategy, config: Config, photometry: Photometry):
 
         super().__init__(metadata_strategy, config, photometry)
+        self.index_dtype = [("spatial", np.int64), ("time", np.float32), ("ds_slice_idx", np.int64)]
         self.buffer = {}
+        self.metadata_header_buffer = {}
+        self.metadata_index_buffer = {}
+        self.datasets_created = False
+
+    def clear_buffers(self):
+        del self.buffer
+        del self.metadata_index_buffer
+        del self.metadata_header_buffer
+        self.buffer = {}
+        self.metadata_header_buffer = {}
+        self.metadata_index_buffer = {}
 
     def write_datasets(self, res_grp_list, data, file_name, offset, batch_i, batch_size, coordinates=None):
         coordinates = True
@@ -410,23 +435,31 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
                                                                 self.config.ORIG_CUBE_NAME)
         return image_data_cutout_ds, image_error_cutout_ds, image_metadata_cutout_ds, spectra_metadata_ds
 
-    def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
+    def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs=False, no_datasets=False, range_min=None,
+                                   range_max=None, batch_size=None):
+        if not self.config.MPIO:
+            self.require_datasets(h5_connector)
+        super()._write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets, range_min, range_max,
+                                           batch_size)
+        if not self.config.MPIO:
+            self.sort_indices(h5_connector)
+
+    def require_datasets(self, h5_connector):
+        self.h5_connector = h5_connector
         spectrum_count = h5_connector.get_spectrum_count()
         spectrum_zoom_groups = require_zoom_grps("spectra", h5_connector, self.config.SPEC_ZOOM_CNT)
-        if not no_datasets:
-            self._create_datasets(spectrum_zoom_groups, spectrum_count)
-            super()._write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets)
-        self._sort_indices()
+        self.create_datasets(spectrum_zoom_groups, spectrum_count)
 
-    def _write_parsed_spectrum_metadata(self, metadata, fits_path, no_attrs, no_datasets):
+    def _write_parsed_metadata(self, metadata, fits_path, no_attrs, no_datasets, offset, batch_size):
         spec_datasets = get_data_datasets(self.h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
                                           self.config.ORIG_CUBE_NAME)
         fits_name = Path(fits_path).name
         if not no_attrs:
-            self.metadata_strategy.add_metadata(self.h5_connector, metadata, spec_datasets, self.spec_cnt, fits_name)
-        self._add_index_entry(metadata, spec_datasets)
+            self.metadata_strategy.add_metadata(self.h5_connector, metadata, spec_datasets, self.spec_cnt, batch_size,
+                                                offset, fits_name, self.metadata_header_buffer)
+        self.add_index_entry(metadata, spec_datasets, offset, self.spec_cnt, batch_size)
 
-    def _create_datasets(self, spec_zoom_groups, spec_count):
+    def create_datasets(self, spec_zoom_groups, spec_count):
         for spec_zoom, spec_zoom_group in enumerate(spec_zoom_groups):
             chunk_size = None
             spec_shape = (spec_count, int(self.config.REBIN_SAMPLES / (2 ** spec_zoom)))
@@ -443,8 +476,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             self.h5_connector.set_attr(spec_ds, "error_ds_ref", error_ds.ref)
             self.h5_connector.create_spectrum_h5_dataset(spec_zoom_group, "wl", (spec_shape[1],))
             set_nx_axes(spec_zoom_group, [".", "wl"], self.h5_connector)
-            index_dtype = [("spatial", np.int64), ("time", np.float32), ("ds_slice_idx", np.int64)]
-            create_additional_datasets(spec_count, spec_ds, spec_zoom_group, index_dtype, self.h5_connector,
+            create_additional_datasets(spec_count, spec_ds, spec_zoom_group, self.index_dtype, self.h5_connector,
                                        self.config.FITS_SPECTRUM_MAX_HEADER_SIZE, self.config.FITS_MAX_PATH_SIZE,
                                        self.config.METADATA_CHUNK_SIZE)
 
@@ -452,16 +484,21 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             self.h5_connector.recreate_regionref_dataset("image_cutouts_errors", spec_count, spec_zoom_group)
             self.h5_connector.recreate_regionref_dataset("image_cutouts_metadata", spec_count, spec_zoom_group)
 
-    def _add_index_entry(self, metadata, spec_datasets):
-        for img_ds in spec_datasets:
-            index_ds = self.h5_connector.file[self.h5_connector.get_attr(img_ds, "index_ds_ref")]
+    def add_index_entry(self, metadata, spec_datasets, offset, batch_i, batch_size):
+        for zoom_idx, spec_ds in enumerate(spec_datasets):
             spectrum_ra, spectrum_dec = get_spectrum_center_coords(metadata)
             healpix_id = get_healpix_id(spectrum_ra, spectrum_dec, self.config.SPEC_SPAT_INDEX_ORDER - 1)
             time = get_spectrum_time(metadata)
-            index_ds[self.spec_cnt] = (healpix_id, time, self.spec_cnt)
+            if zoom_idx not in self.metadata_index_buffer:
+                self.metadata_index_buffer[zoom_idx] = np.zeros((batch_size,), self.index_dtype)
+            self.metadata_index_buffer[zoom_idx][batch_i] = (healpix_id, time, offset + batch_i)
+            if batch_i == (batch_size - 1):
+                index_ds = self.h5_connector.file[self.h5_connector.get_attr(spec_ds, "index_ds_ref")]
+                index_ds.write_direct(self.metadata_index_buffer[zoom_idx], source_sel=np.s_[0:batch_size],
+                                      dest_sel=np.s_[offset:offset + batch_i + 1])
 
-    def _sort_indices(self):
-        index_datasets = get_index_datasets(self.h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
+    def sort_indices(self, h5_connector):
+        index_datasets = get_index_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
                                             self.config.ORIG_CUBE_NAME)
         for index_ds in index_datasets:
             index_ds[:] = np.sort(index_ds[:], order=['spatial', 'time'])

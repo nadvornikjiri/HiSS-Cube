@@ -34,15 +34,17 @@ class SpectrumProcessor:
     def get_resolution_groups(self, metadata, h5_connector):
         return self.metadata_strategy.get_resolution_groups(metadata, h5_connector)
 
-    def write_spectra_metadata(self, h5_connector, no_attrs=False, no_datasets=False):
-        self.metadata_strategy.write_metadata_multiple(h5_connector, no_attrs, no_datasets)
+    def write_metadata(self, h5_connector, no_attrs=False, no_datasets=False, range_min=None, range_max=None,
+                       batch_size=None):
+        self.metadata_strategy.write_metadata_multiple(h5_connector, no_attrs, no_datasets, range_min,
+                                                       range_max, batch_size)
 
     def write_spectrum_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
         self.metadata_strategy.write_metadata(h5_connector, fits_path, fits_header, no_attrs, no_datasets)
 
     def write_datasets(self, res_grp_list, data, file_name, offset=0, batch_i=0, batch_size=1, coordinates=None):
-        return self.metadata_strategy.write_datasets(res_grp_list, data, file_name, offset, batch_i,
-                                                     batch_size=batch_size, coordinates=coordinates)
+        return self.metadata_strategy.write_datasets(res_grp_list, data, file_name, offset, batch_i, batch_size,
+                                                     coordinates)
 
     def link_spectra_to_images(self, h5_connector):
         self.metadata_strategy.link_spectra_to_images(h5_connector)

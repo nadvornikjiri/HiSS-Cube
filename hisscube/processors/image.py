@@ -35,12 +35,13 @@ class ImageProcessor:
     def write_image_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
         self.metadata_strategy.write_metadata(h5_connector, fits_path, fits_header, no_attrs, no_datasets)
 
-    def write_images_metadata(self, h5_connector, no_attrs=False, no_datasets=False):
-        self.metadata_strategy.write_metadata_multiple(h5_connector, no_attrs, no_datasets)
+    def write_metadata(self, h5_connector, no_attrs=False, no_datasets=False, range_min=None, range_max=None,
+                       batch_size=None):
+        self.metadata_strategy.write_metadata_multiple(h5_connector, no_attrs, no_datasets, range_min,
+                                                       range_max, batch_size)
 
     def write_datasets(self, res_grp_list, data, file_name, offset=0, batch_i=0, batch_size=1):
-        return self.metadata_strategy.write_datasets(res_grp_list, data, file_name, offset, batch_i,
-                                                     batch_size=batch_size)
+        return self.metadata_strategy.write_datasets(res_grp_list, data, file_name, offset, batch_i, batch_size)
 
     def _set_connector(self, h5_connector):
         self.h5_connector = h5_connector

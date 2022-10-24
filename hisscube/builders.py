@@ -61,7 +61,7 @@ class SingleImageBuilder(Builder):
         fits_folder_path = path.parent
         fits_file_name = path.name
         processor.update_fits_metadata_cache(h5_connector, fits_folder_path, image_pattern=fits_file_name)
-        processor.write_images_metadata(h5_connector)
+        processor.write_metadata(h5_connector)
         img_datasets = self.build_data(h5_connector, image_path, processor, fits_file_name)
         return img_datasets
 
@@ -104,7 +104,7 @@ class SingleSpectrumBuilder(Builder):
         fits_file_name = path.name
         processor.update_fits_metadata_cache(h5_connector, fits_folder_path,
                                              spec_pattern=fits_file_name)
-        processor.write_spectra_metadata(h5_connector)
+        processor.write_metadata(h5_connector)
         spec_datasets = self.build_data(h5_connector, spec_path, processor, fits_file_name)
         return spec_datasets
 
@@ -162,18 +162,18 @@ class MetadataBuilder(SerialBuilder):
     def _build(self):
         with self.h5_connector as h5_connector:
             self.logger.info("Writing image metadata.")
-            self.image_processor.write_images_metadata(h5_connector)
+            self.image_processor.write_metadata(h5_connector)
             self.logger.info("Writing spectra metadata.")
-            self.spectrum_processor.write_spectra_metadata(h5_connector)
+            self.spectrum_processor.write_metadata(h5_connector)
 
 
 class CBoosterMetadataBuilder(MetadataBuilder):
     def _build(self):
         with self.h5_connector as h5_connector:
             self.logger.info("Creating image metadata in memory.")
-            self.image_processor.write_images_metadata(h5_connector)
+            self.image_processor.write_metadata(h5_connector)
             self.logger.info("Creating spectra metadata in memory.")
-            self.spectrum_processor.write_spectra_metadata(h5_connector)
+            self.spectrum_processor.write_metadata(h5_connector)
             self.c_write_hdf5_metadata(h5_connector)
 
     def c_write_hdf5_metadata(self, h5_connector: CBoostedMetadataBuildWriter):

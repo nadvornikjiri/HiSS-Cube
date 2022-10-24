@@ -150,7 +150,7 @@ class MLProcessorStrategy(ABC):
     def _count_spatial_groups_with_depth(self, group, target_depth, curr_depth=0):
         my_cnt = 0
         if curr_depth == target_depth and group.attrs["type"] == "spatial":
-            return 1  # increase idx
+            return 1  # increase batch_i
         else:
             for child_grp_name in group.keys():
                 child_grp = group[child_grp_name]

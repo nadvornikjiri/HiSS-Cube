@@ -46,8 +46,10 @@ class HiSSCubeConstructionDirector:
             builder.build()
 
     def append_metadata_builder(self):
-        if self.config.C_BOOSTER and self.config.METADATA_STRATEGY == "TREE":
+        if self.config.C_BOOSTER and self.config.METADATA_STRATEGY == "TREE" and not self.config.MPIO:
             self.builders.append(self.serial_builders.c_boosted_metadata_builder)
+        elif self.config.MPIO:
+            self.builders.append(self.parallel_builders.metadata_builder)
         else:
             self.builders.append(self.serial_builders.metadata_builder)
 

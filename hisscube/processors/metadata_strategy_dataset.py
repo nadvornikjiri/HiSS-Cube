@@ -1,5 +1,6 @@
 import healpy
 import numpy as np
+import ujson
 
 from hisscube.processors.data import float_compress
 from hisscube.processors.metadata_strategy import MetadataStrategy, write_naxis_values, get_lower_res_image_metadata, \
@@ -11,7 +12,8 @@ from hisscube.utils.io_strategy import write_path
 
 class DatasetStrategy(MetadataStrategy):
 
-    def add_metadata(self, h5_connector, metadata, datasets, idx=None, fits_name=None):
+    def add_metadata(self, h5_connector, metadata, datasets, batch_i=None, batch_size=None, offset=None, fits_name=None,
+                     metadata_header_buffer=None):
         """
         Adds metadata to the HDF5 data sets of the same image or spectrum in multiple resolutions. It also modifies the
         metadata for image where needed and adds the COMMENT and HISTORY attributes as datasets for optimization
@@ -26,16 +28,21 @@ class DatasetStrategy(MetadataStrategy):
         """
 
         fits_header_metadata = dict(metadata)
-        for res_idx, ds in enumerate(datasets):
-            if res_idx > 0:
-                fits_header_metadata = self._get_lower_res_metadata(idx, ds, h5_connector, fits_header_metadata,
-                                                                    res_idx)
+        for zoom_idx, ds in enumerate(datasets):
+            if zoom_idx > 0:
+                fits_header_metadata = self._get_lower_res_metadata(offset + batch_i, ds, h5_connector,
+                                                                    fits_header_metadata,
+                                                                    zoom_idx)
             ds_shape = h5_connector.get_shape(ds)[1:]  # 1st dimension is number of images or spectra
             write_naxis_values(fits_header_metadata, ds_shape)
             metadata_ds_ref = h5_connector.get_attr(ds, "metadata_ds_ref")
             metadata_ds = h5_connector.file[metadata_ds_ref]
-            h5_connector.write_serialized_fits_header(metadata_ds, fits_header_metadata, idx=idx)
-            write_path(metadata_ds, fits_name, idx)
+            if zoom_idx not in metadata_header_buffer:
+                metadata_header_buffer[zoom_idx] = np.zeros((batch_size,), metadata_ds.dtype)
+            metadata_header_buffer[zoom_idx][batch_i] = (fits_name, ujson.dumps(fits_header_metadata))
+            if batch_i == (batch_size - 1):
+                metadata_ds.write_direct(metadata_header_buffer[zoom_idx], source_sel=np.s_[0:batch_size],
+                                         dest_sel=np.s_[offset:offset + batch_i + 1])
 
     def get_cutout_bounds_from_spectrum(self, image_fits_header, res_idx, spectrum_metadata, photometry):
         time = get_time_from_image(image_fits_header)

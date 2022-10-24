@@ -29,49 +29,59 @@ class ImageMetadataStrategy(ABC):
         self.logger = HiSSCubeLogger.logger
         self.img_cnt = 0
 
-    def write_metadata_multiple(self, h5_connector, no_attrs=False, no_datasets=False):
+    def write_metadata_multiple(self, h5_connector, no_attrs=False, no_datasets=False, range_min=None, range_max=None,
+                                batch_size=None):
         self._set_connector(h5_connector)
         fits_headers = get_image_header_dataset(h5_connector)
-        self.clear_sparse_cube(h5_connector)
-        self._write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets)
+        if not self.config.MPIO:
+            self.metadata_strategy.clear_sparse_cube(h5_connector)
+        self.write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets, range_min, range_max,
+                                       batch_size)
 
-    def clear_sparse_cube(self, h5_connector):
-        grp_name = self.config.ORIG_CUBE_NAME
-        if grp_name in h5_connector.file:
-            del h5_connector.file[grp_name]
-
-    def write_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False):
+    def write_metadata(self, h5_connector, fits_path, fits_header, no_attrs=False, no_datasets=False, offset=0,
+                       batch_size=None):
         self._set_connector(h5_connector)
         metadata = ujson.loads(fits_header)
-        self._write_parsed_metadata(metadata, fits_path, no_attrs, no_datasets)
+        self._write_parsed_metadata(metadata, fits_path, no_attrs, no_datasets, offset, batch_size)
 
     def _set_connector(self, h5_connector):
         self.h5_connector = h5_connector
 
-    def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
+    def write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets, range_min=None,
+                                  range_max=None, batch_size=None):
         self.img_cnt = 0
         self.h5_connector.fits_total_cnt = 0
-        for fits_path, header in tqdm(fits_headers, desc="Writing from image cache", position=0, leave=True):
-            self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets)
+        if not range_min:
+            range_min = 0
+        if not range_max:
+            range_max = len(fits_headers)
+        if not batch_size:
+            batch_size = len(fits_headers)
+        headers_batch = fits_headers[range_min:range_max]
+        for fits_path, header in tqdm(headers_batch, desc="Writing from image cache", position=0, leave=True):
+            self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets, range_min,
+                                             batch_size)
 
     @log_timing("process_image_metadata")
-    def _write_metadata_from_header(self, h5_connector, fits_path, header, no_attrs, no_datasets):
+    def _write_metadata_from_header(self, h5_connector, fits_path, header, no_attrs, no_datasets, offset=0,
+                                    batch_size=None):
         self._set_connector(h5_connector)
         fits_path = fits_path.decode('utf-8')
         try:
-            self.write_metadata(h5_connector, fits_path, header, no_attrs=no_attrs, no_datasets=no_datasets)
+            self.write_metadata(h5_connector, fits_path, header, no_attrs, no_datasets, offset, batch_size)
             self.img_cnt += 1
             self.h5_connector.fits_total_cnt += 1
         except RuntimeError as e:
             self.logger.warning(
                 "Unable to ingest image %s, message: %s" % (fits_path, str(e)))
+            raise e
 
     @abstractmethod
     def get_resolution_groups(self, metadata, h5_connector):
         raise NotImplementedError
 
     @abstractmethod
-    def _write_parsed_metadata(self, metadata, fits_path, no_attrs, no_datasets):
+    def _write_parsed_metadata(self, metadata, fits_path, no_attrs, no_datasets, offset, batch_size):
         raise NotImplementedError
 
     @abstractmethod
@@ -111,7 +121,7 @@ class TreeImageStrategy(ImageMetadataStrategy):
             img_datasets.append(ds)
         return img_datasets
 
-    def _write_parsed_metadata(self, metadata, fits_path, no_attrs, no_datasets):
+    def _write_parsed_metadata(self, metadata, fits_path, no_attrs, no_datasets, offset, batch_size=None):
         img_datasets = []
         file_name = os.path.basename(fits_path)
         res_grps = self._create_index_tree(metadata)
@@ -207,7 +217,8 @@ class TreeImageStrategy(ImageMetadataStrategy):
             y_lower_res = int(y_lower_res / 2)
         return res_grp_list
 
-    def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
+    def write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets, range_min=None,
+                                  range_max=None, batch_size=None):
         self.img_cnt = 0
         self.h5_connector.fits_total_cnt = 0
         for fits_path, header in fits_headers:
@@ -218,6 +229,18 @@ class DatasetImageStrategy(ImageMetadataStrategy):
     def __init__(self, metadata_strategy: MetadataStrategy, config: Config, photometry: Photometry):
         super().__init__(metadata_strategy, config, photometry)
         self.buffer = {}
+        self.metadata_header_buffer = {}
+        self.metadata_index_buffer = {}
+        self.datasets_created = False
+        self.index_dtype = [("spatial", np.int64), ("time", np.float32), ("wl", np.int32), ("ds_slice_idx", np.int64)]
+
+    def clear_buffers(self):
+        del self.buffer
+        del self.metadata_index_buffer
+        del self.metadata_header_buffer
+        self.buffer = {}
+        self.metadata_header_buffer = {}
+        self.metadata_index_buffer = {}
 
     def write_datasets(self, res_grp_list, data, file_name, offset, batch_i, batch_size=1):
         return write_dataset(data, res_grp_list, self.config.FLOAT_COMPRESS, offset, buffer=self.buffer,
@@ -227,22 +250,30 @@ class DatasetImageStrategy(ImageMetadataStrategy):
         yield from get_dataset_resolution_groups(h5_connector, self.config.ORIG_CUBE_NAME, self.config.IMG_ZOOM_CNT,
                                                  "images")
 
-    def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs, no_datasets):
-        img_count = self.h5_connector.get_image_count()
-        img_zoom_groups = require_zoom_grps("images", self.h5_connector, self.config.IMG_ZOOM_CNT)
-        if not no_datasets:
-            self.create_datasets(img_zoom_groups, img_count)
-            super()._write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets)
+    def write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs=False, no_datasets=False, range_min=None,
+                                  range_max=None, batch_size=None):
+        if not self.config.MPIO:
+            self.require_datasets(h5_connector)
+        super().write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets, range_min, range_max,
+                                          batch_size)
+        if not self.config.MPIO:
+            self.sort_indices(h5_connector)
 
-        self.sort_indices()
+    def require_datasets(self, h5_connector):
+        self.h5_connector = h5_connector
+        img_count = h5_connector.get_image_count()
+        img_zoom_groups = require_zoom_grps("images", h5_connector, self.config.IMG_ZOOM_CNT)
+        self.create_datasets(img_zoom_groups, img_count)
+        self.datasets_created = True
 
-    def _write_parsed_metadata(self, metadata, fits_path, no_attrs, no_datasets):
+    def _write_parsed_metadata(self, metadata, fits_path, no_attrs, no_datasets, offset, batch_size):
         img_datasets = get_data_datasets(self.h5_connector, "images", self.config.IMG_ZOOM_CNT,
                                          self.config.ORIG_CUBE_NAME)
         fits_name = Path(fits_path).name
         if not no_attrs:
-            self.metadata_strategy.add_metadata(self.h5_connector, metadata, img_datasets, self.img_cnt, fits_name)
-        self.add_index_entry(metadata, img_datasets)
+            self.metadata_strategy.add_metadata(self.h5_connector, metadata, img_datasets, self.img_cnt, batch_size,
+                                                offset, fits_name, self.metadata_header_buffer)
+        self.add_index_entry(metadata, img_datasets, offset, self.img_cnt, batch_size)
 
     def create_datasets(self, img_zoom_groups, img_count):
         for img_zoom, img_zoom_group in enumerate(img_zoom_groups):
@@ -261,22 +292,26 @@ class DatasetImageStrategy(ImageMetadataStrategy):
             set_nx_interpretation(img_ds, "image", self.h5_connector)
             error_ds = self.h5_connector.create_image_h5_dataset(img_zoom_group, "errors", img_shape, chunk_size)
             self.h5_connector.set_attr(img_ds, "error_ds_ref", error_ds.ref)
-            index_dtype = [("spatial", np.int64), ("time", np.float32), ("wl", np.int32), ("ds_slice_idx", np.int64)]
-            create_additional_datasets(img_count, img_ds, img_zoom_group, index_dtype, self.h5_connector,
+            create_additional_datasets(img_count, img_ds, img_zoom_group, self.index_dtype, self.h5_connector,
                                        self.config.FITS_IMAGE_MAX_HEADER_SIZE, self.config.FITS_MAX_PATH_SIZE,
                                        self.config.METADATA_CHUNK_SIZE)
 
-    def add_index_entry(self, metadata, img_datasets):
-        for img_ds in img_datasets:
-            index_ds = self.h5_connector.file[self.h5_connector.get_attr(img_ds, "index_ds_ref")]
+    def add_index_entry(self, metadata, img_datasets, offset, batch_i, batch_size):
+        for zoom_idx, img_ds in enumerate(img_datasets):
             image_center_ra, image_center_dec = get_image_center_coords(metadata)
             healpix_id = get_healpix_id(image_center_ra, image_center_dec, self.config.IMG_SPAT_INDEX_ORDER - 1)
             time = get_image_time(metadata)
             wl = self.photometry.get_image_wl(metadata)
-            index_ds[self.img_cnt] = (healpix_id, time, wl, self.img_cnt)
+            if zoom_idx not in self.metadata_index_buffer:
+                self.metadata_index_buffer[zoom_idx] = np.zeros((batch_size,), self.index_dtype)
+            self.metadata_index_buffer[zoom_idx][batch_i] = (healpix_id, time, wl, offset + batch_i)
+            if batch_i == (batch_size - 1):
+                index_ds = self.h5_connector.file[self.h5_connector.get_attr(img_ds, "index_ds_ref")]
+                index_ds.write_direct(self.metadata_index_buffer[zoom_idx], source_sel=np.s_[0:batch_size],
+                                      dest_sel=np.s_[offset:offset + batch_i + 1])
 
-    def sort_indices(self):
-        index_datasets = get_index_datasets(self.h5_connector, "images", self.config.IMG_ZOOM_CNT,
+    def sort_indices(self, h5_connector):
+        index_datasets = get_index_datasets(h5_connector, "images", self.config.IMG_ZOOM_CNT,
                                             self.config.ORIG_CUBE_NAME)
         for index_ds in index_datasets:
             index_ds[:] = np.sort(index_ds[:], order=['spatial', 'time', 'wl'])
