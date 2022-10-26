@@ -343,7 +343,7 @@ class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
         cutout_metadata_refs = cutout_metadata_datasets_multiple_zoom[self.output_zoom]
 
         for spec_idx in tqdm(range(spec_cnt_total),
-                             desc="Building zoom %d" % self.output_zoom, position=0, leave=True):
+                             desc="Building zoom_idx %d" % self.output_zoom, position=0, leave=True):
             self._construct_spectrum_table(spec_ds, spec_idx, cutout_data_refs, cutout_error_refs, cutout_metadata_refs)
 
     def parse_str_path(self, image_path):

@@ -16,7 +16,7 @@ class TestCubeUtils:
                                                                                           apply_transmission=True)
         assert (len(multiple_res_cube) == len(expected_spectra_resolutions))
         for i, res in enumerate(expected_spectra_resolutions):
-            assert (multiple_res_cube[i]["zoom"] == expected_spectra_resolutions[i])
+            assert (multiple_res_cube[i]["zoom_idx"] == expected_spectra_resolutions[i])
 
     def test__get_image_with_errors(self):
         test_image = "../../data/raw/images/301/4797/1/frame-g-004797-1-0019.fits.bz2"
@@ -32,7 +32,7 @@ class TestCubeUtils:
         fits_header, multiple_res_cube = self.cube_utils.get_multiple_resolution_image(test_image, IMG_ZOOM_CNT)
         assert (len(multiple_res_cube) == len(expected_image_resolutions))
         for i, res in enumerate(expected_image_resolutions):
-            assert (multiple_res_cube[i]["zoom"] == expected_image_resolutions[i])
+            assert (multiple_res_cube[i]["zoom_idx"] == expected_image_resolutions[i])
             assert (multiple_res_cube[i]["flux_mean"].shape[0] == expected_image_resolutions[i][1])
             assert (multiple_res_cube[i]["flux_mean"].shape[1] == expected_image_resolutions[i][0])
             assert (multiple_res_cube[i]["flux_sigma"].shape[0] == expected_image_resolutions[i][1])

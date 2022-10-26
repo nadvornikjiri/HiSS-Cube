@@ -76,6 +76,9 @@ class ImageMetadataStrategy(ABC):
                 "Unable to ingest image %s, message: %s" % (fits_path, str(e)))
             raise e
 
+    def clear_buffers(self):
+        pass
+
     @abstractmethod
     def get_resolution_groups(self, metadata, h5_connector):
         raise NotImplementedError
@@ -111,7 +114,7 @@ class TreeImageStrategy(ImageMetadataStrategy):
         img_datasets = []
         for group in res_grp_list:
             res_tuple = group.name.split('/')[-1]
-            wanted_res = next(img for img in data if str(tuple(img["zoom"])) == res_tuple)  # parsing 2D resolution
+            wanted_res = next(img for img in data if str(tuple(img["zoom_idx"])) == res_tuple)  # parsing 2D resolution
             img_data = np.dstack((wanted_res["flux_mean"], wanted_res["flux_sigma"]))
             img_data[img_data == np.inf] = np.nan
             if self.config.FLOAT_COMPRESS:

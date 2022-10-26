@@ -214,6 +214,22 @@ class SerialH5Reader(H5Connector):
         self.file = h5py.File(self.h5_path, 'r', libver="latest")
 
 
+class H5ReaderSWMR(H5Connector):
+    def __init__(self, h5_path, config: Config, io_strategy: IOStrategy):
+        super().__init__(h5_path, config, io_strategy)
+
+    def open_h5_file(self, truncate_file=False):
+        self.file = h5py.File(self.h5_path, 'r', libver="latest", swmr=True)
+
+
+class H5WriterSWMR(H5Connector):
+    def __init__(self, h5_path, config: Config, io_strategy: IOStrategy):
+        super().__init__(h5_path, config, io_strategy)
+
+    def open_h5_file(self, truncate_file=False):
+        self.file = h5py.File(self.h5_path, 'r+', libver="latest", swmr=True)
+
+
 class ParallelH5Writer(H5Connector):
     def __init__(self, h5_path, config, io_strategy: IOStrategy, mpi_comm=None):
         super().__init__(h5_path, config, io_strategy)

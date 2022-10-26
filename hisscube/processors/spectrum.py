@@ -46,8 +46,8 @@ class SpectrumProcessor:
         return self.metadata_strategy.write_datasets(res_grp_list, data, file_name, offset, batch_i, batch_size,
                                                      coordinates)
 
-    def link_spectra_to_images(self, h5_connector):
-        self.metadata_strategy.link_spectra_to_images(h5_connector)
+    def link_spectra_to_images(self, h5_connector, min_range=None, max_range=None, batch_size=None):
+        return self.metadata_strategy.link_spectra_to_images(h5_connector, min_range, max_range, batch_size)
 
     def _set_connector(self, h5_connector):
         self.h5_connector = h5_connector

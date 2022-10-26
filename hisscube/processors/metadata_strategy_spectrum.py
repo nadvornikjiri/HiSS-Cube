@@ -74,14 +74,17 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
             self.logger.warning(
                 "Unable to ingest spectrum %s, message: %s" % (fits_path, str(e)))
 
-    def _write_image_cutouts(self, spec_zoom, image_cutout_ds, image_max_zoom_idx, image_refs):
+    def _write_image_cutouts(self, spec_zoom, image_cutout_ds, image_max_zoom_idx, image_refs, range_min=None,
+                             batch_i=None, batch_size=None, buffer=None):
         if len(image_refs) > 0:
             if spec_zoom > image_max_zoom_idx:
                 no_references = len(image_refs[image_max_zoom_idx])
-                self._write_image_cutout(image_cutout_ds, image_max_zoom_idx, image_refs, no_references)
+                self._write_image_cutout(image_cutout_ds, image_max_zoom_idx, image_refs, no_references, range_min,
+                                         batch_i, batch_size, buffer)
             else:
                 no_references = len(image_refs[spec_zoom])
-                self._write_image_cutout(image_cutout_ds, spec_zoom, image_refs, no_references)
+                self._write_image_cutout(image_cutout_ds, spec_zoom, image_refs, no_references, range_min,
+                                         batch_i, batch_size, buffer)
 
     def _set_connector(self, h5_connector):
         self.h5_connector = h5_connector
@@ -96,7 +99,7 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def link_spectra_to_images(self, h5_connector):
+    def link_spectra_to_images(self, h5_connector, min_range=None, max_range=None, batch_size=None):
         raise NotImplementedError
 
     @abstractmethod
@@ -108,7 +111,11 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def _write_image_cutout(self, image_cutout_ds, zoom, image_refs, no_references):
+    def _write_image_cutout(self, image_cutout_ds, zoom, image_refs, no_references, range_min=None, batch_i=None,
+                            batch_size=None, buffer=None):
+        pass
+
+    def clear_buffers(self):
         pass
 
 
@@ -132,7 +139,7 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
         spec_datasets = []
         for group in res_grp_list:
             res = group.name.split('/')[-1]
-            wanted_res = next(spec for spec in data if str(spec["zoom"]) == res)
+            wanted_res = next(spec for spec in data if str(spec["zoom_idx"]) == res)
             spec_data = np.column_stack((wanted_res["wl"], wanted_res["flux_mean"], wanted_res["flux_sigma"]))
             spec_data[spec_data == np.inf] = np.nan
             if self.config.FLOAT_COMPRESS:
@@ -142,7 +149,7 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
             spec_datasets.append(ds)
         return spec_datasets
 
-    def link_spectra_to_images(self, h5_connector):
+    def link_spectra_to_images(self, h5_connector, min_range=None, max_range=None, batch_size=None):
         self.h5_connector = h5_connector
         self._add_image_refs(h5_connector.file)
 
@@ -314,13 +321,14 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
                 break
         return time_grp_1st_spectrum
 
-    def _write_image_cutout(self, image_cutout_ds, zoom, image_refs, no_references):
+    def _write_image_cutout(self, image_cutout_ds, zoom, image_refs, no_references, range_min=None, batch_i=None,
+                            batch_size=None, buffer=None):
         image_cutout_ds[0:no_references] = image_refs[zoom]
 
     @staticmethod
     def get_image_cutout_ds(spec_ds, spec_zoom_idx):
         image_cutout_ds = spec_ds.parent.parent.parent[
-            "image_cutouts_%d" % spec_zoom_idx]  # we write image cutout zoom equivalent to the spectral zoom
+            "image_cutouts_%d" % spec_zoom_idx]  # we write image cutout zoom_idx equivalent to the spectral zoom_idx
         return image_cutout_ds
 
     def _find_images_overlapping_spectrum(self, metadata):
@@ -359,7 +367,7 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
 
         Parameters
         ----------
-        image_zoom     Resolution index = zoom factor, e.g., 0, 1, 2, ...
+        image_zoom     Resolution index = zoom_idx factor, e.g., 0, 1, 2, ...
         ds    HDF5 dataset
 
         Returns     HDF5 region reference
@@ -395,15 +403,24 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         self.buffer = {}
         self.metadata_header_buffer = {}
         self.metadata_index_buffer = {}
+        self.cutout_data_buffer = None
+        self.cutout_error_buffer = None
+        self.cutout_metadata_buffer = None
         self.datasets_created = False
 
     def clear_buffers(self):
         del self.buffer
         del self.metadata_index_buffer
         del self.metadata_header_buffer
+        del self.cutout_data_buffer
+        del self.cutout_error_buffer
+        del self.cutout_metadata_buffer
         self.buffer = {}
-        self.metadata_header_buffer = {}
-        self.metadata_index_buffer = {}
+        self.metadata_header_buffer = None
+        self.metadata_index_buffer = None
+        self.cutout_data_buffer = None
+        self.cutout_error_buffer = {}
+        self.cutout_metadata_buffer = {}
 
     def write_datasets(self, res_grp_list, data, file_name, offset, batch_i, batch_size, coordinates=None):
         coordinates = True
@@ -414,15 +431,20 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         return get_dataset_resolution_groups(h5_connector, self.config.ORIG_CUBE_NAME, self.config.SPEC_ZOOM_CNT,
                                              "spectra")
 
-    def link_spectra_to_images(self, h5_connector: H5Connector):
-        self.spec_cnt = 0
+    def link_spectra_to_images(self, h5_connector, range_min=None, range_max=None, batch_size=None):
         self.h5_connector = h5_connector
         image_data_cutout_ds, image_error_cutout_ds, image_metadata_cutout_ds, spectra_metadata_ds = self._get_datasets_for_linking(
             h5_connector)
-        spec_total_cnt = h5_connector.get_spectrum_count()
-        for i in tqdm(range(spec_total_cnt), desc="Linking spectrum", position=0, leave=True):
+        if not range_min:
+            range_min = 0
+        self.spec_cnt = range_min
+        if not range_max:
+            range_max = h5_connector.get_spectrum_count()
+        spectrum_batch = range(range_min, range_max)
+        for i in tqdm(spectrum_batch, desc="Linking spectrum", position=0, leave=True):
             self._add_image_links_to_spectra(spectra_metadata_ds, image_data_cutout_ds,
-                                             image_error_cutout_ds, image_metadata_cutout_ds)
+                                             image_error_cutout_ds, image_metadata_cutout_ds, range_min, i, batch_size)
+        return self.buffer
 
     def _get_datasets_for_linking(self, h5_connector):
         spectra_metadata_ds = get_metadata_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
@@ -504,7 +526,8 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             index_ds[:] = np.sort(index_ds[:], order=['spatial', 'time'])
 
     def _add_image_links_to_spectra(self, spec_metadata_datasets_multiple_zoom, image_data_cutout_ds_multiple_zoom,
-                                    image_error_cutout_ds_multiple_zoom, image_metadata_cutout_ds_multiple_zoom):
+                                    image_error_cutout_ds_multiple_zoom, image_metadata_cutout_ds_multiple_zoom,
+                                    range_min=None, batch_i=None, batch_size=None):
         """
         Adds HDF5 Region references of image cut-outs to spectra attribute "image_cutouts". Throws NoCoverageFoundError
         if the cut-out does not span the whole cutout path_size for any reason.
@@ -544,15 +567,20 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
                 image_data_cutout_ds_multiple_zoom, image_error_cutout_ds_multiple_zoom,
                 image_metadata_cutout_ds_multiple_zoom, spec_zoom)
             self._write_cutouts(image_data_dataset, image_data_refs, image_error_dataset, image_error_refs,
-                                image_max_zoom, image_metadata_dataset, image_metadata_refs, spec_zoom)
+                                image_max_zoom, image_metadata_dataset, image_metadata_refs, spec_zoom, range_min,
+                                batch_i, batch_size)
         self.spec_cnt += 1
         return spec_metadata_datasets_multiple_zoom
 
     def _write_cutouts(self, image_data_dataset, image_data_refs, image_error_dataset, image_error_refs, image_max_zoom,
-                       image_metadata_dataset, image_metadata_refs, spec_zoom):
-        self._write_image_cutouts(spec_zoom, image_data_dataset, image_max_zoom, image_data_refs)
-        self._write_image_cutouts(spec_zoom, image_error_dataset, image_max_zoom, image_error_refs)
-        self._write_image_cutouts(spec_zoom, image_metadata_dataset, image_max_zoom, image_metadata_refs)
+                       image_metadata_dataset, image_metadata_refs, spec_zoom, range_min=None, batch_i=None,
+                       batch_size=None):
+        self._write_image_cutouts(spec_zoom, image_data_dataset, image_max_zoom, image_data_refs, range_min, batch_i,
+                                  batch_size, 0)
+        self._write_image_cutouts(spec_zoom, image_error_dataset, image_max_zoom, image_error_refs, range_min, batch_i,
+                                  batch_size, 1)
+        self._write_image_cutouts(spec_zoom, image_metadata_dataset, image_max_zoom, image_metadata_refs, range_min,
+                                  batch_i, batch_size, 2)
 
     def _convert_arrays(self, image_data_refs, image_error_refs, image_metadata_refs):
         self.convert_refs_to_array(image_data_refs)
@@ -605,9 +633,19 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             pass
         return image_max_zoom_idx
 
-    def _write_image_cutout(self, image_cutout_ds, zoom, image_refs, no_references):
+    def _write_image_cutout(self, image_cutout_ds, zoom_idx, image_refs, no_references, range_min=None, batch_i=None,
+                            batch_size=None, buffer_idx=None):
         if no_references > 0:
-            image_cutout_ds.write_direct(image_refs[zoom], dest_sel=np.s_[self.spec_cnt, 0:no_references])
+            if len(self.buffer) == 0:
+                self.buffer = np.empty((3,
+                                        min(self.config.IMG_ZOOM_CNT, self.config.SPEC_ZOOM_CNT), batch_size,
+                                        self.config.MAX_CUTOUT_REFS),
+                                       dtype=h5py.regionref_dtype)
+            self.buffer[buffer_idx, zoom_idx, batch_i, 0:no_references] = image_refs[zoom_idx]
+            if batch_i == (batch_size - 1):
+                if not self.config.MPIO:
+                    image_cutout_ds.write_direct(self.buffer[buffer_idx, zoom_idx], source_sel=np.s_[0:batch_size, ...],
+                                                 dest_sel=np.s_[range_min:range_min + batch_i + 1, ...])
 
     def _get_region_ref(self, image_zoom, image_metadata_dataset, image_ds, image_idx, spec_fits_header,
                         image_cutout_size):
@@ -616,7 +654,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
 
         Parameters
         ----------
-        image_zoom     Resolution index = zoom factor, e.g., 0, 1, 2, ...
+        image_zoom     Resolution index = zoom_idx factor, e.g., 0, 1, 2, ...
         ds    HDF5 dataset
 
         Returns     HDF5 region reference
@@ -629,13 +667,13 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             raise NoCoverageFoundError("Cutout not whole.")
         region_ref = image_ds.regionref[image_idx, cutout_bounds[0][1][1]:cutout_bounds[1][1][1],
                      cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
-        cutout_shape = self.h5_connector.file[region_ref][region_ref].shape
-        try:
-            if not (0 <= cutout_shape[1] <= (64 / 2 ** image_zoom) and
-                    0 <= cutout_shape[2] <= (64 / 2 ** image_zoom)):
-                raise NoCoverageFoundError("Cutout not in correct shape.")
-        except IndexError:
-            raise NoCoverageFoundError("IndexError")
+        # cutout_shape = self.h5_connector.file[region_ref][region_ref].shape
+        # try:
+        #     if not (0 <= cutout_shape[1] <= (64 / 2 ** image_zoom) and
+        #             0 <= cutout_shape[2] <= (64 / 2 ** image_zoom)):
+        #         raise NoCoverageFoundError("Cutout not in correct shape.")
+        # except IndexError:
+        #     raise NoCoverageFoundError("IndexError")
         return region_ref
 
     def _find_images_overlapping_spectrum(self, metadata):

@@ -116,7 +116,7 @@ class Photometry:
                                                                                                rebin_min,
                                                                                                rebin_max, rebin_samples)
 
-        multiple_resolution_cube.append({"zoom": len(wl_orig_res),
+        multiple_resolution_cube.append({"zoom_idx": len(wl_orig_res),
                                          "wl": wl_orig_res,
                                          "flux_mean": flux_mean_orig_res,
                                          "flux_sigma": flux_sigma_orig_res})
@@ -149,7 +149,7 @@ class Photometry:
         img_orig_res_flux = self.mag_to_flux(fits_header, img_orig_res_flux)
         img_orig_res_flux_sigma = self.mag_to_flux(fits_header, img_orig_res_flux_sigma)
 
-        multiple_resolution_cube.append({"zoom": (x_orig_res, y_orig_res),
+        multiple_resolution_cube.append({"zoom_idx": (x_orig_res, y_orig_res),
                                          "flux_mean": img_orig_res_flux,
                                          "flux_sigma": img_orig_res_flux_sigma})
         if img_zoom_cnt > 0:
@@ -259,7 +259,7 @@ class Photometry:
         flux_sigma_lower_res = np.divide(flux_sigma_every_second_point,
                                          2)  # resampling to every second coordinate in 1D divides the variance by 2
 
-        multiple_resolution_cube.append({"zoom": len(wl_lower_res),
+        multiple_resolution_cube.append({"zoom_idx": len(wl_lower_res),
                                          "wl": wl_lower_res,
                                          "flux_mean": flux_lower_res,
                                          "flux_sigma": flux_sigma_lower_res})
@@ -283,7 +283,7 @@ class Photometry:
         flux_sigma_lower_res = np.divide(flux_sigma_every_second_point,
                                          4)  # resampling to every second coordinate in 2D divides the variance by 2x2
 
-        multiple_resolution_cube.append({"zoom": (flux_lower_res.shape[1], flux_lower_res.shape[0]),
+        multiple_resolution_cube.append({"zoom_idx": (flux_lower_res.shape[1], flux_lower_res.shape[0]),
                                          "flux_mean": flux_lower_res,
                                          "flux_sigma": flux_sigma_lower_res})
 

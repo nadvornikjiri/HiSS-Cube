@@ -2,12 +2,15 @@ import string
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 
+import h5py
 from tqdm import tqdm
 
 from hisscube.builders import Builder
 from hisscube.processors.image import ImageProcessor
 from hisscube.processors.metadata import MetadataProcessor
-from hisscube.processors.metadata_strategy import require_zoom_grps
+import numpy as np
+from hisscube.processors.metadata_strategy_dataset import get_cutout_data_datasets, get_cutout_error_datasets, \
+    get_cutout_metadata_datasets
 from hisscube.processors.metadata_strategy_image import DatasetImageStrategy
 from hisscube.processors.metadata_strategy_spectrum import DatasetSpectrumStrategy
 from hisscube.processors.spectrum import SpectrumProcessor
@@ -23,6 +26,7 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
     def __init__(self, config: Config, h5_connector: H5Connector, mpi_helper: MPIHelper):
         super().__init__(config, h5_connector)
         self.mpi_helper = mpi_helper
+        self.comm_buffer = None
 
     def distribute_work(self, h5_connector, path_list, processor, batch_size):
         status = self.mpi_helper.MPI.Status()
@@ -48,8 +52,9 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
         return offset
 
     def process_response(self, h5_connector, processor, status):
-        self.mpi_helper.comm.recv(source=self.mpi_helper.MPI.ANY_SOURCE, tag=self.mpi_helper.FINISHED_TAG,
-                                  status=status)
+        self.comm_buffer = self.mpi_helper.comm.recv(source=self.mpi_helper.MPI.ANY_SOURCE,
+                                                     tag=self.mpi_helper.FINISHED_TAG,
+                                                     status=status)
         self.h5_connector.fits_total_cnt += 1
         self.logger.debug(
             "Received response from. dest %02d: %d " % (status.Get_source(), self.mpi_helper.sent_work_cnt))
@@ -183,7 +188,9 @@ class ParallelMetadataBuilder(ParallelBuilder):
             else:
                 self.process_metadata(h5_connector, "image")
                 self.mpi_helper.barrier()
+                self.image_strategy.clear_buffers()
                 self.process_metadata(h5_connector, "spectrum")
+                self.spectrum_strategy.clear_buffers()
         self.mpi_helper.barrier()
         if self.rank == 0:
             with self.h5_connector as h5_connector:
@@ -202,8 +209,8 @@ class ParallelMetadataBuilder(ParallelBuilder):
                                                                        batch_size=batch_size)
                 if data_type == "spectrum":
                     inserted_cnt = self.spectrum_processor.write_metadata(h5_connector, range_min=offset,
-                                                                       range_max=offset + batch_size,
-                                                                       batch_size=batch_size)
+                                                                          range_max=offset + batch_size,
+                                                                          batch_size=batch_size)
             except Exception as e:
                 self.logger.warning("Could not process %s, message: %s" % (range_list, str(e)))
                 inserted_cnt = 0
@@ -229,6 +236,7 @@ class ParallelDataBuilder(ParallelBuilder):
                 self.distribute_work(h5_connector, image_paths, self.image_processor, self.config.IMAGE_DATA_BATCH_SIZE)
             else:
                 self.process_image_data(h5_connector, self.process_image)
+                self.image_processor.metadata_strategy.clear_buffers()
             self.mpi_helper.barrier()
             if self.mpi_helper.rank == 0:
                 spectra_paths = get_str_paths(get_spectrum_header_dataset(h5_connector))
@@ -236,6 +244,7 @@ class ParallelDataBuilder(ParallelBuilder):
                                      self.config.SPECTRUM_DATA_BATCH_SIZE)
             else:
                 self.process_spectra_data(h5_connector, self.process_spectrum)
+                self.spectrum_processor.metadata_strategy.clear_buffers()
             self.mpi_helper.barrier()
 
     @abstractmethod
@@ -355,3 +364,81 @@ class ParallelSWMRDataBuilder(ParallelDataBuilder):
         processed_image_batch.append(
             {"metadata": dict(metadata), "data": data,
              "dataset_name": str(file_name)})
+
+
+class ParallelLinkBuilder(ParallelBuilder):
+    def __init__(self, config: Config, serial_h5_connector: SerialH5Writer, parallel_h5_connector: ParallelH5Writer,
+                 mpi_helper: MPIHelper,
+                 spectrum_metadata_strategy: DatasetSpectrumStrategy,
+                 spectrum_processor: SpectrumProcessor):
+        super().__init__(config, serial_h5_connector, mpi_helper)
+        self.spectrum_strategy = spectrum_metadata_strategy
+        self.spectrum_processor = spectrum_processor
+        self.parallel_connector = parallel_h5_connector
+        self.comm_buffer = bytearray(3 * \
+                                     min(self.config.IMG_ZOOM_CNT, self.config.SPEC_ZOOM_CNT) * \
+                                     self.config.LINK_BATCH_SIZE * \
+                                     self.config.MAX_CUTOUT_REFS * \
+                                     h5py.regionref_dtype.itemsize)
+
+        # self.comm_buffer = bytearray(
+        #     self.config.LINK_BATCH_SIZE * max(self.config.SPEC_ZOOM_CNT,
+        #                                       self.config.IMG_ZOOM_CNT) * 8 * 3)  # region ref size
+
+    def build(self):
+        with self.parallel_connector as h5_connector:
+            if self.rank == 0:
+                spectrum_count = h5_connector.get_spectrum_count()
+                spectrum_range = range(spectrum_count)
+                self.distribute_work(h5_connector, spectrum_range, self.spectrum_processor,
+                                     self.config.LINK_BATCH_SIZE)
+            else:
+                self.link(h5_connector)
+                self.spectrum_strategy.clear_buffers()
+        self.mpi_helper.barrier()
+
+    def link(self, h5_connector):
+        status = self.mpi_helper.MPI.Status()
+        range_list, offset = self.mpi_helper.receive_work_parsed(status)
+        while status.Get_tag() != self.mpi_helper.KILL_TAG:
+            batch_size = len(range_list)
+            try:
+                buffer = self.spectrum_processor.link_spectra_to_images(h5_connector, offset, offset + batch_size,
+                                                                        batch_size)
+            except Exception as e:
+                self.logger.warning("Could not process %s, message: %s" % (range_list, str(e)))
+                raise e
+            msg1 = (offset, offset + batch_size, batch_size)
+            self.mpi_helper.comm.send(obj=msg1, tag=self.mpi_helper.FINISHED_TAG, dest=0)
+            self.mpi_helper.comm.Send(buffer.tobytes(), tag=self.mpi_helper.FINISHED_TAG, dest=0)
+            range_list, offset = self.mpi_helper.receive_work_parsed(status)
+
+    def process_response(self, h5_connector, processor, status):
+        range_min, range_max, batch_size = self.mpi_helper.comm.recv(source=self.mpi_helper.MPI.ANY_SOURCE,
+                                                                     tag=self.mpi_helper.FINISHED_TAG,
+                                                                     status=status)
+        self.mpi_helper.comm.Recv(self.comm_buffer,
+                                  source=self.mpi_helper.MPI.ANY_SOURCE,
+                                  tag=self.mpi_helper.FINISHED_TAG,
+                                  status=status)
+        self.h5_connector.fits_total_cnt += 1
+        self.logger.debug(
+            "Received response from. dest %02d: %d " % (status.Get_source(), self.mpi_helper.sent_work_cnt))
+
+        image_data_cutout_ds = get_cutout_data_datasets(h5_connector, self.config.SPEC_ZOOM_CNT,
+                                                        self.config.ORIG_CUBE_NAME)
+        image_error_cutout_ds = get_cutout_error_datasets(h5_connector, self.config.SPEC_ZOOM_CNT,
+                                                          self.config.ORIG_CUBE_NAME)
+        image_metadata_cutout_ds = get_cutout_metadata_datasets(h5_connector, self.config.SPEC_ZOOM_CNT,
+                                                                self.config.ORIG_CUBE_NAME)
+
+        for zoom_idx in range(len(self.comm_buffer[0])):
+            image_data_cutout_ds[zoom_idx].write_direct(self.comm_buffer,
+                                                        source_sel=np.s_[0, zoom_idx, 0:batch_size, ...],
+                                                        dest_sel=np.s_[range_min:range_max + 1, ...])
+            image_error_cutout_ds[zoom_idx].write_direct(self.comm_buffer,
+                                                         source_sel=np.s_[1, zoom_idx, 0:batch_size, ...],
+                                                         dest_sel=np.s_[range_min:range_max + 1, ...])
+            image_metadata_cutout_ds[zoom_idx].write_direct(self.comm_buffer,
+                                                            source_sel=np.s_[2, zoom_idx, 0:batch_size, ...],
+                                                            dest_sel=np.s_[range_min:range_max + 1, ...])
