@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from bisect import bisect_left, bisect_right
+from json import JSONDecodeError
 
 import h5py
 import numpy as np
@@ -350,8 +351,7 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
                     self._append_target_3d_cube(h5_connector, spectra_data, spectra_errors, spatial_index,
                                                 from_idx, to_idx)
                 except ValueError as e:
-                    self.logger.debug("Unable to create dims for spectrum %d" % spatial_index)
-                    raise e
+                    self.logger.debug("Unable to create ML cube slice for spectrum %d" % spatial_index)
             h5_connector.set_target_count(self.target_complete_cnt[0])
             for zoom in range(final_zoom):
                 image_data_ds = self.spec_3d_cube_datasets["image"][zoom]

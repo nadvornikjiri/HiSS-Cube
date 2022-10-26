@@ -1,5 +1,6 @@
 import os
 from abc import ABC, abstractmethod, ABCMeta
+from json import JSONDecodeError
 from pathlib import Path
 
 import fitsio
@@ -390,8 +391,11 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             h5_connector)
         spec_total_cnt = h5_connector.get_spectrum_count()
         for i in tqdm(range(spec_total_cnt), desc="Linking spectrum", position=0, leave=True):
-            self._add_image_links_to_spectra(spectra_metadata_ds, image_data_cutout_ds,
-                                             image_error_cutout_ds, image_metadata_cutout_ds)
+            try:
+                self._add_image_links_to_spectra(spectra_metadata_ds, image_data_cutout_ds,
+                                                 image_error_cutout_ds, image_metadata_cutout_ds)
+            except JSONDecodeError:
+                self.logger.debug("Could not link images")
 
     def _get_datasets_for_linking(self, h5_connector):
         spectra_metadata_ds = get_metadata_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
