@@ -12,7 +12,7 @@ from hisscube.processors.metadata_strategy_dataset import DatasetStrategy, get_c
     get_cutout_metadata_datasets, get_data_datasets, get_error_datasets, get_index_datasets
 from hisscube.processors.metadata_strategy_tree import TreeStrategy
 from hisscube.processors.metadata_strategy_spectrum import get_spectrum_time
-from hisscube.utils.astrometry import get_cutout_pixel_coords
+from hisscube.utils.astrometry import get_cutout_pixel_coords, NoCoverageFoundError
 from hisscube.utils.io import get_spectrum_header_dataset, H5Connector, get_error_ds
 from hisscube.utils.io_strategy import get_orig_header
 from hisscube.utils.logging import HiSSCubeLogger
@@ -451,9 +451,9 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
                                                                                           cutout_dims, cutout_wl,
                                                                                           image_cutouts, image_region,
                                                                                           time, w)
-                except ValueError as e:
+                except (ValueError, NoCoverageFoundError) as e:
                     self.logger.error(
-                        "Could not process region for %s, message: %s" % (spec_ds.name, str(e)))
+                        "Could not process region for %s, message: %s" % (spec_ds, str(e)))
             else:
                 break  # necessary because of how null object references are tested in h5py dataset
         return self._construct_image_cutout_cube(cutout_data, cutout_dims, image_cutouts)
