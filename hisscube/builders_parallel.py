@@ -1,4 +1,5 @@
 import string
+import traceback
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 
@@ -383,7 +384,7 @@ class ParallelLinkBuilder(ParallelBuilder):
 
         # self.comm_buffer = bytearray(
         #     self.config.LINK_BATCH_SIZE * max(self.config.SPEC_ZOOM_CNT,
-        #                                       self.config.IMG_ZOOM_CNT) * 8 * 3)  # region ref size
+        #                                       self.config.IMG_ZOOM_CNT) * 8 * 3)  # region region_ref size
 
     def build(self):
         with self.parallel_connector as h5_connector:
@@ -403,42 +404,12 @@ class ParallelLinkBuilder(ParallelBuilder):
         while status.Get_tag() != self.mpi_helper.KILL_TAG:
             batch_size = len(range_list)
             try:
-                buffer = self.spectrum_processor.link_spectra_to_images(h5_connector, offset, offset + batch_size,
-                                                                        batch_size)
+                inserted_cnt = self.spectrum_processor.link_spectra_to_images(h5_connector, offset,
+                                                                              offset + batch_size,
+                                                                              batch_size)
             except Exception as e:
                 self.logger.warning("Could not process %s, message: %s" % (range_list, str(e)))
+                print(traceback.format_exc())
                 raise e
-            msg1 = (offset, offset + batch_size, batch_size)
-            self.mpi_helper.comm.send(obj=msg1, tag=self.mpi_helper.FINISHED_TAG, dest=0)
-            self.mpi_helper.comm.Send(buffer.tobytes(), tag=self.mpi_helper.FINISHED_TAG, dest=0)
+            self.mpi_helper.comm.send(obj=inserted_cnt, tag=self.mpi_helper.FINISHED_TAG, dest=0)
             range_list, offset = self.mpi_helper.receive_work_parsed(status)
-
-    def process_response(self, h5_connector, processor, status):
-        range_min, range_max, batch_size = self.mpi_helper.comm.recv(source=self.mpi_helper.MPI.ANY_SOURCE,
-                                                                     tag=self.mpi_helper.FINISHED_TAG,
-                                                                     status=status)
-        self.mpi_helper.comm.Recv(self.comm_buffer,
-                                  source=self.mpi_helper.MPI.ANY_SOURCE,
-                                  tag=self.mpi_helper.FINISHED_TAG,
-                                  status=status)
-        self.h5_connector.fits_total_cnt += 1
-        self.logger.debug(
-            "Received response from. dest %02d: %d " % (status.Get_source(), self.mpi_helper.sent_work_cnt))
-
-        image_data_cutout_ds = get_cutout_data_datasets(h5_connector, self.config.SPEC_ZOOM_CNT,
-                                                        self.config.ORIG_CUBE_NAME)
-        image_error_cutout_ds = get_cutout_error_datasets(h5_connector, self.config.SPEC_ZOOM_CNT,
-                                                          self.config.ORIG_CUBE_NAME)
-        image_metadata_cutout_ds = get_cutout_metadata_datasets(h5_connector, self.config.SPEC_ZOOM_CNT,
-                                                                self.config.ORIG_CUBE_NAME)
-
-        for zoom_idx in range(len(self.comm_buffer[0])):
-            image_data_cutout_ds[zoom_idx].write_direct(self.comm_buffer,
-                                                        source_sel=np.s_[0, zoom_idx, 0:batch_size, ...],
-                                                        dest_sel=np.s_[range_min:range_max + 1, ...])
-            image_error_cutout_ds[zoom_idx].write_direct(self.comm_buffer,
-                                                         source_sel=np.s_[1, zoom_idx, 0:batch_size, ...],
-                                                         dest_sel=np.s_[range_min:range_max + 1, ...])
-            image_metadata_cutout_ds[zoom_idx].write_direct(self.comm_buffer,
-                                                            source_sel=np.s_[2, zoom_idx, 0:batch_size, ...],
-                                                            dest_sel=np.s_[range_min:range_max + 1, ...])

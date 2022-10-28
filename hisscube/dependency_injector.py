@@ -19,7 +19,8 @@ from hisscube.processors.metadata_strategy_image import TreeImageStrategy, Datas
 from hisscube.processors.metadata_strategy_spectrum import TreeSpectrumStrategy, DatasetSpectrumStrategy
 from hisscube.utils.config import Config
 from hisscube.utils.io import SerialH5Writer, ParallelH5Writer, CBoostedMetadataBuildWriter, SerialH5Reader
-from hisscube.utils.io_strategy import SerialTreeIOStrategy, CBoostedTreeIOStrategy, SerialDatasetIOStrategy
+from hisscube.utils.io_strategy import SerialTreeIOStrategy, CBoostedTreeIOStrategy, SerialDatasetIOStrategy, \
+    ParallelDatasetIOStrategy
 from hisscube.utils.mpi_helper import MPIHelper
 from hisscube.utils.photometry import Photometry
 
@@ -41,7 +42,10 @@ class HiSSCubeProvider:
         if self.config.METADATA_STRATEGY == "TREE":
             self.io_strategy = SerialTreeIOStrategy()
         else:
-            self.io_strategy = SerialDatasetIOStrategy()
+            if self.config.MPIO:
+                self.io_strategy = ParallelDatasetIOStrategy()
+            else:
+                self.io_strategy = SerialDatasetIOStrategy()
 
         self.c_boosted_strategy = CBoostedTreeIOStrategy()
         self.h5_serial_writer = SerialH5Writer(h5_output_path, self.config, self.io_strategy)

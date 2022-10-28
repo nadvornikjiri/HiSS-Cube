@@ -6,7 +6,7 @@ import numpy as np
 import ujson
 from tqdm.auto import tqdm
 
-from hisscube.processors.metadata_strategy import MetadataStrategy, dereference_region_ref
+from hisscube.processors.metadata_strategy import MetadataStrategy
 from hisscube.processors.metadata_strategy_dataset import DatasetStrategy, get_cutout_data_datasets, \
     get_cutout_metadata_datasets, get_data_datasets, get_error_datasets, get_index_datasets
 from hisscube.processors.metadata_strategy_tree import TreeStrategy
@@ -440,10 +440,13 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
         for data_ref, error_ref, metadata_ref in zip(cutout_data_refs, cutout_error_refs, cutout_metadata_refs):
             if data_ref and error_ref and metadata_ref:
                 try:
-                    image_data_region = dereference_region_ref(data_ref, h5_connector)
-                    image_error_region = dereference_region_ref(error_ref, h5_connector)
-                    image_metadata_region = dereference_region_ref(metadata_ref, h5_connector)
-                    image_fits_header = ujson.loads(image_metadata_region["header"])
+                    image_data_region = h5_connector.dereference_region_ref(data_ref)
+                    image_error_region = h5_connector.dereference_region_ref(error_ref)
+                    image_metadata_region = h5_connector.dereference_region_ref(metadata_ref)
+                    if self.config.MPIO:
+                        image_fits_header = ujson.loads(image_metadata_region["header"])
+                    else:
+                        image_fits_header = ujson.loads(image_metadata_region["header"][0])
                     image_region = np.dstack([image_data_region, image_error_region])
                     cutout_bounds, time, w, cutout_wl = self.metadata_strategy.get_cutout_bounds_from_spectrum(
                         image_fits_header, zoom, spectrum_metadata, self.photometry)

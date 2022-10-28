@@ -4,6 +4,7 @@ import pathlib
 
 class Config:
     def __init__(self):
+
         lib_path = pathlib.Path(__file__).parent.absolute()
         self.config = configparser.ConfigParser(allow_no_value=True, inline_comment_prefixes='#')
         self.config.read("%s/../config.ini" % lib_path)
@@ -47,6 +48,7 @@ class Config:
         self.MAX_STORED_IMAGE_HEADERS = self.config.getint('Writer', 'MAX_STORED_IMAGE_HEADERS')
         self.MAX_STORED_SPECTRA_HEADERS = self.config.getint('Writer', 'MAX_STORED_SPECTRA_HEADERS')
         self.FITS_MAX_PATH_SIZE = self.config.getint('Writer', 'FITS_MAX_PATH_SIZE')
+        self.MAX_DS_PATH_SIZE = self.config.getint('Writer', 'MAX_DS_PATH_SIZE')
 
         self.FITS_HEADER_BATCH_SIZE = self.config.getint('MPI', 'FITS_HEADER_BATCH_SIZE')
         self.METADATA_BATCH_SIZE = self.config.getint('MPI', 'METADATA_BATCH_SIZE')

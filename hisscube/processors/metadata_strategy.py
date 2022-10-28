@@ -54,9 +54,3 @@ def require_zoom_grps(dataset_type, h5_connector, zoom_cnt):
         set_nx_data(img_grp, h5_connector)
         set_nx_signal(img_grp, "data", h5_connector)
         yield img_grp
-
-
-def dereference_region_ref(region_ref, h5_connector):
-    image_ds = h5_connector.file[region_ref]
-    image_region = image_ds[region_ref][0]  # TODO check why we need the index 0 here.
-    return image_region
