@@ -8,8 +8,8 @@ import pytest
 from hisscube.tests.test_serial_builders import get_test_director
 from hisscube.utils.config import Config
 
-H5_DUMP_CMD_PATH = "../../ext_lib/hdf5-1.12.0/hdf5/bin/h5dump"
-H5_DIFF_CMD_PATH = "../../ext_lib/hdf5-1.12.0/hdf5/bin/h5diff"
+H5_DUMP_CMD_PATH = "../../ext_lib/hdf5-1.12.2/hdf5/bin/h5dump"
+H5_DIFF_CMD_PATH = "../../ext_lib/hdf5-1.12.2/hdf5/bin/h5diff"
 
 
 def get_dump_strip_cmd(path):
