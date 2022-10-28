@@ -9,7 +9,7 @@ from tqdm.auto import tqdm
 
 from hisscube.processors.metadata_strategy import MetadataStrategy, get_header_ds
 from hisscube.utils.io import get_path_patterns, H5Connector
-from hisscube.utils.logging import log_timing, HiSSCubeLogger
+from hisscube.utils.logging import log_timing, HiSSCubeLogger, wrap_tqdm
 
 
 class MetadataProcessor:
@@ -86,7 +86,8 @@ class MetadataProcessor:
         buf = np.zeros(shape=(self.config.FITS_HEADER_BATCH_SIZE,), dtype=header_ds_dtype)
         buf_i = 0
         fits_cnt = 0
-        for fits_path in tqdm(path_list, desc="Headers for %s" % data_type, position=0, leave=True):
+        iterator = wrap_tqdm(path_list, self.config.MPIO, self.__class__.__name__)
+        for fits_path in iterator:
             buf_i, fits_cnt, offset = self._write_fits_header(h5_connector, buf, buf_i, fits_cnt, fits_path, header_ds,
                                                               offset)
         if fits_cnt > 0:

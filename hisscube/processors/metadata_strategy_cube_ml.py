@@ -15,7 +15,7 @@ from hisscube.processors.metadata_strategy_spectrum import get_spectrum_time
 from hisscube.utils.astrometry import get_cutout_pixel_coords, NoCoverageFoundError
 from hisscube.utils.io import get_spectrum_header_dataset, H5Connector, get_error_ds
 from hisscube.utils.io_strategy import get_orig_header
-from hisscube.utils.logging import HiSSCubeLogger
+from hisscube.utils.logging import HiSSCubeLogger, wrap_tqdm
 from hisscube.utils.nexus import add_nexus_navigation_metadata, set_nx_data, set_nx_interpretation, set_nx_signal
 from hisscube.utils.photometry import Photometry
 
@@ -333,7 +333,6 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
 
         target_spatial_indices = list(self._get_target_spectra_spatial_ranges(h5_connector))
         target_count = len(target_spatial_indices)
-        print ("Target count: %d" % target_count)
         if target_count > 0:
             dense_grp.attrs["target_count"] = target_count
             final_zoom = min(self.config.IMG_ZOOM_CNT, self.config.SPEC_ZOOM_CNT)
@@ -345,8 +344,8 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
                                              self.config.ORIG_CUBE_NAME)
             spectra_errors = get_error_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
                                                 self.config.ORIG_CUBE_NAME)
-            for spatial_index, from_idx, to_idx in tqdm(target_spatial_indices,
-                                                        desc="Building ML cube", position=0, leave=True):
+            iterator = wrap_tqdm(target_spatial_indices, self.config.MPIO, self.__class__.__name__)
+            for spatial_index, from_idx, to_idx in iterator:
                 try:
                     self._append_target_3d_cube(h5_connector, spectra_data, spectra_errors, spatial_index,
                                                 from_idx, to_idx)

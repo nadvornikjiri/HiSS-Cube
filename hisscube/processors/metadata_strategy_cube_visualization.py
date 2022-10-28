@@ -16,7 +16,7 @@ from hisscube.processors.metadata_strategy_tree import TreeStrategy
 from hisscube.utils.astrometry import get_cutout_pixel_coords
 from hisscube.utils.io import get_fits_path, \
     get_spectrum_header_dataset, H5Connector
-from hisscube.utils.logging import HiSSCubeLogger
+from hisscube.utils.logging import HiSSCubeLogger, wrap_tqdm
 from hisscube.utils.photometry import Photometry
 
 
@@ -342,9 +342,8 @@ class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
         cutout_data_refs = cutout_data_datasets_multiple_zoom[self.output_zoom]
         cutout_error_refs = cutout_error_datasets_multiple_zoom[self.output_zoom]
         cutout_metadata_refs = cutout_metadata_datasets_multiple_zoom[self.output_zoom]
-
-        for spec_idx in tqdm(range(spec_cnt_total),
-                             desc="Building zoom_idx %d" % self.output_zoom, position=0, leave=True):
+        iterator = wrap_tqdm(range(spec_cnt_total), self.config.MPIO, self.__class__.__name__)
+        for spec_idx in iterator:
             self._construct_spectrum_table(spec_ds, spec_idx, cutout_data_refs, cutout_error_refs, cutout_metadata_refs)
 
     def parse_str_path(self, image_path):

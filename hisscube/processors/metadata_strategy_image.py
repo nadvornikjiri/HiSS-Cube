@@ -15,7 +15,7 @@ from hisscube.processors.metadata_strategy_tree import require_spatial_grp
 from hisscube.utils.astrometry import get_heal_path_from_coords, get_image_center_coords
 from hisscube.utils.config import Config
 from hisscube.utils.io import H5Connector, get_image_header_dataset
-from hisscube.utils.logging import log_timing, HiSSCubeLogger
+from hisscube.utils.logging import log_timing, HiSSCubeLogger, wrap_tqdm
 from hisscube.utils.nexus import set_nx_data, set_nx_interpretation
 from hisscube.utils.photometry import Photometry
 
@@ -58,7 +58,8 @@ class ImageMetadataStrategy(ABC):
         if not batch_size:
             batch_size = len(fits_headers)
         headers_batch = fits_headers[range_min:range_max]
-        for fits_path, header in tqdm(headers_batch, desc="Writing from image cache", position=0, leave=True):
+        iterator = wrap_tqdm(headers_batch, self.config.MPIO, self.__class__.__name__)
+        for fits_path, header in iterator:
             self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets, range_min,
                                              batch_size)
 
@@ -74,7 +75,6 @@ class ImageMetadataStrategy(ABC):
         except RuntimeError as e:
             self.logger.warning(
                 "Unable to ingest image %s, message: %s" % (fits_path, str(e)))
-            raise e
 
     def clear_buffers(self):
         pass

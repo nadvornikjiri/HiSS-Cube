@@ -14,7 +14,7 @@ from hisscube.processors.image import ImageProcessor
 from hisscube.processors.spectrum import SpectrumProcessor
 from hisscube.utils.config import Config
 from hisscube.utils.io import H5Connector, CBoostedMetadataBuildWriter, get_image_str_paths, get_spectra_str_paths
-from hisscube.utils.logging import HiSSCubeLogger
+from hisscube.utils.logging import HiSSCubeLogger, wrap_tqdm
 from hisscube.utils.mpi_helper import MPIHelper
 from hisscube.utils.photometry import Photometry
 
@@ -204,11 +204,13 @@ class DataBuilder(SerialBuilder):
         with self.h5_connector as h5_connector:
             image_path_list = get_image_str_paths(h5_connector)
             spec_path_list = get_spectra_str_paths(h5_connector)
-            for image_offset, image_path in enumerate(tqdm(image_path_list, desc="Image Data Progress: ")):
+            iterator = wrap_tqdm(enumerate(image_path_list), self.config.MPIO, self.__class__.__name__)
+            for image_offset, image_path in iterator:
                 fits_file_name = Path(image_path).name
                 self.single_image_builder.build_data(h5_connector, image_path, self.image_processor,
                                                      fits_file_name, offset=image_offset)
-            for spectrum_offset, spec_path in enumerate(tqdm(spec_path_list, desc="Spectra Data Progress: ")):
+            iterator = wrap_tqdm(enumerate(spec_path_list), self.config.MPIO, self.__class__.__name__)
+            for spectrum_offset, spec_path in iterator:
                 fits_file_name = Path(spec_path).name
                 self.single_spectrum_builder.build_data(h5_connector, spec_path, self.spectrum_processor,
                                                         fits_file_name, offset=spectrum_offset)

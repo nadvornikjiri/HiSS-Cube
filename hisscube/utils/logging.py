@@ -6,6 +6,7 @@ import time
 from os.path import abspath
 
 from mpi4py import MPI
+from tqdm import tqdm
 
 from hisscube.utils.config import Config
 
@@ -82,6 +83,7 @@ class TimingsCSVLogger:
         self.logger.writerow(values)
         self.file.flush()
 
+
 def measured_time():
     times = os.times()
     # return times.elapsed - (times.system + times.user)
@@ -138,6 +140,7 @@ def get_timings_logger(timings_path, prefix):
     logger.log_timing(["Call Count", "Time"])
     return logger
 
+
 def get_application_logger():
     config = Config()
     logging.basicConfig()
@@ -162,3 +165,9 @@ def get_c_timings_path(timings_log="logs/timings.csv"):
     if c_timing_path != "":
         c_timing_path += "/"
     return c_timing_path + "c_" + c_timing_file_name
+
+
+def wrap_tqdm(iterator, mpio, name):
+    if not mpio:
+        iterator = tqdm(iterator, desc=("%s progress" % name), position=0, leave=True)
+    return iterator

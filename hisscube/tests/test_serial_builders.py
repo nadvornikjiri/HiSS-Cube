@@ -14,6 +14,7 @@ from hisscube.processors.data import float_compress
 from hisscube.utils.astrometry import is_cutout_whole
 from hisscube.utils.config import Config
 from hisscube.utils.io import truncate
+from hisscube.utils.logging import wrap_tqdm
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -210,7 +211,8 @@ class TestSerialBuilder(unittest.TestCase):
         photometry = self.dependency_provider.photometry
         config = self.dependency_provider.config
         spectra_paths = list(Path(spectra_folder).rglob(spectra_pattern))
-        for spec_path in tqdm(spectra_paths, desc="Spectra completed: "):
+        iterator = wrap_tqdm(spectra_paths, self.config.MPIO, self.__class__.__name__)
+        for spec_path in iterator:
             metadata, data = photometry.get_multiple_resolution_spectrum(
                 spec_path,
                 config.SPEC_ZOOM_CNT,

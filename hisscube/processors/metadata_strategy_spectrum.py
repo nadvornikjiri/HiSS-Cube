@@ -20,7 +20,7 @@ from hisscube.utils.astrometry import NoCoverageFoundError, get_heal_path_from_c
     get_spectrum_center_coords, get_overlapping_healpix_pixel_ids, get_cutout_bounds, is_cutout_whole
 from hisscube.utils.config import Config
 from hisscube.utils.io import H5Connector, get_spectrum_header_dataset
-from hisscube.utils.logging import HiSSCubeLogger, log_timing
+from hisscube.utils.logging import HiSSCubeLogger, log_timing, wrap_tqdm
 from hisscube.utils.nexus import set_nx_interpretation, set_nx_axes
 from hisscube.utils.photometry import Photometry
 
@@ -58,7 +58,8 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
         if not batch_size:
             batch_size = len(fits_headers)
         headers_batch = fits_headers[range_min:range_max]
-        for fits_path, header in tqdm(headers_batch, desc="Writing from spectrum cache", position=0, leave=True):
+        iterator = wrap_tqdm(headers_batch, self.config.MPIO, self.__class__.__name__)
+        for fits_path, header in iterator:
             self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets, range_min,
                                              batch_size)
 
@@ -446,7 +447,8 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         if not batch_size:
             batch_size = range_max
         spectrum_batch = range(len(range(range_min, range_max)))
-        for i in tqdm(spectrum_batch, desc="Linking spectrum", position=0, leave=True):
+        iterator = wrap_tqdm(spectrum_batch, self.config.MPIO, self.__class__.__name__)
+        for i in iterator:
             try:
                 self._add_image_links_to_spectra(spectra_metadata_ds, image_data_cutout_ds,
                                                  image_error_cutout_ds, image_metadata_cutout_ds, range_min, i,

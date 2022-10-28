@@ -3,21 +3,18 @@ import traceback
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 
-import h5py
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from hisscube.builders import Builder
 from hisscube.processors.image import ImageProcessor
 from hisscube.processors.metadata import MetadataProcessor
-import numpy as np
-from hisscube.processors.metadata_strategy_dataset import get_cutout_data_datasets, get_cutout_error_datasets, \
-    get_cutout_metadata_datasets
 from hisscube.processors.metadata_strategy_image import DatasetImageStrategy
 from hisscube.processors.metadata_strategy_spectrum import DatasetSpectrumStrategy
 from hisscube.processors.spectrum import SpectrumProcessor
 from hisscube.utils.config import Config
 from hisscube.utils.io import H5Connector, get_str_paths, get_image_header_dataset, get_spectrum_header_dataset, \
     SerialH5Writer, ParallelH5Writer
+from hisscube.utils.logging import wrap_tqdm
 from hisscube.utils.mpi_helper import MPIHelper, chunks
 from hisscube.utils.photometry import Photometry
 
@@ -376,15 +373,6 @@ class ParallelLinkBuilder(ParallelBuilder):
         self.spectrum_strategy = spectrum_metadata_strategy
         self.spectrum_processor = spectrum_processor
         self.parallel_connector = parallel_h5_connector
-        self.comm_buffer = bytearray(3 * \
-                                     min(self.config.IMG_ZOOM_CNT, self.config.SPEC_ZOOM_CNT) * \
-                                     self.config.LINK_BATCH_SIZE * \
-                                     self.config.MAX_CUTOUT_REFS * \
-                                     h5py.regionref_dtype.itemsize)
-
-        # self.comm_buffer = bytearray(
-        #     self.config.LINK_BATCH_SIZE * max(self.config.SPEC_ZOOM_CNT,
-        #                                       self.config.IMG_ZOOM_CNT) * 8 * 3)  # region region_ref size
 
     def build(self):
         with self.parallel_connector as h5_connector:
@@ -410,6 +398,5 @@ class ParallelLinkBuilder(ParallelBuilder):
             except Exception as e:
                 self.logger.warning("Could not process %s, message: %s" % (range_list, str(e)))
                 print(traceback.format_exc())
-                raise e
             self.mpi_helper.comm.send(obj=inserted_cnt, tag=self.mpi_helper.FINISHED_TAG, dest=0)
             range_list, offset = self.mpi_helper.receive_work_parsed(status)
