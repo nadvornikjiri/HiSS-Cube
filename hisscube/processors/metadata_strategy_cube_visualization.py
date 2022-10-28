@@ -1,3 +1,4 @@
+import traceback
 from abc import ABC, abstractmethod
 from pathlib import Path
 
@@ -9,7 +10,6 @@ from astropy.io.votable import from_table, writeto
 from astropy.table import QTable
 from tqdm.auto import tqdm
 
-from hisscube.processors.metadata_strategy import dereference_region_ref
 from hisscube.processors.metadata_strategy_dataset import DatasetStrategy, get_cutout_data_datasets, \
     get_cutout_error_datasets, get_cutout_metadata_datasets, get_data_datasets, get_error_datasets, get_wl_datasets
 from hisscube.processors.metadata_strategy_tree import TreeStrategy
@@ -262,6 +262,7 @@ class TreeVisualizationProcessorStrategy(VisualizationProcessorStrategy):
                         self.output_counter += image_5d.shape[0]
                     except ValueError as e:
                         self.logger.error("Could not process region for %s, message: %s" % (spectrum_ds.name, str(e)))
+                        self.logger.error(traceback.format_exc())
                 else:
                     break  # necessary because of how null object references are tested in h5py dataset
 
@@ -343,7 +344,7 @@ class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
         cutout_metadata_refs = cutout_metadata_datasets_multiple_zoom[self.output_zoom]
 
         for spec_idx in tqdm(range(spec_cnt_total),
-                             desc="Building zoom %d" % self.output_zoom, position=0, leave=True):
+                             desc="Building zoom_idx %d" % self.output_zoom, position=0, leave=True):
             self._construct_spectrum_table(spec_ds, spec_idx, cutout_data_refs, cutout_error_refs, cutout_metadata_refs)
 
     def parse_str_path(self, image_path):
@@ -387,6 +388,7 @@ class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
                     self.output_counter += image_5d.shape[0]
                 except ValueError as e:
                     self.logger.error("Could not process region for %s, message: %s" % (spectrum_ds, str(e)))
+                    self.logger.error(traceback.format_exc())
             else:
                 break  # necessary because of how null object references are tested in h5py dataset
 
@@ -422,11 +424,15 @@ class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
         -------
 
         """
-        cutout_metadata = dereference_region_ref(cutout_metadata_ref, self.h5_connector)
-        image_path = cutout_metadata["path"]
-        image_fits_header = ujson.loads(cutout_metadata["header"])
-        image_data_region = dereference_region_ref(region_data_ref, self.h5_connector)
-        image_error_region = dereference_region_ref(region_error_ref, self.h5_connector)
+        cutout_metadata = self.h5_connector.dereference_region_ref(cutout_metadata_ref)
+        if not self.config.MPIO:
+            image_path = cutout_metadata["path"][0]  # TODO check why we need the index 0 here.
+            image_fits_header = ujson.loads(cutout_metadata["header"][0])
+        else:
+            image_path = cutout_metadata["path"]  # TODO check why we need the index 0 here.
+            image_fits_header = ujson.loads(cutout_metadata["header"])
+        image_data_region = self.h5_connector.dereference_region_ref(region_data_ref)
+        image_error_region = self.h5_connector.dereference_region_ref(region_error_ref)
         image_region = np.dstack([image_data_region, image_error_region])
         cutout_bounds, time, w, wl = self.metadata_strategy.get_cutout_bounds_from_spectrum(image_fits_header, res_idx,
                                                                                             self.spectrum_metadata,

@@ -139,12 +139,22 @@ class H5Connector(ABC):
             ds = group[ds_name]
         return ds
 
-    def recreate_regionref_dataset(self, ds_name, spec_count, spec_zoom_group):
+    def recreate_regionref_dataset(self, ds_name, spec_count, spec_zoom_group, dtype=h5py.regionref_dtype):
         if ds_name in spec_zoom_group:
             del spec_zoom_group[ds_name]
-        self.require_dataset(spec_zoom_group, ds_name,
-                             (spec_count, self.config.MAX_CUTOUT_REFS),
-                             dtype=h5py.regionref_dtype)
+        if self.config.LINK_BATCH_SIZE > spec_count:
+            chunk_size = spec_count
+        else:
+            chunk_size = self.config.LINK_BATCH_SIZE
+        if self.config.MPIO:
+            return self.create_dataset(spec_zoom_group, ds_name,
+                                       (spec_count, self.config.MAX_CUTOUT_REFS),
+                                       chunk_size=(chunk_size, self.config.MAX_CUTOUT_REFS),
+                                       dataset_type=dtype)
+        else:
+            return self.require_dataset(spec_zoom_group, ds_name,
+                                 (spec_count, self.config.MAX_CUTOUT_REFS),
+                                 dtype=h5py.regionref_dtype)
 
     def create_spectrum_h5_dataset(self, group, file_name, spec_data_shape, chunk_size=None):
         return self.create_dataset(group, file_name, spec_data_shape, chunk_size)
@@ -191,6 +201,15 @@ class H5Connector(ABC):
     def get_shape(ds):
         return ds.shape
 
+    def get_region_ref(self, image_ds, cutout_bounds, idx=None):
+        return self.strategy.get_region_ref(image_ds, cutout_bounds, idx)
+
+    def get_metadata_ref(self, ds, idx=0):
+        return self.strategy.get_metadata_ref(ds, idx)
+
+    def dereference_region_ref(self, reg_ref):
+        return self.strategy.dereference_region_ref(self.file, reg_ref)
+
 
 class SerialH5Writer(H5Connector):
 
@@ -212,6 +231,22 @@ class SerialH5Reader(H5Connector):
 
     def open_h5_file(self, truncate_file=False):
         self.file = h5py.File(self.h5_path, 'r', libver="latest")
+
+
+class H5ReaderSWMR(H5Connector):
+    def __init__(self, h5_path, config: Config, io_strategy: IOStrategy):
+        super().__init__(h5_path, config, io_strategy)
+
+    def open_h5_file(self, truncate_file=False):
+        self.file = h5py.File(self.h5_path, 'r', libver="latest", swmr=True)
+
+
+class H5WriterSWMR(H5Connector):
+    def __init__(self, h5_path, config: Config, io_strategy: IOStrategy):
+        super().__init__(h5_path, config, io_strategy)
+
+    def open_h5_file(self, truncate_file=False):
+        self.file = h5py.File(self.h5_path, 'r+', libver="latest", swmr=True)
 
 
 class ParallelH5Writer(H5Connector):

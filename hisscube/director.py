@@ -20,7 +20,7 @@ class HiSSCubeConstructionDirector:
             self.append_metadata_builder()
             self.append_data_builder()
             if self.config.CREATE_REFERENCES:
-                self.builders.append(self.serial_builders.link_builder)
+                self.append_link_builder()
             if self.config.CREATE_VISUALIZATION_CUBE:
                 self.builders.append(self.serial_builders.visualization_cube_builder)
             if self.config.CREATE_ML_CUBE:
@@ -36,7 +36,7 @@ class HiSSCubeConstructionDirector:
             if self.args.data:
                 self.append_data_builder()
             if self.args.link:
-                self.builders.append(self.serial_builders.link_builder)
+                self.append_link_builder()
             if self.args.visualization_cube:
                 self.builders.append(self.serial_builders.visualization_cube_builder)
             if self.args.ml_cube:
@@ -46,8 +46,10 @@ class HiSSCubeConstructionDirector:
             builder.build()
 
     def append_metadata_builder(self):
-        if self.config.C_BOOSTER and self.config.METADATA_STRATEGY == "TREE":
+        if self.config.C_BOOSTER and self.config.METADATA_STRATEGY == "TREE" and not self.config.MPIO:
             self.builders.append(self.serial_builders.c_boosted_metadata_builder)
+        elif self.config.MPIO:
+            self.builders.append(self.parallel_builders.metadata_builder)
         else:
             self.builders.append(self.serial_builders.metadata_builder)
 
@@ -65,3 +67,9 @@ class HiSSCubeConstructionDirector:
                 self.builders.append(self.parallel_builders.data_builder_SWMR)
         else:
             self.builders.append(self.serial_builders.data_builder)
+
+    def append_link_builder(self):
+        if self.config.MPIO:
+            self.builders.append(self.parallel_builders.link_builder)
+        else:
+            self.builders.append(self.serial_builders.link_builder)

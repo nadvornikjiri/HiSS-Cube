@@ -64,12 +64,12 @@ class NoCoverageFoundError(Exception):
 
 def get_cutout_bounds(image_fits_header, res_idx, spectrum_fits_header, cutout_size):
     """
-    Gets cutout bounds for an image dataset for a given resolution index (zoom) and a spectrum_fits_header where we get the location of that cutout.
+    Gets cutout bounds for an image dataset for a given resolution index (zoom_idx) and a spectrum_fits_header where we get the location of that cutout.
 
     Parameters
     ----------
     ds                HDF5 dataset
-    image_zoom                 Resolution index = zoom factor
+    image_zoom                 Resolution index = zoom_idx factor
     spectrum_fits_header    Dictionary-like header of the spectrum, mostly copied from the FITS.
 
     Returns                 Numpy array shape (2,2)
@@ -83,7 +83,7 @@ def get_cutout_bounds(image_fits_header, res_idx, spectrum_fits_header, cutout_s
 
 def process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, res_idx=0):
     """
-    Returns the process cutout_bounds for an image with a give w (WCS header), image_size, spectrum header and resolution index (zoom).
+    Returns the process cutout_bounds for an image with a give w (WCS header), image_size, spectrum header and resolution index (zoom_idx).
     Parameters
     ----------
     w                       FITS WCS initialized object.

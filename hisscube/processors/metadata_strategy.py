@@ -24,8 +24,14 @@ class MetadataStrategy(ABC):
         self.config = config
 
     @abstractmethod
-    def add_metadata(self, h5_connector, metadata, datasets, img_cnt=None, fits_name=None):
+    def add_metadata(self, h5_connector, metadata, datasets, batch_i=None, batch_size=None, offset=None, fits_name=None,
+                     metadata_header_buffer=None):
         raise NotImplementedError
+
+    def clear_sparse_cube(self, h5_connector):
+        grp_name = self.config.ORIG_CUBE_NAME
+        if grp_name in h5_connector.file:
+            del h5_connector.file[grp_name]
 
 
 def write_naxis_values(fits_header, ds_shape):
@@ -39,18 +45,12 @@ def get_lower_res_image_metadata(image_fits_header, orig_image_fits_header, res_
     return get_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx)
 
 
-def require_zoom_grps(dataset_type, connector, zoom_cnt):
-    semi_sparse_grp = connector.require_semi_sparse_cube_grp()
+def require_zoom_grps(dataset_type, h5_connector, zoom_cnt):
+    semi_sparse_grp = h5_connector.require_semi_sparse_cube_grp()
     for zoom in range(zoom_cnt):
         grp_name = str(zoom)
-        zoom_grp = connector.require_group(semi_sparse_grp, grp_name)
-        img_grp = connector.require_group(zoom_grp, dataset_type)
-        set_nx_data(img_grp, connector)
-        set_nx_signal(img_grp, "data", connector)
+        zoom_grp = h5_connector.require_group(semi_sparse_grp, grp_name)
+        img_grp = h5_connector.require_group(zoom_grp, dataset_type)
+        set_nx_data(img_grp, h5_connector)
+        set_nx_signal(img_grp, "data", h5_connector)
         yield img_grp
-
-
-def dereference_region_ref(region_ref, h5_connector):
-    image_ds = h5_connector.file[region_ref]
-    image_region = image_ds[region_ref][0]  # TODO check why we need the index 0 here.
-    return image_region

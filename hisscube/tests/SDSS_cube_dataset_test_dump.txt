@@ -1,4 +1,4 @@
-HDF5 "../../results/SDSS_cube.h5" {
+HDF5 "SDSS_cube.h5" {
 SUPER_BLOCK {
    SUPERBLOCK_VERSION 3
    FREELIST_VERSION 0
@@ -253,7 +253,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 28714400
-                  OFFSET 5511335936
+                  OFFSET 2814685184
                }
                FILTERS {
                   NONE
@@ -436,7 +436,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 8499920
-                  OFFSET 5540052992
+                  OFFSET 2843402240
                }
                FILTERS {
                   NONE
@@ -619,7 +619,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 2785640
-                  OFFSET 5548556288
+                  OFFSET 2851905536
                }
                FILTERS {
                   NONE
@@ -802,7 +802,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 1026168
-                  OFFSET 5551345664
+                  OFFSET 2854694912
                }
                FILTERS {
                   NONE
@@ -969,7 +969,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 120
-                  OFFSET 2773602304
+                  OFFSET 2733195264
                }
                FILTERS {
                   NONE
@@ -1064,8 +1064,8 @@ GROUP "/" {
                DATATYPE  H5T_IEEE_F32LE
                DATASPACE  SIMPLE { ( 11, 4620 ) / ( 11, 4620 ) }
                STORAGE_LAYOUT {
-                  CHUNKED ( 1, 4620 )
-                  SIZE 203280
+                  CHUNKED ( 10, 4620 )
+                  SIZE 369600
                }
                FILTERS {
                   NONE
@@ -1118,7 +1118,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 220
-                  OFFSET 2773602784
+                  OFFSET 2733195744
                }
                FILTERS {
                   NONE
@@ -1135,8 +1135,8 @@ GROUP "/" {
                DATATYPE  H5T_IEEE_F32LE
                DATASPACE  SIMPLE { ( 11, 4620 ) / ( 11, 4620 ) }
                STORAGE_LAYOUT {
-                  CHUNKED ( 1, 4620 )
-                  SIZE 203280
+                  CHUNKED ( 10, 4620 )
+                  SIZE 369600
                }
                FILTERS {
                   NONE
@@ -1150,60 +1150,89 @@ GROUP "/" {
                }
             }
             DATASET "image_cutouts_data" {
-               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 64;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "ds_path";
+                  H5T_STD_I64LE "ds_slice_idx";
+                  H5T_STD_I32LE "x_min";
+                  H5T_STD_I32LE "x_max";
+                  H5T_STD_I32LE "y_min";
+                  H5T_STD_I32LE "y_max";
+               }
                DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
                STORAGE_LAYOUT {
-                  CONTIGUOUS
-                  SIZE 264000
-                  OFFSET 5508071424
+                  CHUNKED ( 10, 2000 )
+                  SIZE 3520000
                }
                FILTERS {
                   NONE
                }
                FILLVALUE {
-                  FILL_TIME H5D_FILL_TIME_IFSET
+                  FILL_TIME H5D_FILL_TIME_NEVER
                   VALUE  H5D_FILL_VALUE_DEFAULT
                }
                ALLOCATION_TIME {
-                  H5D_ALLOC_TIME_LATE
+                  H5D_ALLOC_TIME_EARLY
                }
             }
             DATASET "image_cutouts_errors" {
-               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 64;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "ds_path";
+                  H5T_STD_I64LE "ds_slice_idx";
+                  H5T_STD_I32LE "x_min";
+                  H5T_STD_I32LE "x_max";
+                  H5T_STD_I32LE "y_min";
+                  H5T_STD_I32LE "y_max";
+               }
                DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
                STORAGE_LAYOUT {
-                  CONTIGUOUS
-                  SIZE 264000
-                  OFFSET 5508337664
+                  CHUNKED ( 10, 2000 )
+                  SIZE 3520000
                }
                FILTERS {
                   NONE
                }
                FILLVALUE {
-                  FILL_TIME H5D_FILL_TIME_IFSET
+                  FILL_TIME H5D_FILL_TIME_NEVER
                   VALUE  H5D_FILL_VALUE_DEFAULT
                }
                ALLOCATION_TIME {
-                  H5D_ALLOC_TIME_LATE
+                  H5D_ALLOC_TIME_EARLY
                }
             }
             DATASET "image_cutouts_metadata" {
-               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 64;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "ds_path";
+                  H5T_STD_I64LE "ds_slice_idx";
+               }
                DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
                STORAGE_LAYOUT {
-                  CONTIGUOUS
-                  SIZE 264000
-                  OFFSET 5508603904
+                  CHUNKED ( 10, 2000 )
+                  SIZE 2880000
                }
                FILTERS {
                   NONE
                }
                FILLVALUE {
-                  FILL_TIME H5D_FILL_TIME_IFSET
+                  FILL_TIME H5D_FILL_TIME_NEVER
                   VALUE  H5D_FILL_VALUE_DEFAULT
                }
                ALLOCATION_TIME {
-                  H5D_ALLOC_TIME_LATE
+                  H5D_ALLOC_TIME_EARLY
                }
             }
             DATASET "metadata" {
@@ -1243,7 +1272,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 18480
-                  OFFSET 2774392832
+                  OFFSET 2774052864
                }
                FILTERS {
                   NONE
@@ -1337,7 +1366,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 120
-                  OFFSET 2773602424
+                  OFFSET 2733195384
                }
                FILTERS {
                   NONE
@@ -1432,8 +1461,8 @@ GROUP "/" {
                DATATYPE  H5T_IEEE_F32LE
                DATASPACE  SIMPLE { ( 11, 2310 ) / ( 11, 2310 ) }
                STORAGE_LAYOUT {
-                  CHUNKED ( 1, 2310 )
-                  SIZE 101640
+                  CHUNKED ( 10, 2310 )
+                  SIZE 184800
                }
                FILTERS {
                   NONE
@@ -1486,7 +1515,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 220
-                  OFFSET 2773603004
+                  OFFSET 2733195964
                }
                FILTERS {
                   NONE
@@ -1503,8 +1532,8 @@ GROUP "/" {
                DATATYPE  H5T_IEEE_F32LE
                DATASPACE  SIMPLE { ( 11, 2310 ) / ( 11, 2310 ) }
                STORAGE_LAYOUT {
-                  CHUNKED ( 1, 2310 )
-                  SIZE 101640
+                  CHUNKED ( 10, 2310 )
+                  SIZE 184800
                }
                FILTERS {
                   NONE
@@ -1518,60 +1547,89 @@ GROUP "/" {
                }
             }
             DATASET "image_cutouts_data" {
-               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 64;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "ds_path";
+                  H5T_STD_I64LE "ds_slice_idx";
+                  H5T_STD_I32LE "x_min";
+                  H5T_STD_I32LE "x_max";
+                  H5T_STD_I32LE "y_min";
+                  H5T_STD_I32LE "y_max";
+               }
                DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
                STORAGE_LAYOUT {
-                  CONTIGUOUS
-                  SIZE 264000
-                  OFFSET 5508870144
+                  CHUNKED ( 10, 2000 )
+                  SIZE 3520000
                }
                FILTERS {
                   NONE
                }
                FILLVALUE {
-                  FILL_TIME H5D_FILL_TIME_IFSET
+                  FILL_TIME H5D_FILL_TIME_NEVER
                   VALUE  H5D_FILL_VALUE_DEFAULT
                }
                ALLOCATION_TIME {
-                  H5D_ALLOC_TIME_LATE
+                  H5D_ALLOC_TIME_EARLY
                }
             }
             DATASET "image_cutouts_errors" {
-               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 64;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "ds_path";
+                  H5T_STD_I64LE "ds_slice_idx";
+                  H5T_STD_I32LE "x_min";
+                  H5T_STD_I32LE "x_max";
+                  H5T_STD_I32LE "y_min";
+                  H5T_STD_I32LE "y_max";
+               }
                DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
                STORAGE_LAYOUT {
-                  CONTIGUOUS
-                  SIZE 264000
-                  OFFSET 5509136384
+                  CHUNKED ( 10, 2000 )
+                  SIZE 3520000
                }
                FILTERS {
                   NONE
                }
                FILLVALUE {
-                  FILL_TIME H5D_FILL_TIME_IFSET
+                  FILL_TIME H5D_FILL_TIME_NEVER
                   VALUE  H5D_FILL_VALUE_DEFAULT
                }
                ALLOCATION_TIME {
-                  H5D_ALLOC_TIME_LATE
+                  H5D_ALLOC_TIME_EARLY
                }
             }
             DATASET "image_cutouts_metadata" {
-               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 64;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "ds_path";
+                  H5T_STD_I64LE "ds_slice_idx";
+               }
                DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
                STORAGE_LAYOUT {
-                  CONTIGUOUS
-                  SIZE 264000
-                  OFFSET 5509402624
+                  CHUNKED ( 10, 2000 )
+                  SIZE 2880000
                }
                FILTERS {
                   NONE
                }
                FILLVALUE {
-                  FILL_TIME H5D_FILL_TIME_IFSET
+                  FILL_TIME H5D_FILL_TIME_NEVER
                   VALUE  H5D_FILL_VALUE_DEFAULT
                }
                ALLOCATION_TIME {
-                  H5D_ALLOC_TIME_LATE
+                  H5D_ALLOC_TIME_EARLY
                }
             }
             DATASET "metadata" {
@@ -1611,7 +1669,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 9240
-                  OFFSET 2773450752
+                  OFFSET 2784432128
                }
                FILTERS {
                   NONE
@@ -1705,7 +1763,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 120
-                  OFFSET 2773602544
+                  OFFSET 2733195504
                }
                FILTERS {
                   NONE
@@ -1800,8 +1858,8 @@ GROUP "/" {
                DATATYPE  H5T_IEEE_F32LE
                DATASPACE  SIMPLE { ( 11, 1155 ) / ( 11, 1155 ) }
                STORAGE_LAYOUT {
-                  CHUNKED ( 1, 1155 )
-                  SIZE 50820
+                  CHUNKED ( 10, 1155 )
+                  SIZE 92400
                }
                FILTERS {
                   NONE
@@ -1854,7 +1912,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 220
-                  OFFSET 2773603224
+                  OFFSET 2733196184
                }
                FILTERS {
                   NONE
@@ -1871,8 +1929,8 @@ GROUP "/" {
                DATATYPE  H5T_IEEE_F32LE
                DATASPACE  SIMPLE { ( 11, 1155 ) / ( 11, 1155 ) }
                STORAGE_LAYOUT {
-                  CHUNKED ( 1, 1155 )
-                  SIZE 50820
+                  CHUNKED ( 10, 1155 )
+                  SIZE 92400
                }
                FILTERS {
                   NONE
@@ -1886,60 +1944,89 @@ GROUP "/" {
                }
             }
             DATASET "image_cutouts_data" {
-               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 64;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "ds_path";
+                  H5T_STD_I64LE "ds_slice_idx";
+                  H5T_STD_I32LE "x_min";
+                  H5T_STD_I32LE "x_max";
+                  H5T_STD_I32LE "y_min";
+                  H5T_STD_I32LE "y_max";
+               }
                DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
                STORAGE_LAYOUT {
-                  CONTIGUOUS
-                  SIZE 264000
-                  OFFSET 5509668864
+                  CHUNKED ( 10, 2000 )
+                  SIZE 3520000
                }
                FILTERS {
                   NONE
                }
                FILLVALUE {
-                  FILL_TIME H5D_FILL_TIME_IFSET
+                  FILL_TIME H5D_FILL_TIME_NEVER
                   VALUE  H5D_FILL_VALUE_DEFAULT
                }
                ALLOCATION_TIME {
-                  H5D_ALLOC_TIME_LATE
+                  H5D_ALLOC_TIME_EARLY
                }
             }
             DATASET "image_cutouts_errors" {
-               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 64;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "ds_path";
+                  H5T_STD_I64LE "ds_slice_idx";
+                  H5T_STD_I32LE "x_min";
+                  H5T_STD_I32LE "x_max";
+                  H5T_STD_I32LE "y_min";
+                  H5T_STD_I32LE "y_max";
+               }
                DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
                STORAGE_LAYOUT {
-                  CONTIGUOUS
-                  SIZE 264000
-                  OFFSET 5509935104
+                  CHUNKED ( 10, 2000 )
+                  SIZE 3520000
                }
                FILTERS {
                   NONE
                }
                FILLVALUE {
-                  FILL_TIME H5D_FILL_TIME_IFSET
+                  FILL_TIME H5D_FILL_TIME_NEVER
                   VALUE  H5D_FILL_VALUE_DEFAULT
                }
                ALLOCATION_TIME {
-                  H5D_ALLOC_TIME_LATE
+                  H5D_ALLOC_TIME_EARLY
                }
             }
             DATASET "image_cutouts_metadata" {
-               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 64;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "ds_path";
+                  H5T_STD_I64LE "ds_slice_idx";
+               }
                DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
                STORAGE_LAYOUT {
-                  CONTIGUOUS
-                  SIZE 264000
-                  OFFSET 5510201344
+                  CHUNKED ( 10, 2000 )
+                  SIZE 2880000
                }
                FILTERS {
                   NONE
                }
                FILLVALUE {
-                  FILL_TIME H5D_FILL_TIME_IFSET
+                  FILL_TIME H5D_FILL_TIME_NEVER
                   VALUE  H5D_FILL_VALUE_DEFAULT
                }
                ALLOCATION_TIME {
-                  H5D_ALLOC_TIME_LATE
+                  H5D_ALLOC_TIME_EARLY
                }
             }
             DATASET "metadata" {
@@ -1979,7 +2066,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 4620
-                  OFFSET 2773729280
+                  OFFSET 2794610688
                }
                FILTERS {
                   NONE
@@ -2073,7 +2160,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 120
-                  OFFSET 2773602664
+                  OFFSET 2733195624
                }
                FILTERS {
                   NONE
@@ -2168,8 +2255,8 @@ GROUP "/" {
                DATATYPE  H5T_IEEE_F32LE
                DATASPACE  SIMPLE { ( 11, 577 ) / ( 11, 577 ) }
                STORAGE_LAYOUT {
-                  CHUNKED ( 1, 577 )
-                  SIZE 25388
+                  CHUNKED ( 10, 577 )
+                  SIZE 46160
                }
                FILTERS {
                   NONE
@@ -2222,7 +2309,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 220
-                  OFFSET 2773605752
+                  OFFSET 2733198712
                }
                FILTERS {
                   NONE
@@ -2239,8 +2326,8 @@ GROUP "/" {
                DATATYPE  H5T_IEEE_F32LE
                DATASPACE  SIMPLE { ( 11, 577 ) / ( 11, 577 ) }
                STORAGE_LAYOUT {
-                  CHUNKED ( 1, 577 )
-                  SIZE 25388
+                  CHUNKED ( 10, 577 )
+                  SIZE 46160
                }
                FILTERS {
                   NONE
@@ -2254,60 +2341,89 @@ GROUP "/" {
                }
             }
             DATASET "image_cutouts_data" {
-               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 64;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "ds_path";
+                  H5T_STD_I64LE "ds_slice_idx";
+                  H5T_STD_I32LE "x_min";
+                  H5T_STD_I32LE "x_max";
+                  H5T_STD_I32LE "y_min";
+                  H5T_STD_I32LE "y_max";
+               }
                DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
                STORAGE_LAYOUT {
-                  CONTIGUOUS
-                  SIZE 264000
-                  OFFSET 5510467584
+                  CHUNKED ( 10, 2000 )
+                  SIZE 3520000
                }
                FILTERS {
                   NONE
                }
                FILLVALUE {
-                  FILL_TIME H5D_FILL_TIME_IFSET
+                  FILL_TIME H5D_FILL_TIME_NEVER
                   VALUE  H5D_FILL_VALUE_DEFAULT
                }
                ALLOCATION_TIME {
-                  H5D_ALLOC_TIME_LATE
+                  H5D_ALLOC_TIME_EARLY
                }
             }
             DATASET "image_cutouts_errors" {
-               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 64;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "ds_path";
+                  H5T_STD_I64LE "ds_slice_idx";
+                  H5T_STD_I32LE "x_min";
+                  H5T_STD_I32LE "x_max";
+                  H5T_STD_I32LE "y_min";
+                  H5T_STD_I32LE "y_max";
+               }
                DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
                STORAGE_LAYOUT {
-                  CONTIGUOUS
-                  SIZE 264000
-                  OFFSET 5510733824
+                  CHUNKED ( 10, 2000 )
+                  SIZE 3520000
                }
                FILTERS {
                   NONE
                }
                FILLVALUE {
-                  FILL_TIME H5D_FILL_TIME_IFSET
+                  FILL_TIME H5D_FILL_TIME_NEVER
                   VALUE  H5D_FILL_VALUE_DEFAULT
                }
                ALLOCATION_TIME {
-                  H5D_ALLOC_TIME_LATE
+                  H5D_ALLOC_TIME_EARLY
                }
             }
             DATASET "image_cutouts_metadata" {
-               DATATYPE  H5T_REFERENCE { H5T_STD_REF_DSETREG }
+               DATATYPE  H5T_COMPOUND {
+                  H5T_STRING {
+                     STRSIZE 64;
+                     STRPAD H5T_STR_NULLPAD;
+                     CSET H5T_CSET_UTF8;
+                     CTYPE H5T_C_S1;
+                  } "ds_path";
+                  H5T_STD_I64LE "ds_slice_idx";
+               }
                DATASPACE  SIMPLE { ( 11, 2000 ) / ( 11, 2000 ) }
                STORAGE_LAYOUT {
-                  CONTIGUOUS
-                  SIZE 264000
-                  OFFSET 5511000064
+                  CHUNKED ( 10, 2000 )
+                  SIZE 2880000
                }
                FILTERS {
                   NONE
                }
                FILLVALUE {
-                  FILL_TIME H5D_FILL_TIME_IFSET
+                  FILL_TIME H5D_FILL_TIME_NEVER
                   VALUE  H5D_FILL_VALUE_DEFAULT
                }
                ALLOCATION_TIME {
-                  H5D_ALLOC_TIME_LATE
+                  H5D_ALLOC_TIME_EARLY
                }
             }
             DATASET "metadata" {
@@ -2347,7 +2463,7 @@ GROUP "/" {
                STORAGE_LAYOUT {
                   CONTIGUOUS
                   SIZE 2308
-                  OFFSET 2773603444
+                  OFFSET 2733196404
                }
                FILTERS {
                   NONE

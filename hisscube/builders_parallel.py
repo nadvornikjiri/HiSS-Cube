@@ -1,12 +1,19 @@
 import string
+import traceback
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 
+import h5py
 from tqdm import tqdm
 
 from hisscube.builders import Builder
 from hisscube.processors.image import ImageProcessor
 from hisscube.processors.metadata import MetadataProcessor
+import numpy as np
+from hisscube.processors.metadata_strategy_dataset import get_cutout_data_datasets, get_cutout_error_datasets, \
+    get_cutout_metadata_datasets
+from hisscube.processors.metadata_strategy_image import DatasetImageStrategy
+from hisscube.processors.metadata_strategy_spectrum import DatasetSpectrumStrategy
 from hisscube.processors.spectrum import SpectrumProcessor
 from hisscube.utils.config import Config
 from hisscube.utils.io import H5Connector, get_str_paths, get_image_header_dataset, get_spectrum_header_dataset, \
@@ -20,10 +27,11 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
     def __init__(self, config: Config, h5_connector: H5Connector, mpi_helper: MPIHelper):
         super().__init__(config, h5_connector)
         self.mpi_helper = mpi_helper
+        self.comm_buffer = None
 
-    def distribute_work(self, h5_connector, path_list, processor):
+    def distribute_work(self, h5_connector, path_list, processor, batch_size):
         status = self.mpi_helper.MPI.Status()
-        batches = chunks(path_list, self.config.BATCH_SIZE)
+        batches = chunks(path_list, batch_size)
         offset = 0
         for i, batch in tqdm(enumerate(batches, 1), desc=("%s progress" % self.__class__.__name__)):
             batch = list(batch)
@@ -45,8 +53,9 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
         return offset
 
     def process_response(self, h5_connector, processor, status):
-        self.mpi_helper.comm.recv(source=self.mpi_helper.MPI.ANY_SOURCE, tag=self.mpi_helper.FINISHED_TAG,
-                                  status=status)
+        self.comm_buffer = self.mpi_helper.comm.recv(source=self.mpi_helper.MPI.ANY_SOURCE,
+                                                     tag=self.mpi_helper.FINISHED_TAG,
+                                                     status=status)
         self.h5_connector.fits_total_cnt += 1
         self.logger.debug(
             "Received response from. dest %02d: %d " % (status.Get_source(), self.mpi_helper.sent_work_cnt))
@@ -55,9 +64,10 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
         status = self.mpi_helper.MPI.Status()
         path_list, offset = self.mpi_helper.receive_work_parsed(status)
         while status.Get_tag() != self.mpi_helper.KILL_TAG:
+            batch_size = len(path_list)
             for i, path in enumerate(path_list):
                 try:
-                    process_func(h5_connector, i, path, offset, *args, **kwargs)
+                    process_func(h5_connector, i, path, offset, batch_size, *args, **kwargs)
                 except Exception as e:
                     self.logger.warning("Could not process %s, message: %s" % (path, str(e)))
             self.mpi_helper.comm.send(obj=None, tag=self.mpi_helper.FINISHED_TAG, dest=0)
@@ -102,10 +112,12 @@ class ParallelMetadataCacheBuilder(ParallelBuilder):
         self.mpi_helper.barrier()
         with self.parallel_connector as h5_connector:
             if self.rank == 0:
-                self.image_count = self.distribute_work(h5_connector, image_path_list, self.metadata_processor)
+                self.image_count = self.distribute_work(h5_connector, image_path_list, self.metadata_processor,
+                                                        self.config.FITS_HEADER_BATCH_SIZE)
                 self.mpi_helper.sent_work_cnt = 0
                 self.mpi_helper.barrier()
-                self.spectrum_count = self.distribute_work(h5_connector, spectra_path_list, self.metadata_processor)
+                self.spectrum_count = self.distribute_work(h5_connector, spectra_path_list, self.metadata_processor,
+                                                           self.config.FITS_HEADER_BATCH_SIZE)
             else:
                 image_header_ds = get_image_header_dataset(h5_connector)
                 image_header_ds_dtype = image_header_ds.dtype
@@ -139,6 +151,74 @@ class ParallelMetadataCacheBuilder(ParallelBuilder):
             path_list, offset = self.mpi_helper.receive_work_parsed(status)
 
 
+class ParallelMetadataBuilder(ParallelBuilder):
+    def __init__(self, config: Config, serial_h5_connector: SerialH5Writer, parallel_h5_connector: ParallelH5Writer,
+                 mpi_helper: MPIHelper,
+                 metadata_processor: MetadataProcessor, image_metadata_strategy: DatasetImageStrategy,
+                 spectrum_metadata_strategy: DatasetSpectrumStrategy, image_processor: ImageProcessor,
+                 spectrum_processor: SpectrumProcessor):
+        super().__init__(config, serial_h5_connector, mpi_helper)
+        self.metadata_processor = metadata_processor
+        self.image_strategy = image_metadata_strategy
+        self.spectrum_strategy = spectrum_metadata_strategy
+        self.image_processor = image_processor
+        self.spectrum_processor = spectrum_processor
+        self.parallel_connector = parallel_h5_connector
+        self.image_count = 0
+        self.spectrum_count = 0
+
+    def build(self):
+        if self.rank == 0:
+            with self.h5_connector as h5_connector:
+                self.metadata_processor.clear_sparse_cube(h5_connector)
+                self.image_strategy.require_datasets(h5_connector)
+                self.spectrum_strategy.require_datasets(h5_connector)
+                self.image_count = h5_connector.get_image_count()
+                self.spectrum_count = h5_connector.get_spectrum_count()
+        self.mpi_helper.barrier()
+        with self.parallel_connector as h5_connector:
+            if self.rank == 0:
+                image_range = range(self.image_count)
+                self.distribute_work(h5_connector, image_range, self.metadata_processor,
+                                     self.config.METADATA_BATCH_SIZE)
+                self.mpi_helper.sent_work_cnt = 0
+                self.mpi_helper.barrier()
+                spectrum_range = range(self.spectrum_count)
+                self.distribute_work(h5_connector, spectrum_range, self.metadata_processor,
+                                     self.config.METADATA_BATCH_SIZE)
+            else:
+                self.process_metadata(h5_connector, "image")
+                self.mpi_helper.barrier()
+                self.image_strategy.clear_buffers()
+                self.process_metadata(h5_connector, "spectrum")
+                self.spectrum_strategy.clear_buffers()
+        self.mpi_helper.barrier()
+        if self.rank == 0:
+            with self.h5_connector as h5_connector:
+                self.image_strategy.sort_indices(h5_connector)
+                self.spectrum_strategy.sort_indices(h5_connector)
+
+    def process_metadata(self, h5_connector, data_type):
+        status = self.mpi_helper.MPI.Status()
+        range_list, offset = self.mpi_helper.receive_work_parsed(status)
+        while status.Get_tag() != self.mpi_helper.KILL_TAG:
+            batch_size = len(range_list)
+            try:
+                if data_type == "image":
+                    inserted_cnt = self.image_processor.write_metadata(h5_connector, range_min=offset,
+                                                                       range_max=offset + batch_size,
+                                                                       batch_size=batch_size)
+                if data_type == "spectrum":
+                    inserted_cnt = self.spectrum_processor.write_metadata(h5_connector, range_min=offset,
+                                                                          range_max=offset + batch_size,
+                                                                          batch_size=batch_size)
+            except Exception as e:
+                self.logger.warning("Could not process %s, message: %s" % (range_list, str(e)))
+                inserted_cnt = 0
+            self.mpi_helper.comm.send(obj=inserted_cnt, tag=self.mpi_helper.FINISHED_TAG, dest=0)
+            range_list, offset = self.mpi_helper.receive_work_parsed(status)
+
+
 class ParallelDataBuilder(ParallelBuilder):
     def __init__(self, config: Config, h5_connector: H5Connector, mpi_helper: MPIHelper,
                  metadata_processor: MetadataProcessor, image_processor: ImageProcessor,
@@ -154,16 +234,18 @@ class ParallelDataBuilder(ParallelBuilder):
         with self.h5_connector as h5_connector:
             if self.rank == 0:
                 image_paths = get_str_paths(get_image_header_dataset(h5_connector))
-                self.distribute_work(h5_connector, image_paths,
-                                     self.image_processor)
+                self.distribute_work(h5_connector, image_paths, self.image_processor, self.config.IMAGE_DATA_BATCH_SIZE)
             else:
                 self.process_image_data(h5_connector, self.process_image)
+                self.image_processor.metadata_strategy.clear_buffers()
             self.mpi_helper.barrier()
             if self.mpi_helper.rank == 0:
                 spectra_paths = get_str_paths(get_spectrum_header_dataset(h5_connector))
-                self.distribute_work(h5_connector, spectra_paths, self.spectrum_processor)
+                self.distribute_work(h5_connector, spectra_paths, self.spectrum_processor,
+                                     self.config.SPECTRUM_DATA_BATCH_SIZE)
             else:
                 self.process_spectra_data(h5_connector, self.process_spectrum)
+                self.spectrum_processor.metadata_strategy.clear_buffers()
             self.mpi_helper.barrier()
 
     @abstractmethod
@@ -171,7 +253,7 @@ class ParallelDataBuilder(ParallelBuilder):
         pass
 
     @abstractmethod
-    def process_image(self, h5_connector, i, image_path, offset):
+    def process_image(self, h5_connector, i, image_path, offset, batch_size):
         pass
 
     @abstractmethod
@@ -179,7 +261,7 @@ class ParallelDataBuilder(ParallelBuilder):
         pass
 
     @abstractmethod
-    def process_spectrum(self, h5_connector, i, spec_path, offset):
+    def process_spectrum(self, h5_connector, i, spec_path, offset, batch_size):
         pass
 
 
@@ -191,23 +273,23 @@ class ParallelMWMRDataBuilder(ParallelDataBuilder):
                          spectrum_processor, photometry)
 
     @staticmethod
-    def write_data(metadata, data, h5_connector, fits_path, processor, offset):
+    def write_data(metadata, data, h5_connector, fits_path, processor, offset, i, batch_size):
         res_grps = processor.get_resolution_groups(metadata, h5_connector)
         file_name = Path(fits_path).name
-        processor.write_datasets(res_grps, data, file_name, offset=offset)
+        processor.write_datasets(res_grps, data, file_name, offset=offset, batch_i=i, batch_size=batch_size)
 
     def process_image_data(self, h5_connector, process_func, *args, **kwargs):
         self.process_path(h5_connector, process_func, *args, **kwargs)
 
-    def process_image(self, h5_connector, i, image_path, offset):
+    def process_image(self, h5_connector, i, image_path, offset, batch_size):
         self.logger.debug("Rank %02d: Processing %s." % (self.mpi_helper.rank, image_path))
         metadata, data = self.photometry.get_multiple_resolution_image(image_path, self.config.IMG_ZOOM_CNT)
-        self.write_data(metadata, data, h5_connector, image_path, self.image_processor, offset + i)
+        self.write_data(metadata, data, h5_connector, image_path, self.image_processor, offset, i, batch_size)
 
     def process_spectra_data(self, h5_connector, process_func, *args, **kwargs):
         self.process_path(h5_connector, process_func, *args, **kwargs)
 
-    def process_spectrum(self, h5_connector, i, spec_path, offset):
+    def process_spectrum(self, h5_connector, i, spec_path, offset, batch_size):
         self.logger.debug("Rank %02d: Processing %s." % (self.mpi_helper.rank, spec_path))
         metadata, data = self.photometry.get_multiple_resolution_spectrum(
             spec_path, self.config.SPEC_ZOOM_CNT,
@@ -216,14 +298,14 @@ class ParallelMWMRDataBuilder(ParallelDataBuilder):
             rebin_max=self.config.REBIN_MAX,
             rebin_samples=self.config.REBIN_SAMPLES,
             apply_transmission=self.config.APPLY_TRANSMISSION_CURVE)
-        self.write_data(metadata, data, h5_connector, spec_path, self.spectrum_processor, offset + i)
+        self.write_data(metadata, data, h5_connector, spec_path, self.spectrum_processor, offset, i, batch_size)
 
 
 class ParallelSWMRDataBuilder(ParallelDataBuilder):
-    def process_spectrum(self, h5_connector, i, image_path, offset):
+    def process_spectrum(self, h5_connector, i, image_path, offset, batch_size):
         pass
 
-    def process_image(self, h5_connector, i, image_path, offset):
+    def process_image(self, h5_connector, i, image_path, offset, batch_size):
         pass
 
     def __init__(self, config: Config, h5_connector: H5Connector, mpi_helper: MPIHelper,
@@ -232,7 +314,7 @@ class ParallelSWMRDataBuilder(ParallelDataBuilder):
         super().__init__(config, h5_connector, mpi_helper, metadata_processor, image_processor,
                          spectrum_processor, photometry)
         self.comm_buffer = bytearray(
-            self.config.BATCH_SIZE * 100 * 1024 * 1024)  # 100 MBs for one image
+            self.config.IMAGE_DATA_BATCH_SIZE * 100 * 1024 * 1024)  # 100 MBs for one image
 
     def process_image_data(self, h5_connector):
         status = self.mpi_helper.MPI.Status()
@@ -283,3 +365,51 @@ class ParallelSWMRDataBuilder(ParallelDataBuilder):
         processed_image_batch.append(
             {"metadata": dict(metadata), "data": data,
              "dataset_name": str(file_name)})
+
+
+class ParallelLinkBuilder(ParallelBuilder):
+    def __init__(self, config: Config, serial_h5_connector: SerialH5Writer, parallel_h5_connector: ParallelH5Writer,
+                 mpi_helper: MPIHelper,
+                 spectrum_metadata_strategy: DatasetSpectrumStrategy,
+                 spectrum_processor: SpectrumProcessor):
+        super().__init__(config, serial_h5_connector, mpi_helper)
+        self.spectrum_strategy = spectrum_metadata_strategy
+        self.spectrum_processor = spectrum_processor
+        self.parallel_connector = parallel_h5_connector
+        self.comm_buffer = bytearray(3 * \
+                                     min(self.config.IMG_ZOOM_CNT, self.config.SPEC_ZOOM_CNT) * \
+                                     self.config.LINK_BATCH_SIZE * \
+                                     self.config.MAX_CUTOUT_REFS * \
+                                     h5py.regionref_dtype.itemsize)
+
+        # self.comm_buffer = bytearray(
+        #     self.config.LINK_BATCH_SIZE * max(self.config.SPEC_ZOOM_CNT,
+        #                                       self.config.IMG_ZOOM_CNT) * 8 * 3)  # region region_ref size
+
+    def build(self):
+        with self.parallel_connector as h5_connector:
+            if self.rank == 0:
+                spectrum_count = h5_connector.get_spectrum_count()
+                spectrum_range = range(spectrum_count)
+                self.distribute_work(h5_connector, spectrum_range, self.spectrum_processor,
+                                     self.config.LINK_BATCH_SIZE)
+            else:
+                self.link(h5_connector)
+                self.spectrum_strategy.clear_buffers()
+        self.mpi_helper.barrier()
+
+    def link(self, h5_connector):
+        status = self.mpi_helper.MPI.Status()
+        range_list, offset = self.mpi_helper.receive_work_parsed(status)
+        while status.Get_tag() != self.mpi_helper.KILL_TAG:
+            batch_size = len(range_list)
+            try:
+                inserted_cnt = self.spectrum_processor.link_spectra_to_images(h5_connector, offset,
+                                                                              offset + batch_size,
+                                                                              batch_size)
+            except Exception as e:
+                self.logger.warning("Could not process %s, message: %s" % (range_list, str(e)))
+                print(traceback.format_exc())
+                raise e
+            self.mpi_helper.comm.send(obj=inserted_cnt, tag=self.mpi_helper.FINISHED_TAG, dest=0)
+            range_list, offset = self.mpi_helper.receive_work_parsed(status)

@@ -3,7 +3,8 @@ from pathlib import Path
 
 from hisscube.builders import SingleImageBuilder, SingleSpectrumBuilder, MetadataCacheBuilder, MetadataBuilder, \
     CBoosterMetadataBuilder, DataBuilder, LinkBuilder, MLCubeBuilder, VisualizationCubeBuilder
-from hisscube.builders_parallel import ParallelMWMRDataBuilder, ParallelSWMRDataBuilder, ParallelMetadataCacheBuilder
+from hisscube.builders_parallel import ParallelMWMRDataBuilder, ParallelSWMRDataBuilder, ParallelMetadataCacheBuilder, \
+    ParallelMetadataBuilder, ParallelLinkBuilder
 from hisscube.processors.cube_ml import MLProcessor
 from hisscube.processors.cube_visualization import VisualizationProcessor
 from hisscube.processors.metadata import MetadataProcessor
@@ -18,7 +19,8 @@ from hisscube.processors.metadata_strategy_image import TreeImageStrategy, Datas
 from hisscube.processors.metadata_strategy_spectrum import TreeSpectrumStrategy, DatasetSpectrumStrategy
 from hisscube.utils.config import Config
 from hisscube.utils.io import SerialH5Writer, ParallelH5Writer, CBoostedMetadataBuildWriter, SerialH5Reader
-from hisscube.utils.io_strategy import SerialTreeIOStrategy, CBoostedTreeIOStrategy, SerialDatasetIOStrategy
+from hisscube.utils.io_strategy import SerialTreeIOStrategy, CBoostedTreeIOStrategy, SerialDatasetIOStrategy, \
+    ParallelDatasetIOStrategy
 from hisscube.utils.mpi_helper import MPIHelper
 from hisscube.utils.photometry import Photometry
 
@@ -40,7 +42,10 @@ class HiSSCubeProvider:
         if self.config.METADATA_STRATEGY == "TREE":
             self.io_strategy = SerialTreeIOStrategy()
         else:
-            self.io_strategy = SerialDatasetIOStrategy()
+            if self.config.MPIO:
+                self.io_strategy = ParallelDatasetIOStrategy()
+            else:
+                self.io_strategy = SerialDatasetIOStrategy()
 
         self.c_boosted_strategy = CBoostedTreeIOStrategy()
         self.h5_serial_writer = SerialH5Writer(h5_output_path, self.config, self.io_strategy)
@@ -125,22 +130,31 @@ class SerialBuilderProvider:
 class ParallelBuilderProvider:
     def __init__(self, fits_image_path: string, fits_spectra_path: string, config: Config,
                  serial_connector: SerialH5Writer,
-                 h5_connector: ParallelH5Writer, processors: ProcessorProvider,
+                 parallel_connector: ParallelH5Writer, processors: ProcessorProvider,
                  mpi_helper: MPIHelper,
                  photometry: Photometry, fits_image_pattern=None, fits_spectra_pattern=None):
         self.metadata_cache_builder = ParallelMetadataCacheBuilder(fits_image_path, fits_spectra_path, config,
                                                                    serial_connector,
-                                                                   h5_connector, mpi_helper,
+                                                                   parallel_connector, mpi_helper,
                                                                    processors.metadata_processor,
                                                                    fits_image_pattern=fits_image_pattern,
                                                                    fits_spectra_pattern=fits_spectra_pattern)
-        self.data_builder_MWMR = ParallelMWMRDataBuilder(config, h5_connector, mpi_helper,
+        self.metadata_builder = ParallelMetadataBuilder(config, serial_connector, parallel_connector, mpi_helper,
+                                                        processors.metadata_processor,
+                                                        processors.image_metadata_strategy,
+                                                        processors.spectrum_metadata_strategy,
+                                                        processors.image_metadata_processor,
+                                                        processors.spectrum_metadata_processor)
+        self.data_builder_MWMR = ParallelMWMRDataBuilder(config, parallel_connector, mpi_helper,
                                                          processors.metadata_processor,
                                                          processors.image_metadata_processor,
                                                          processors.spectrum_metadata_processor,
                                                          photometry)
-        self.data_builder_SWMR = ParallelSWMRDataBuilder(config, h5_connector, mpi_helper,
+        self.data_builder_SWMR = ParallelSWMRDataBuilder(config, parallel_connector, mpi_helper,
                                                          processors.metadata_processor,
                                                          processors.image_metadata_processor,
                                                          processors.spectrum_metadata_processor,
                                                          photometry)
+        self.link_builder = ParallelLinkBuilder(config, serial_connector, parallel_connector, mpi_helper,
+                                                processors.spectrum_metadata_strategy,
+                                                processors.spectrum_metadata_processor)
