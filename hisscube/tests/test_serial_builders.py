@@ -169,6 +169,7 @@ class TestSerialBuilder(unittest.TestCase):
         test_images = "../../data/raw/galaxy_small/images"
         test_spectra = "../../data/raw/galaxy_tiny/spectra"
         args = Mock()
+        args.truncate = False
         args.command = "update"
         args.fits_metadata_cache = True
         args.metadata = True

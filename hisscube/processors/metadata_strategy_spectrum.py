@@ -561,7 +561,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         image_max_zoom = 0
         original_resolution_dataset = spec_metadata_datasets_multiple_zoom[0]
         spectrum_metadata = self.h5_connector.read_serialized_fits_header(original_resolution_dataset,
-                                                                          idx=self.spec_cnt)
+                                                                          idx=range_min + self.spec_cnt)
         for image_idx in self._find_images_overlapping_spectrum(spectrum_metadata):
             for image_zoom in range(self.config.IMG_ZOOM_CNT):
                 image_data_dataset, image_error_dataset, image_metadata_dataset = self._get_image_ds(
@@ -575,7 +575,8 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
                                                                        image_idx,
                                                                        image_zoom,
                                                                        image_max_zoom,
-                                                                       spectrum_metadata)
+                                                                       spectrum_metadata,
+                                                                       range_min)
         self._convert_arrays(image_data_refs, image_error_refs, image_metadata_refs)
         for spec_zoom in range(self.config.SPEC_ZOOM_CNT):
             image_data_dataset, image_error_dataset, image_metadata_dataset = self._get_image_ds(
@@ -620,7 +621,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
     def _write_region_ref_from_image_idx(self, image_data_refs, image_error_refs, image_metadata_refs,
                                          image_data_dataset,
                                          image_error_dataset, image_metadata_dataset, image_idx, image_zoom,
-                                         image_max_zoom_idx, spectrum_metadata):
+                                         image_max_zoom_idx, spectrum_metadata, offset):
 
         if image_zoom not in image_data_refs:
             image_data_refs[image_zoom] = []
@@ -645,7 +646,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
                 image_max_zoom_idx = image_zoom
         except NoCoverageFoundError as e:
             self.logger.debug(
-                "No coverage found for spectrum %s and image %s, reason %s" % (self.spec_cnt, image_idx, str(e)))
+                "No coverage found for spectrum %s and image %s, reason %s" % (self.spec_cnt + offset, image_idx, str(e)))
             pass
         return image_max_zoom_idx
 

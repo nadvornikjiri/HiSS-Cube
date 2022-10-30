@@ -98,7 +98,7 @@ def process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, res_
     pixel_coords = np.array(skycoord_to_pixel(
         SkyCoord(ra=spectrum_fits_header["PLUG_RA"], dec=spectrum_fits_header["PLUG_DEC"], unit='deg'),
         w))
-    if 0 <= pixel_coords[0] <= image_size[0] and 0 <= pixel_coords[1] <= image_size[1]:
+    if 0 <= pixel_coords[0] <= image_size[1] and 0 <= pixel_coords[1] <= image_size[0]:
         pixel_coords = (pixel_coords[0], pixel_coords[1])
         region_size = int(cutout_size / (2 ** res_idx))
         top_left = np.array((int(pixel_coords[0]) - (region_size / 2),
@@ -115,10 +115,12 @@ def process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, res_
 
 
 def is_cutout_whole(cutout_bounds, image_ds):
-    return 0 <= cutout_bounds[0][0][0] <= cutout_bounds[0][1][0] <= image_ds.shape[1] and \
-           0 <= cutout_bounds[1][0][0] <= cutout_bounds[1][1][0] <= image_ds.shape[1] and \
-           0 <= cutout_bounds[0][0][1] <= cutout_bounds[0][1][1] <= image_ds.shape[0] and \
-           0 <= cutout_bounds[1][0][1] <= cutout_bounds[1][1][1] <= image_ds.shape[0]
+    img_shape = image_ds.shape
+    result = 0 <= cutout_bounds[0][0][0] <= cutout_bounds[0][1][0] <= img_shape[1] and \
+           0 <= cutout_bounds[1][0][0] <= cutout_bounds[1][1][0] <= img_shape[1] and \
+           0 <= cutout_bounds[0][0][1] <= cutout_bounds[0][1][1] <= img_shape[0] and \
+           0 <= cutout_bounds[1][0][1] <= cutout_bounds[1][1][1] <= img_shape[0]
+    return result
 
 
 def get_potential_overlapping_image_spatial_paths(fits_header, radius_arcmin, image_index_depth, image_size_x=None,
