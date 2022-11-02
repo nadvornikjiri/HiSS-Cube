@@ -8,6 +8,7 @@ from tqdm.auto import tqdm
 from hisscube.builders import Builder
 from hisscube.processors.image import ImageProcessor
 from hisscube.processors.metadata import MetadataProcessor
+from hisscube.processors.metadata_strategy import require_zoom_grps
 from hisscube.processors.metadata_strategy_image import DatasetImageStrategy
 from hisscube.processors.metadata_strategy_spectrum import DatasetSpectrumStrategy
 from hisscube.processors.spectrum import SpectrumProcessor
@@ -26,21 +27,24 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
         self.mpi_helper = mpi_helper
         self.comm_buffer = None
 
-    def distribute_work(self, h5_connector, path_list, processor, batch_size):
+    def distribute_work(self, h5_connector, path_list, processor, batch_size, desc, total=None):
         status = self.mpi_helper.MPI.Status()
         batches = chunks(path_list, batch_size)
         offset = 0
-        for i, batch in tqdm(enumerate(batches, 1), desc=("%s progress" % self.__class__.__name__)):
+        pbar = tqdm(desc=desc, total=total)
+        for i, batch in enumerate(batches, 1):
             batch = list(batch)
             next_batch_size = len(batch)
             if i < self.mpi_helper.size:
                 self.mpi_helper.send_work(batch, dest=i, offset=offset)
+                pbar.update(next_batch_size)
                 self.mpi_helper.active_workers += 1
             else:
                 self.mpi_helper.wait_for_message(source=self.mpi_helper.MPI.ANY_SOURCE,
                                                  tag=self.mpi_helper.FINISHED_TAG, status=status)
                 self.process_response(h5_connector, processor, status)
                 self.mpi_helper.send_work(batch, status.Get_source(), offset=offset)
+                pbar.update(next_batch_size)
             offset += next_batch_size
         for i in range(1, self.mpi_helper.size):
             self.mpi_helper.send_work_finished(dest=i)
@@ -110,11 +114,11 @@ class ParallelMetadataCacheBuilder(ParallelBuilder):
         with self.parallel_connector as h5_connector:
             if self.rank == 0:
                 self.image_count = self.distribute_work(h5_connector, image_path_list, self.metadata_processor,
-                                                        self.config.FITS_HEADER_BATCH_SIZE)
+                                                        self.config.FITS_HEADER_BATCH_SIZE, "Image headers")
                 self.mpi_helper.sent_work_cnt = 0
                 self.mpi_helper.barrier()
                 self.spectrum_count = self.distribute_work(h5_connector, spectra_path_list, self.metadata_processor,
-                                                           self.config.FITS_HEADER_BATCH_SIZE)
+                                                           self.config.FITS_HEADER_BATCH_SIZE, "Spectra headers")
             else:
                 image_header_ds = get_image_header_dataset(h5_connector)
                 image_header_ds_dtype = image_header_ds.dtype
@@ -177,12 +181,12 @@ class ParallelMetadataBuilder(ParallelBuilder):
             if self.rank == 0:
                 image_range = range(self.image_count)
                 self.distribute_work(h5_connector, image_range, self.metadata_processor,
-                                     self.config.METADATA_BATCH_SIZE)
+                                     self.config.METADATA_BATCH_SIZE, "Image metadata", total=self.image_count)
                 self.mpi_helper.sent_work_cnt = 0
                 self.mpi_helper.barrier()
                 spectrum_range = range(self.spectrum_count)
                 self.distribute_work(h5_connector, spectrum_range, self.metadata_processor,
-                                     self.config.METADATA_BATCH_SIZE)
+                                     self.config.METADATA_BATCH_SIZE, "Spectra metadata", total=self.spectrum_count)
             else:
                 self.process_metadata(h5_connector, "image")
                 self.mpi_helper.barrier()
@@ -230,16 +234,19 @@ class ParallelDataBuilder(ParallelBuilder):
         self.mpi_helper.barrier()
         with self.h5_connector as h5_connector:
             if self.rank == 0:
+                img_cnt = h5_connector.get_image_count()
                 image_paths = get_str_paths(get_image_header_dataset(h5_connector))
-                self.distribute_work(h5_connector, image_paths, self.image_processor, self.config.IMAGE_DATA_BATCH_SIZE)
+                self.distribute_work(h5_connector, image_paths, self.image_processor, self.config.IMAGE_DATA_BATCH_SIZE,
+                                     "Image data", total=img_cnt)
             else:
                 self.process_image_data(h5_connector, self.process_image)
                 self.image_processor.metadata_strategy.clear_buffers()
             self.mpi_helper.barrier()
             if self.mpi_helper.rank == 0:
+                spec_cnt = h5_connector.get_spectrum_count()
                 spectra_paths = get_str_paths(get_spectrum_header_dataset(h5_connector))
                 self.distribute_work(h5_connector, spectra_paths, self.spectrum_processor,
-                                     self.config.SPECTRUM_DATA_BATCH_SIZE)
+                                     self.config.SPECTRUM_DATA_BATCH_SIZE, "Spectrum data", total=spec_cnt)
             else:
                 self.process_spectra_data(h5_connector, self.process_spectrum)
                 self.spectrum_processor.metadata_strategy.clear_buffers()
@@ -375,12 +382,17 @@ class ParallelLinkBuilder(ParallelBuilder):
         self.parallel_connector = parallel_h5_connector
 
     def build(self):
+        if self.rank == 0:
+            with self.h5_connector as serial_connector:
+                spectrum_count = serial_connector.get_spectrum_count()
+                spectrum_zoom_groups = require_zoom_grps("spectra", serial_connector, self.config.SPEC_ZOOM_CNT)
+                self.spectrum_processor.recreate_datasets(serial_connector, spectrum_count, spectrum_zoom_groups)
+        self.mpi_helper.barrier()
         with self.parallel_connector as h5_connector:
             if self.rank == 0:
-                spectrum_count = h5_connector.get_spectrum_count()
                 spectrum_range = range(spectrum_count)
                 self.distribute_work(h5_connector, spectrum_range, self.spectrum_processor,
-                                     self.config.LINK_BATCH_SIZE)
+                                     self.config.LINK_BATCH_SIZE, "Linking spectra", total=spectrum_count)
             else:
                 self.link(h5_connector)
                 self.spectrum_strategy.clear_buffers()

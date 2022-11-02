@@ -62,7 +62,7 @@ class NoCoverageFoundError(Exception):
     pass
 
 
-def get_cutout_bounds(image_fits_header, res_idx, spectrum_fits_header, cutout_size):
+def get_cutout_bounds(image_fits_header, zoom_idx, spectrum_fits_header, cutout_size):
     """
     Gets cutout bounds for an image dataset for a given resolution index (zoom_idx) and a spectrum_fits_header where we get the location of that cutout.
 
@@ -78,10 +78,10 @@ def get_cutout_bounds(image_fits_header, res_idx, spectrum_fits_header, cutout_s
     """
     w = get_optimized_wcs(image_fits_header)
     image_size = np.array((image_fits_header["NAXIS1"], image_fits_header["NAXIS2"]))
-    return process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, res_idx)
+    return process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, zoom_idx)
 
 
-def process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, res_idx=0):
+def process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, zoom_idx=0):
     """
     Returns the process cutout_bounds for an image with a give w (WCS header), image_size, spectrum header and resolution index (zoom_idx).
     Parameters
@@ -89,7 +89,7 @@ def process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, res_
     w                       FITS WCS initialized object.
     image_size              Numpy array, shape (2,)
     spectrum_fits_header    Dictionary-like header of the spectrum, mostly copied from the FITS.
-    res_idx
+    zoom_idx
 
     Returns                 Numpy array shape (2,2)
     -------
@@ -100,7 +100,7 @@ def process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, res_
         w))
     if 0 <= pixel_coords[0] <= image_size[1] and 0 <= pixel_coords[1] <= image_size[0]:
         pixel_coords = (pixel_coords[0], pixel_coords[1])
-        region_size = int(cutout_size / (2 ** res_idx))
+        region_size = int(cutout_size / (2 ** zoom_idx))
         top_left = np.array((int(pixel_coords[0]) - (region_size / 2),
                              int(pixel_coords[1]) - (region_size / 2)), dtype=int)
         top_right = top_left + (region_size, 0)
@@ -114,8 +114,11 @@ def process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, res_
         raise NoCoverageFoundError("The spectrum pixel is not within image bounds.")
 
 
-def is_cutout_whole(cutout_bounds, image_ds):
-    img_shape = image_ds.shape
+def is_cutout_whole(cutout_bounds, image_ds, img_idx=None):
+    if img_idx is not None:
+        img_shape = image_ds.shape[1:]
+    else:
+        img_shape = image_ds.shape
     result = 0 <= cutout_bounds[0][0][0] <= cutout_bounds[0][1][0] <= img_shape[1] and \
            0 <= cutout_bounds[1][0][0] <= cutout_bounds[1][1][0] <= img_shape[1] and \
            0 <= cutout_bounds[0][0][1] <= cutout_bounds[0][1][1] <= img_shape[0] and \
@@ -202,7 +205,7 @@ def get_heal_path_from_coords(metadata, config, ra=None, dec=None, order=None):
                            nest=True,
                            lonlat=True)
     heal_path = "/".join(str(pixel_ID) for pixel_ID in pixel_IDs)
-    absolute_path = "%s/%s" % (config.ORIG_CUBE_NAME, heal_path)
+    absolute_path = "%s/%s" % (config.SPARSE_CUBE_NAME, heal_path)
     return absolute_path
 
 

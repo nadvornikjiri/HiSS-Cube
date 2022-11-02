@@ -24,10 +24,10 @@ class IOStrategy(ABC):
     def get_region_ref(image_ds, cutout_bounds, idx=None):
         if idx is not None:
             return image_ds.regionref[idx, cutout_bounds[0][1][1]:cutout_bounds[1][1][1],
-               cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
+                   cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
         else:
             return image_ds.regionref[cutout_bounds[0][1][1]:cutout_bounds[1][1][1],
-               cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
+                   cutout_bounds[1][0][0]:cutout_bounds[1][1][0]]
 
     @staticmethod
     def dereference_region_ref(file, region_ref):
@@ -77,27 +77,31 @@ class SerialDatasetIOStrategy(IOStrategy):
     def write_serialized_fits_header(self, ds, attrs_dict, idx=0):
         ds[idx, "header"] = ujson.dumps(attrs_dict)
 
+    @staticmethod
+    def dereference_region_ref(file, region_ref):
+        ds = file[region_ref["ds_path"]]
+        ds_slice_idx = region_ref["ds_slice_idx"]
+        x_min = region_ref["x_min"]
+        x_max = region_ref["x_max"]
+        y_min = region_ref["y_min"]
+        y_max = region_ref["y_max"]
+        if x_max == 0 and y_max == 0:  # TODO improve this assertion
+            return ds[ds_slice_idx]
+        else:
+            return ds[ds_slice_idx, x_min:x_max, y_min:y_max, ...]
 
-class ParallelDatasetIOStrategy(SerialDatasetIOStrategy):
+    @staticmethod
+    def get_metadata_ref(ds, idx):
+        return ds.name, idx, 0, 0, 0, 0
 
     @staticmethod
     def get_region_ref(image_ds, cutout_bounds, idx=0):
         return (image_ds.name, idx, cutout_bounds[0][1][1], cutout_bounds[1][1][1], cutout_bounds[1][0][0],
                 cutout_bounds[1][1][0])
 
-    @staticmethod
-    def dereference_region_ref(file, region_ref):
-        ds = file[region_ref["ds_path"]]
-        ds_slice_idx = region_ref["ds_slice_idx"]
-        if len(region_ref) < 3:     # TODO improve this assertion
-            return ds[ds_slice_idx]
-        else:
-            x_min = region_ref["x_min"]
-            x_max = region_ref["x_max"]
-            y_min = region_ref["y_min"]
-            y_max = region_ref["y_max"]
-            return ds[ds_slice_idx, x_min:x_max, y_min:y_max, ...]
 
-    @staticmethod
-    def get_metadata_ref(ds, idx):
-        return ds.name, idx
+class ParallelDatasetIOStrategy(SerialDatasetIOStrategy):
+    pass
+
+
+

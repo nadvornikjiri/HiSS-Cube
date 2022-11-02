@@ -20,7 +20,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import numpy as np
 
-H5_PATH = "../../results/SDSS_cube.h5"
+H5_PATH = "../../results/SDSS_cube_big.h5"
 INPUT_PATH = "../../data/raw"
 
 
@@ -46,7 +46,7 @@ def get_test_director(args, test_images, test_spectra, image_pattern, spectra_pa
 class TestSerialBuilder(unittest.TestCase):
 
     def setup_method(self, test_method):
-        truncate(H5_PATH)
+        # truncate(H5_PATH)
         self.config = get_default_config()
         self.dependency_provider = HiSSCubeProvider(H5_PATH, input_path=INPUT_PATH, config=self.config)
 

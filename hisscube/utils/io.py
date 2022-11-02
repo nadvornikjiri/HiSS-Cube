@@ -104,7 +104,7 @@ class H5Connector(ABC):
         return self.strategy.write_serialized_fits_header(ds, attrs_dict, idx)
 
     def require_semi_sparse_cube_grp(self):
-        grp = self.require_group(self.file, self.config.ORIG_CUBE_NAME)
+        grp = self.require_group(self.file, self.config.SPARSE_CUBE_NAME)
         set_nx_entry(grp, self)
         return grp
 
@@ -139,22 +139,23 @@ class H5Connector(ABC):
             ds = group[ds_name]
         return ds
 
-    def recreate_regionref_dataset(self, ds_name, spec_count, spec_zoom_group, dtype=h5py.regionref_dtype):
+    def recreate_regionref_dataset(self, ds_name, item_count, spec_zoom_group, dtype=None, wl_count=None):
         if ds_name in spec_zoom_group:
             del spec_zoom_group[ds_name]
-        if self.config.LINK_BATCH_SIZE > spec_count:
-            chunk_size = spec_count
+        if self.config.LINK_BATCH_SIZE > item_count:
+            chunk_size = item_count
         else:
             chunk_size = self.config.LINK_BATCH_SIZE
-        if self.config.MPIO:
-            return self.create_dataset(spec_zoom_group, ds_name,
-                                       (spec_count, self.config.MAX_CUTOUT_REFS),
-                                       chunk_size=(chunk_size, self.config.MAX_CUTOUT_REFS),
-                                       dataset_type=dtype)
+        if wl_count:
+            ds_shape = (item_count, wl_count, self.config.MAX_CUTOUT_REFS)
+            chunk_shape =(chunk_size, wl_count, self.config.MAX_CUTOUT_REFS)
         else:
-            return self.require_dataset(spec_zoom_group, ds_name,
-                                 (spec_count, self.config.MAX_CUTOUT_REFS),
-                                 dtype=h5py.regionref_dtype)
+            ds_shape = (item_count, self.config.MAX_CUTOUT_REFS)
+            chunk_shape = (chunk_size, self.config.MAX_CUTOUT_REFS)
+        return self.create_dataset(spec_zoom_group, ds_name,
+                                   ds_shape,
+                                   chunk_size=chunk_shape,
+                                   dataset_type=dtype)
 
     def create_spectrum_h5_dataset(self, group, file_name, spec_data_shape, chunk_size=None):
         return self.create_dataset(group, file_name, spec_data_shape, chunk_size)
@@ -269,7 +270,7 @@ class CBoostedMetadataBuildWriter(SerialH5Writer):
         self.h5_file_structure = {"name": ""}
 
     def require_semi_sparse_cube_grp(self):
-        grp = self.require_group(self.h5_file_structure, self.config.ORIG_CUBE_NAME)
+        grp = self.require_group(self.h5_file_structure, self.config.SPARSE_CUBE_NAME)
         set_nx_entry(grp, self)
         return grp
 

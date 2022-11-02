@@ -26,7 +26,7 @@ class Config:
         self.SPEC_SPAT_INDEX_ORDER = self.config.getint('Handler', 'SPEC_SPAT_INDEX_ORDER')
         self.IMAGE_CHUNK_SIZE = self.config.get('Handler', 'IMAGE_CHUNK_SIZE')
         self.ML_CUBE_CHUNK_SIZE = self.config.getint('Handler', 'ML_CUBE_CHUNK_SIZE')
-        self.ORIG_CUBE_NAME = self.config.get('Handler', 'ORIG_CUBE_NAME')
+        self.SPARSE_CUBE_NAME = self.config.get('Handler', 'SPARSE_CUBE_NAME')
         self.DENSE_CUBE_NAME = self.config.get('Handler', 'DENSE_CUBE_NAME')
         self.INCLUDE_ADDITIONAL_METADATA = self.config.getboolean('Handler', 'INCLUDE_ADDITIONAL_METADATA')
         self.INIT_ARRAY_SIZE = self.config.getint('Handler', 'INIT_ARRAY_SIZE')
@@ -66,11 +66,10 @@ class Config:
         self.REBIN_SAMPLES = self.config.getint('SDSS', 'REBIN_SAMPLES')
         self.APPLY_REBIN = self.config.getboolean('SDSS', 'APPLY_REBIN')
         self.APPLY_TRANSMISSION_CURVE = self.config.getboolean('SDSS', 'APPLY_TRANSMISSION_CURVE')
-
         self.IMG_RES_X = self.config.getint('SDSS', 'IMG_RES_X')
-
         self.IMG_RES_Y = self.config.getint('SDSS', 'IMG_RES_Y')
         self.IMG_DIAMETER_ANG_MIN = self.config.getfloat('SDSS', 'IMG_DIAMETER_ANG_MIN')
+        self.FILTER_CNT = self.config.getint('SDSS', 'FILTER_CNT')
 
         try:
             self.IMG_X_SIZE_ANG_MIN = self.config.getfloat('SDSS', 'IMG_X_SIZE_ANG_MIN')

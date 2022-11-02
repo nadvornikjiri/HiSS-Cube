@@ -6,6 +6,7 @@ from hisscube.utils.astrometry import get_image_lower_res_wcs
 from hisscube.utils.config import Config
 from hisscube.utils.io import H5Connector
 from hisscube.utils.nexus import set_nx_data, set_nx_signal
+import numpy as np
 
 
 def get_header_ds(h5_connector: H5Connector, max_entries, path_size, header_size, grp, ds_name, chunk_size=None):
@@ -22,6 +23,10 @@ def get_header_ds(h5_connector: H5Connector, max_entries, path_size, header_size
 class MetadataStrategy(ABC):
     def __init__(self, config: Config):
         self.config = config
+        dataset_path_type = h5py.string_dtype(encoding="utf-8", length=self.config.MAX_DS_PATH_SIZE)
+        self.img_region_ref_dtype = [("ds_path", dataset_path_type), ("ds_slice_idx", np.int64),
+                                     ("x_min", np.int32), ("x_max", np.int32),
+                                     ("y_min", np.int32), ("y_max", np.int32)]
 
     @abstractmethod
     def add_metadata(self, h5_connector, metadata, datasets, batch_i=None, batch_size=None, offset=None, fits_name=None,
@@ -29,7 +34,7 @@ class MetadataStrategy(ABC):
         raise NotImplementedError
 
     def clear_sparse_cube(self, h5_connector):
-        grp_name = self.config.ORIG_CUBE_NAME
+        grp_name = self.config.SPARSE_CUBE_NAME
         if grp_name in h5_connector.file:
             del h5_connector.file[grp_name]
 

@@ -74,7 +74,7 @@ class VisualizationProcessorStrategy(ABC):
     def _construct_spectral_cube_table(self, zoom):
         """
         This method constructs the dense cube from the semi-sparse cube tree in the HDF5 file for a given resolution.
-        It iterates over the individual spectra, reads the "image_cutouts" attribute and de-references all of the
+        It iterates over the individual spectra, reads the "sparse_cube" attribute and de-references all of the
         region references there. Returns coordinates for every voxel of the constructed 4D spectral cube (ra, dec,
         time, wavelength) + optional metadata if enabled by the self.INCLUDE_ADDITIONAL_METADATA.
 
@@ -321,24 +321,24 @@ class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
 
     def _construct_multires_spectral_cube_table(self, h5_parent):
         spec_data_dataset_multiple_zoom = get_data_datasets(self.h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
-                                                            self.config.ORIG_CUBE_NAME)
+                                                            self.config.SPARSE_CUBE_NAME)
         spec_data_ds = spec_data_dataset_multiple_zoom[self.output_zoom]
         spec_error_dataset_multiple_zoom = get_error_datasets(self.h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
-                                                              self.config.ORIG_CUBE_NAME)
+                                                              self.config.SPARSE_CUBE_NAME)
         spec_error_ds = spec_error_dataset_multiple_zoom[self.output_zoom]
         spec_wl_dataset_multiple_zoom = get_wl_datasets(self.h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
-                                                        self.config.ORIG_CUBE_NAME)
+                                                        self.config.SPARSE_CUBE_NAME)
         spec_wl_ds = spec_wl_dataset_multiple_zoom[self.output_zoom]
         spec_cnt_total = self.h5_connector.get_spectrum_count()
         spec_wl_for_all_spectra = np.repeat([spec_wl_ds], spec_cnt_total, axis=0)
         spec_ds = np.dstack([spec_wl_for_all_spectra, spec_data_ds, spec_error_ds])
         cutout_data_datasets_multiple_zoom = get_cutout_data_datasets(self.h5_connector, self.config.SPEC_ZOOM_CNT,
-                                                                      self.config.ORIG_CUBE_NAME)
+                                                                      self.config.SPARSE_CUBE_NAME)
         cutout_error_datasets_multiple_zoom = get_cutout_error_datasets(self.h5_connector, self.config.SPEC_ZOOM_CNT,
-                                                                        self.config.ORIG_CUBE_NAME)
+                                                                        self.config.SPARSE_CUBE_NAME)
         cutout_metadata_datasets_multiple_zoom = get_cutout_metadata_datasets(self.h5_connector,
                                                                               self.config.SPEC_ZOOM_CNT,
-                                                                              self.config.ORIG_CUBE_NAME)
+                                                                              self.config.SPARSE_CUBE_NAME)
         cutout_data_refs = cutout_data_datasets_multiple_zoom[self.output_zoom]
         cutout_error_refs = cutout_error_datasets_multiple_zoom[self.output_zoom]
         cutout_metadata_refs = cutout_metadata_datasets_multiple_zoom[self.output_zoom]

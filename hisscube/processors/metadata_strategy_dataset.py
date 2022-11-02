@@ -44,11 +44,11 @@ class DatasetStrategy(MetadataStrategy):
                 metadata_ds.write_direct(metadata_header_buffer[zoom_idx], source_sel=np.s_[0:batch_size],
                                          dest_sel=np.s_[offset:offset + batch_i + 1])
 
-    def get_cutout_bounds_from_spectrum(self, image_fits_header, res_idx, spectrum_metadata, photometry):
+    def get_cutout_bounds_from_spectrum(self, image_fits_header, zoom_idx, spectrum_metadata, photometry):
         time = get_time_from_image(image_fits_header)
         wl = photometry.get_image_wl(image_fits_header)
         w = get_optimized_wcs(image_fits_header)
-        cutout_bounds = get_cutout_bounds(image_fits_header, res_idx, spectrum_metadata,
+        cutout_bounds = get_cutout_bounds(image_fits_header, zoom_idx, spectrum_metadata,
                                           self.config.IMAGE_CUTOUT_SIZE)
         return cutout_bounds, time, w, wl
 

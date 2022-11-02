@@ -9,7 +9,7 @@ from hisscube.command import CLICommandInvoker
 # import pydevd_pycharm
 # import mpi4py
 # rank = mpi4py.MPI.COMM_WORLD.Get_rank()
-# port_mapping = [41053, 45481]
+# port_mapping = [32989, 40901, 37267, 42469, 45995, 38069, 46233, 44363]
 # pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
 # print(os.getpid())
 # print("Rank: %d" % rank)

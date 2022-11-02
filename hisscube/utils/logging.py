@@ -168,6 +168,7 @@ def get_c_timings_path(timings_log="logs/timings.csv"):
 
 
 def wrap_tqdm(iterator, mpio, name):
-    if not mpio:
-        iterator = tqdm(iterator, desc=("%s progress" % name), position=0, leave=True)
+    config = Config()
+    if not mpio or config.LOG_LEVEL == "DEBUG":
+        iterator = tqdm(iterator, desc=name, position=0, leave=True)
     return iterator

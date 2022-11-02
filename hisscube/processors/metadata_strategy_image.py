@@ -250,7 +250,7 @@ class DatasetImageStrategy(ImageMetadataStrategy):
                              batch_size=batch_size, batch_i=batch_i)
 
     def get_resolution_groups(self, metadata, h5_connector):
-        yield from get_dataset_resolution_groups(h5_connector, self.config.ORIG_CUBE_NAME, self.config.IMG_ZOOM_CNT,
+        yield from get_dataset_resolution_groups(h5_connector, self.config.SPARSE_CUBE_NAME, self.config.IMG_ZOOM_CNT,
                                                  "images")
 
     def write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs=False, no_datasets=False, range_min=None,
@@ -271,7 +271,7 @@ class DatasetImageStrategy(ImageMetadataStrategy):
 
     def _write_parsed_metadata(self, metadata, fits_path, no_attrs, no_datasets, offset, batch_size):
         img_datasets = get_data_datasets(self.h5_connector, "images", self.config.IMG_ZOOM_CNT,
-                                         self.config.ORIG_CUBE_NAME)
+                                         self.config.SPARSE_CUBE_NAME)
         fits_name = Path(fits_path).name
         if not no_attrs:
             self.metadata_strategy.add_metadata(self.h5_connector, metadata, img_datasets, self.img_cnt, batch_size,
@@ -315,6 +315,6 @@ class DatasetImageStrategy(ImageMetadataStrategy):
 
     def sort_indices(self, h5_connector):
         index_datasets = get_index_datasets(h5_connector, "images", self.config.IMG_ZOOM_CNT,
-                                            self.config.ORIG_CUBE_NAME)
+                                            self.config.SPARSE_CUBE_NAME)
         for index_ds in index_datasets:
             index_ds[:] = np.sort(index_ds[:], order=['spatial', 'time', 'wl'])

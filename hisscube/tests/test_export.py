@@ -17,7 +17,7 @@ from hisscube.processors.cube_visualization import VisualizationProcessor
 from hisscube.utils.config import Config
 from hisscube.utils.io import SerialH5Writer
 
-H5PATH = "../../results/SDSS_cube.h5"
+H5PATH = "../../results/SDSS_cube_big.h5"
 
 
 class TestExport(unittest.TestCase):
@@ -32,12 +32,12 @@ class TestExport(unittest.TestCase):
         spectra_pattern = "*.fits"
         args = Mock()
         args.command = "update"
-        args.truncate = True
-        args.fits_metadata_cache = True
-        args.metadata = True
-        args.data = True
-        args.link = True
-        args.visualization_cube = True
+        args.truncate = False
+        args.fits_metadata_cache = False
+        args.metadata = False
+        args.data = False
+        args.link = False
+        args.visualization_cube = False
         args.ml_cube = True
         args.output_path = H5PATH
         self.config = Config()
