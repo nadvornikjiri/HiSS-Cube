@@ -24,7 +24,7 @@ class HiSSCubeConstructionDirector:
             if self.config.CREATE_VISUALIZATION_CUBE:
                 self.builders.append(self.serial_builders.visualization_cube_builder)
             if self.config.CREATE_ML_CUBE:
-                self.builders.append(self.serial_builders.ml_cube_builder)
+                self.append_ml_cube_builder()
 
         elif self.args.command == "update":
             if self.args.truncate:
@@ -40,7 +40,7 @@ class HiSSCubeConstructionDirector:
             if self.args.visualization_cube:
                 self.builders.append(self.serial_builders.visualization_cube_builder)
             if self.args.ml_cube:
-                self.builders.append(self.serial_builders.ml_cube_builder)
+                self.append_ml_cube_builder()
 
         for builder in self.builders:
             builder.build()
@@ -73,3 +73,11 @@ class HiSSCubeConstructionDirector:
             self.builders.append(self.parallel_builders.link_builder)
         else:
             self.builders.append(self.serial_builders.link_builder)
+
+    def append_ml_cube_builder(self):
+        if self.config.MPIO:
+            self.builders.append(self.parallel_builders.ml_cube_builder)
+        else:
+            self.builders.append(self.serial_builders.ml_cube_builder)
+
+

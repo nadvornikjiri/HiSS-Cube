@@ -1,3 +1,4 @@
+import math
 import string
 import traceback
 from abc import ABCMeta, abstractmethod
@@ -6,9 +7,11 @@ from pathlib import Path
 from tqdm.auto import tqdm
 
 from hisscube.builders import Builder
+from hisscube.processors.cube_ml import MLProcessor
 from hisscube.processors.image import ImageProcessor
 from hisscube.processors.metadata import MetadataProcessor
 from hisscube.processors.metadata_strategy import require_zoom_grps
+from hisscube.processors.metadata_strategy_cube_ml import DatasetMLProcessorStrategy
 from hisscube.processors.metadata_strategy_image import DatasetImageStrategy
 from hisscube.processors.metadata_strategy_spectrum import DatasetSpectrumStrategy
 from hisscube.processors.spectrum import SpectrumProcessor
@@ -412,3 +415,107 @@ class ParallelLinkBuilder(ParallelBuilder):
                 print(traceback.format_exc())
             self.mpi_helper.comm.send(obj=inserted_cnt, tag=self.mpi_helper.FINISHED_TAG, dest=0)
             range_list, offset = self.mpi_helper.receive_work_parsed(status)
+
+
+class ParallelMLCubeBuilder(ParallelBuilder):
+    def __init__(self, config: Config, serial_h5_connector: SerialH5Writer, parallel_h5_connector: ParallelH5Writer,
+                 mpi_helper: MPIHelper,
+                 metadata_strategy: DatasetMLProcessorStrategy,
+                 ml_processor: MLProcessor):
+        super().__init__(config, serial_h5_connector, mpi_helper)
+        self.spectrum_strategy = metadata_strategy
+        self.ml_processor = ml_processor
+        self.parallel_connector = parallel_h5_connector
+        self.inserted_target_counts = None
+        self.is_building_finished = False
+
+    def build(self):
+        if self.rank == 0:
+            with self.h5_connector as serial_connector:
+                dense_grp, target_count, target_spatial_indices = self.ml_processor.get_targets(serial_connector)
+                if target_count > 0:
+                    final_zoom = self.ml_processor.recreate_datasets(serial_connector, dense_grp, target_count)
+                    self.inserted_target_counts = [None] * math.ceil(target_count / self.config.ML_BATCH_SIZE)
+        self.mpi_helper.barrier()
+        with self.parallel_connector as h5_connector:
+            if self.rank == 0:
+                self.distribute_work(h5_connector, target_spatial_indices, self.ml_processor,
+                                     self.config.ML_BATCH_SIZE, "ML cube spectra", total=target_count)
+            else:
+                self.build_ml_cube(h5_connector)
+                self.spectrum_strategy.clear_buffers()
+        self.mpi_helper.barrier()
+        if self.rank == 0:
+            with self.h5_connector as serial_connector:
+                dense_grp = serial_connector.get_dense_group()
+                self.ml_processor.recreate_copy_datasets(serial_connector, dense_grp, target_count)
+        self.mpi_helper.barrier()
+        self.is_building_finished = True
+        with self.parallel_connector as h5_connector:
+            if self.rank == 0:
+                new_offsets = self.prefix_sum(self.inserted_target_counts)
+                self.distribute_work(h5_connector, new_offsets, self.ml_processor,
+                                     1, "Shrinking ML cube", total=len(new_offsets))
+            else:
+                self.copy_slice(h5_connector)
+        self.mpi_helper.barrier()
+        if self.rank == 0:
+            with self.h5_connector as serial_connector:
+                old_offset, cnt, new_offset = new_offsets[-1]
+                self.ml_processor.merge_datasets(serial_connector)
+                self.ml_processor.shrink_datasets(final_zoom, serial_connector, new_offset + cnt)
+        self.mpi_helper.barrier()
+
+    def build_ml_cube(self, h5_connector):
+        status = self.mpi_helper.MPI.Status()
+        target_spatial_indices, offset = self.mpi_helper.receive_work_parsed(status)
+        while status.Get_tag() != self.mpi_helper.KILL_TAG:
+            batch_size = len(target_spatial_indices)
+            inserted_cnt = 0
+            try:
+                dense_grp, spectra_index_spec_ids_orig_zoom = self.ml_processor.get_entry_points(h5_connector)
+                inserted_cnt = self.ml_processor.process_data(h5_connector, spectra_index_spec_ids_orig_zoom,
+                                                              target_spatial_indices, offset,
+                                                              offset + batch_size,
+                                                              batch_size)
+            except Exception as e:
+                self.logger.warning("Could not process %s, message: %s" % (target_spatial_indices, str(e)))
+                print(traceback.format_exc())
+            self.mpi_helper.comm.send(obj=(offset, inserted_cnt), tag=self.mpi_helper.FINISHED_TAG, dest=0)
+            target_spatial_indices, offset = self.mpi_helper.receive_work_parsed(status)
+
+    def process_response(self, h5_connector, processor, status):
+        offset, inserted_cnt = self.mpi_helper.comm.recv(source=self.mpi_helper.MPI.ANY_SOURCE,
+                                                         tag=self.mpi_helper.FINISHED_TAG,
+                                                         status=status)
+        job_idx = int(offset / self.config.ML_BATCH_SIZE)
+        if not self.is_building_finished:
+            self.inserted_target_counts[job_idx] = offset, inserted_cnt
+        self.h5_connector.fits_total_cnt += 1
+        self.logger.debug(
+            "Received response from. dest %02d: %d " % (status.Get_source(), self.mpi_helper.sent_work_cnt))
+
+    def copy_slice(self, h5_connector):
+        status = self.mpi_helper.MPI.Status()
+        copy_batch = self.mpi_helper.receive_work_parsed(status)
+        while status.Get_tag() != self.mpi_helper.KILL_TAG:
+            try:
+                msg, offset = copy_batch
+                for old_offset, cnt, new_offset in msg:
+                    self.ml_processor.copy_slice(h5_connector, old_offset, cnt, new_offset)
+            except Exception as e:
+                self.logger.warning("Could not copy slice: %s, message: %s" % (
+                    copy_batch, str(e)))
+                print(traceback.format_exc())
+            self.mpi_helper.comm.send(obj=(-1, -1), tag=self.mpi_helper.FINISHED_TAG, dest=0)
+            copy_batch = self.mpi_helper.receive_work_parsed(status)
+
+    @staticmethod
+    def prefix_sum(inserted_target_counts):
+        to_be_copied = []
+        new_offset = 0
+        for old_offset, cnt in inserted_target_counts:
+            if cnt > 0:
+                to_be_copied.append((old_offset, cnt, new_offset))
+            new_offset += cnt
+        return to_be_copied

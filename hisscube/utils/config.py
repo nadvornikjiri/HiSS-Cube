@@ -56,6 +56,7 @@ class Config:
         self.SPECTRUM_DATA_BATCH_SIZE = self.config.getint('MPI', 'SPECTRUM_DATA_BATCH_SIZE')
         self.POLL_INTERVAL = self.config.getfloat('MPI', 'POLL_INTERVAL')
         self.LINK_BATCH_SIZE = self.config.getint('MPI', 'LINK_BATCH_SIZE')
+        self.ML_BATCH_SIZE = self.config.getint('MPI', 'ML_BATCH_SIZE')
 
         self.OUTPUT_HEAL_ORDER = self.config.getint('Reader', 'OUTPUT_HEAL_ORDER')
 

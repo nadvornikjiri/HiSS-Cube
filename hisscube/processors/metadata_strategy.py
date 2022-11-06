@@ -38,6 +38,16 @@ class MetadataStrategy(ABC):
         if grp_name in h5_connector.file:
             del h5_connector.file[grp_name]
 
+    def get_cutout_buffer(self, batch_size):
+        return np.zeros(
+            (min(self.config.IMG_ZOOM_CNT, self.config.SPEC_ZOOM_CNT), batch_size,
+             self.config.MAX_CUTOUT_REFS), dtype=self.img_region_ref_dtype)
+
+    def get_cutout_buffer_per_wl(self, batch_size, wl_count):
+        return np.zeros(
+            (min(self.config.IMG_ZOOM_CNT, self.config.SPEC_ZOOM_CNT), batch_size, wl_count,
+             self.config.MAX_CUTOUT_REFS), dtype=self.img_region_ref_dtype)
+
 
 def write_naxis_values(fits_header, ds_shape):
     naxis = len(ds_shape)

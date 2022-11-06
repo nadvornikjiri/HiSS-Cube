@@ -4,7 +4,7 @@ from pathlib import Path
 from hisscube.builders import SingleImageBuilder, SingleSpectrumBuilder, MetadataCacheBuilder, MetadataBuilder, \
     CBoosterMetadataBuilder, DataBuilder, LinkBuilder, MLCubeBuilder, VisualizationCubeBuilder
 from hisscube.builders_parallel import ParallelMWMRDataBuilder, ParallelSWMRDataBuilder, ParallelMetadataCacheBuilder, \
-    ParallelMetadataBuilder, ParallelLinkBuilder
+    ParallelMetadataBuilder, ParallelLinkBuilder, ParallelMLCubeBuilder
 from hisscube.processors.cube_ml import MLProcessor
 from hisscube.processors.cube_visualization import VisualizationProcessor
 from hisscube.processors.metadata import MetadataProcessor
@@ -158,3 +158,6 @@ class ParallelBuilderProvider:
         self.link_builder = ParallelLinkBuilder(config, serial_connector, parallel_connector, mpi_helper,
                                                 processors.spectrum_metadata_strategy,
                                                 processors.spectrum_metadata_processor)
+
+        self.ml_cube_builder = ParallelMLCubeBuilder(config, serial_connector, parallel_connector, mpi_helper,
+                                                     processors.ml_cube_strategy, processors.ml_cube_processor)

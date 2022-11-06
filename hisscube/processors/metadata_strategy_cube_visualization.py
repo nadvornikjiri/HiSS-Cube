@@ -424,12 +424,8 @@ class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
 
         """
         cutout_metadata = self.h5_connector.dereference_region_ref(cutout_metadata_ref)
-        if not self.config.MPIO:
-            image_path = cutout_metadata["path"][0]  # TODO check why we need the index 0 here.
-            image_fits_header = ujson.loads(cutout_metadata["header"][0])
-        else:
-            image_path = cutout_metadata["path"]  # TODO check why we need the index 0 here.
-            image_fits_header = ujson.loads(cutout_metadata["header"])
+        image_path = cutout_metadata["path"]
+        image_fits_header = ujson.loads(cutout_metadata["header"])
         image_data_region = self.h5_connector.dereference_region_ref(region_data_ref)
         image_error_region = self.h5_connector.dereference_region_ref(region_error_ref)
         image_region = np.dstack([image_data_region, image_error_region])

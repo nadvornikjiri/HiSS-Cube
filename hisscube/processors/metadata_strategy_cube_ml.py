@@ -68,6 +68,23 @@ class MLProcessorStrategy(ABC):
         self.spec_3d_cube_datasets = {"spectrum": {}, "image": {}, "image_cutout_refs": {}, "image_metadata_refs": {},
                                       "spec_metadata_refs": {}}
         self.target_complete_cnt = {}
+        self.image_cube_buffer = {}
+        self.spec_cube_buffer = {}
+        self.image_cutout_refs_buffer = None
+        self.image_metadata_refs_buffer = None
+        self.spec_metadata_refs_buffer = None
+
+    def clear_buffers(self):
+        del self.image_cube_buffer
+        del self.spec_cube_buffer
+        del self.image_cutout_refs_buffer
+        del self.image_metadata_refs_buffer
+        del self.spec_metadata_refs_buffer
+        self.image_cube_buffer = {}
+        self.spec_cube_buffer = {}
+        self.image_cutout_refs_buffer = None
+        self.image_metadata_refs_buffer = None
+        self.spec_metadata_refs_buffer = None
 
     @abstractmethod
     def create_3d_cube(self, h5_connector):
@@ -84,8 +101,8 @@ class MLProcessorStrategy(ABC):
         target_image_3d_cube = np.array(target_image_3d_cube)
         return target_image_3d_cube, target_spectra_1d_cube1d_cube
 
-    def _create_datasets_for_zoom(self, h5_connector: H5Connector, cutout_size, dense_grp, target_count, rebin_samples,
-                                  zoom):
+    def create_datasets_for_zoom(self, h5_connector: H5Connector, cutout_size, dense_grp, target_count, rebin_samples,
+                                 zoom, copy=False):
         spectral_dshape = (target_count,
                            int(rebin_samples / 2 ** zoom))
         if self.config.ML_CUBE_CHUNK_SIZE > target_count:
@@ -94,50 +111,69 @@ class MLProcessorStrategy(ABC):
             spectral_stack_chunk = self.config.ML_CUBE_CHUNK_SIZE
         spectral_chunk_size = (spectral_stack_chunk,) + spectral_dshape[1:]
         image_dshape = (target_count,
-                        5,  # no image bands that can cover spectrum.
+                        5,  # number of image bands that can cover spectrum.
                         int(cutout_size / 2 ** zoom),
                         int(cutout_size / 2 ** zoom))
         image_chunk_size = (spectral_stack_chunk,) + image_dshape[1:]
         dtype = np.dtype('<f4')  # both mean and sigma values are float
-        image_ml_grp, spec_ml_grp = self.recreate_groups(dense_grp, h5_connector, zoom)
+        if not copy:
+            image_ml_grp, spec_ml_grp = self.recreate_groups(dense_grp, h5_connector, zoom)
+        else:
+            res_grp = dense_grp[str(zoom)]
+            image_ml_grp = res_grp["ml_image"]
+            spec_ml_grp = res_grp["ml_spectrum"]
         self.recreate_data_datasets(dtype, h5_connector, image_chunk_size, image_dshape, image_ml_grp, spec_ml_grp,
-                                    spectral_chunk_size, spectral_dshape, zoom)
-        self.recreate_index_datasets(h5_connector, zoom, image_ml_grp, spec_ml_grp, target_count)
+                                    spectral_chunk_size, spectral_dshape, zoom, copy)
+        self.recreate_index_datasets(h5_connector, zoom, image_ml_grp, spec_ml_grp, target_count, copy)
         self.target_complete_cnt[zoom] = 0
 
-    def recreate_index_datasets(self, h5_connector: H5Connector, zoom, image_ml_grp, spec_ml_grp, target_count):
+    def recreate_index_datasets(self, h5_connector: H5Connector, zoom, image_ml_grp, spec_ml_grp, target_count,
+                                copy=False):
         self.recreate_index_dataset(h5_connector, image_ml_grp, target_count, zoom, "image_cutout_refs",
-                                    wl_count=self.config.FILTER_CNT)
+                                    wl_count=self.config.FILTER_CNT, copy=copy)
         self.recreate_index_dataset(h5_connector, image_ml_grp, target_count, zoom, "image_metadata_refs",
-                                    wl_count=self.config.FILTER_CNT)
-        self.recreate_index_dataset(h5_connector, spec_ml_grp, target_count, zoom, "spec_metadata_refs")
+                                    wl_count=self.config.FILTER_CNT, copy=copy)
+        self.recreate_index_dataset(h5_connector, spec_ml_grp, target_count, zoom, "spec_metadata_refs", copy=copy)
 
-    def recreate_index_dataset(self, h5_connector, image_ml_grp, target_count, zoom, ds_name, wl_count=None):
+    def recreate_index_dataset(self, h5_connector, image_ml_grp, target_count, zoom, ds_name, wl_count=None,
+                               copy=False):
+        if copy:
+            ds_name += "_copy"
         image_index_ds = h5_connector.recreate_regionref_dataset(ds_name, target_count, image_ml_grp,
                                                                  dtype=self.img_region_ref_dtype, wl_count=wl_count)
-        self.spec_3d_cube_datasets[ds_name][zoom] = image_index_ds
+        if not copy:
+            self.spec_3d_cube_datasets[ds_name][zoom] = image_index_ds
 
     def recreate_data_datasets(self, dtype, h5_connector, image_chunk_size, image_dshape, image_ml_grp, spec_ml_grp,
-                               spectral_chunk_size, spectral_dshape, zoom):
-        ds_name = "cutout_3d_cube_zoom_%d" % zoom
+                               spectral_chunk_size, spectral_dshape, zoom, copy=False):
+        if copy:
+            ds_name = "cutout_3d_cube_zoom_%d_copy" % zoom
+        else:
+            ds_name = "cutout_3d_cube_zoom_%d" % zoom
         if ds_name in image_ml_grp:
             del image_ml_grp[ds_name]
         image_ds = h5_connector.create_dataset(image_ml_grp, ds_name, image_dshape, chunk_size=image_chunk_size,
                                                dataset_type=dtype)
         set_nx_interpretation(image_ds, "image", h5_connector)
-        self.spec_3d_cube_datasets["image"][zoom] = image_ds
-        self._create_error_ds(h5_connector, image_ml_grp, image_ds, image_dshape, dtype, chunk_size=image_chunk_size)
-        set_nx_signal(image_ml_grp, ds_name, h5_connector)
-        ds_name = "spectral_1d_cube_zoom_%d" % zoom
+        if not copy:
+            self.spec_3d_cube_datasets["image"][zoom] = image_ds
+            set_nx_signal(image_ml_grp, ds_name, h5_connector)
+        self._create_error_ds(h5_connector, image_ml_grp, image_ds, image_dshape, dtype, chunk_size=image_chunk_size,
+                              copy=copy)
+        if copy:
+            ds_name = "spectral_1d_cube_zoom_%d_copy" % zoom
+        else:
+            ds_name = "spectral_1d_cube_zoom_%d" % zoom
         if ds_name in spec_ml_grp:
             del spec_ml_grp[ds_name]
         spec_ds = h5_connector.create_dataset(spec_ml_grp, ds_name, spectral_dshape, chunk_size=spectral_chunk_size,
                                               dataset_type=dtype)
         set_nx_interpretation(spec_ds, "spectrum", h5_connector)
-        self.spec_3d_cube_datasets["spectrum"][zoom] = spec_ds
+        if not copy:
+            self.spec_3d_cube_datasets["spectrum"][zoom] = spec_ds
+            set_nx_signal(spec_ml_grp, ds_name, h5_connector)
         self._create_error_ds(h5_connector, spec_ml_grp, spec_ds, spectral_dshape, dtype,
-                              chunk_size=spectral_chunk_size)
-        set_nx_signal(spec_ml_grp, ds_name, h5_connector)
+                              chunk_size=spectral_chunk_size, copy=copy)
 
     def recreate_groups(self, dense_grp, h5_connector, zoom):
         res_grp = dense_grp.require_group(str(zoom))
@@ -152,13 +188,30 @@ class MLProcessorStrategy(ABC):
         return image_ml_grp, spec_ml_grp
 
     @staticmethod
-    def get_spectrum_3d_cube(h5_connector, zoom):
-        h5_connector = h5_connector
-        cutout_3d_cube = h5_connector.file["dense_cube/%d/ml_image/cutout_3d_cube_zoom_%d" % (zoom, zoom)]
-        cutout_3d_cube_errors = h5_connector.file["dense_cube/%d/ml_image/errors" % zoom]
-        spec_1d_cube = h5_connector.file["dense_cube/%d/ml_spectrum/spectral_1d_cube_zoom_%d" % (zoom, zoom)]
-        spec_1d_cube_errors = h5_connector.file["dense_cube/%d/ml_spectrum/errors" % zoom]
+    def get_data(h5_connector, zoom, copy=False):
+        if copy:
+            copy_suffix = "_copy"
+        else:
+            copy_suffix = ""
+        cutout_3d_cube = h5_connector.file[
+            "dense_cube/%d/ml_image/cutout_3d_cube_zoom_%d%s" % (zoom, zoom, copy_suffix)]
+        cutout_3d_cube_errors = h5_connector.file["dense_cube/%d/ml_image/errors%s" % (zoom, copy_suffix)]
+        spec_1d_cube = h5_connector.file[
+            "dense_cube/%d/ml_spectrum/spectral_1d_cube_zoom_%d%s" % (zoom, zoom, copy_suffix)]
+        spec_1d_cube_errors = h5_connector.file["dense_cube/%d/ml_spectrum/errors%s" % (zoom, copy_suffix)]
         return cutout_3d_cube, cutout_3d_cube_errors, spec_1d_cube, spec_1d_cube_errors
+
+    @staticmethod
+    def get_metadata(h5_connector, zoom, copy=False):
+        if copy:
+            copy_suffix = "_copy"
+        else:
+            copy_suffix = ""
+        image_cutout_refs_ds = h5_connector.file["dense_cube/%d/ml_image/image_cutout_refs%s" % (zoom, copy_suffix)]
+        image_metadata_refs_ds = h5_connector.file["dense_cube/%d/ml_image/image_metadata_refs%s" % (zoom, copy_suffix)]
+        spec_metadata_refs_ds = h5_connector.file[
+            "dense_cube/%d/ml_spectrum/spec_metadata_refs%s" % (zoom, copy_suffix)]
+        return image_cutout_refs_ds, image_metadata_refs_ds, spec_metadata_refs_ds
 
     @staticmethod
     def get_target_count(h5_connector):
@@ -176,45 +229,91 @@ class MLProcessorStrategy(ABC):
             return my_cnt
 
     @staticmethod
-    def _create_error_ds(h5_connector, ml_grp, ds, dshape, dtype, chunk_size=None):
+    def _create_error_ds(h5_connector, ml_grp, ds, dshape, dtype, chunk_size=None, copy=False):
         error_ds_name = "errors"
+        if copy:
+            error_ds_name += "_copy"
         if error_ds_name in ml_grp:
             del ml_grp[error_ds_name]
         error_ds = h5_connector.create_dataset(ml_grp, error_ds_name, dshape, chunk_size=chunk_size, dataset_type=dtype)
         ds.attrs["error_ds"] = error_ds.ref
         return error_ds
 
-    def _process_cutout_cube(self, h5_connector, cutout_cube: SparseTreeCube, spectra_cube, zoom):
-        if cutout_cube and len(cutout_cube.data) == len(self.photometry.filter_midpoints):  # all filters have cutout
-            self.write_data(h5_connector, cutout_cube, spectra_cube, zoom)
-            self.write_references(cutout_cube, spectra_cube, zoom)
-            self.target_complete_cnt[zoom] += 1
+    def _process_cutout_cube(self, h5_connector, cutout_cube: SparseTreeCube, spectra_cube, zoom, offset=None,
+                             batch_i=None,
+                             batch_size=None):
+        self.write_data(h5_connector, cutout_cube, spectra_cube, zoom, offset, batch_i, batch_size)
+        self.write_references(h5_connector, cutout_cube, spectra_cube, zoom, offset, batch_i, batch_size)
 
-    def write_data(self, h5_connector, cutout_cube, spectra_cube, zoom):
+    def write_data(self, h5_connector, cutout_cube, spectra_cube, zoom_idx, offset=None, batch_i=None,
+                   batch_size=None):
+        target_cnt = self.target_complete_cnt[zoom_idx]
+        if cutout_cube and len(cutout_cube.data) == len(self.photometry.filter_midpoints):  # all filters have cutout
+            self._write_data_to_buffer(batch_size, cutout_cube, spectra_cube, target_cnt, zoom_idx)
+        if batch_i == (batch_size - 1):
+            self._write_data_to_datasets(h5_connector, offset, target_cnt, zoom_idx)
+
+    def _write_data_to_datasets(self, h5_connector, offset, target_cnt, zoom_idx):
+        if max(self.target_complete_cnt.values()) > 0:
+            image_cube_ds, image_error_ds, spec_cube_ds, spec_error_ds = self.get_data(h5_connector, zoom_idx)
+            image_cube_ds[offset:offset + target_cnt] = self.image_cube_buffer[zoom_idx][
+                                                        0:target_cnt, ..., 0]  # Writing values
+            image_error_ds[offset:offset + target_cnt] = self.image_cube_buffer[zoom_idx][
+                                                         0:target_cnt, ..., 1]  # Writing errors
+            spec_cube_ds[offset:offset + target_cnt] = self.spec_cube_buffer[zoom_idx][
+                                                       0, 0:target_cnt, ..., 0]  # Writing values
+            spec_error_ds[offset:offset + target_cnt] = self.spec_cube_buffer[zoom_idx][
+                                                        0, 0:target_cnt, ..., 1]  # Writing errors
+
+    def _write_data_to_buffer(self, batch_size, cutout_cube, spectra_cube, target_cnt, zoom_idx):
         cutout_data = cutout_cube.data
         spec_data = spectra_cube.data
-        spec_cube_ds = self.spec_3d_cube_datasets["spectrum"][zoom]
-        image_cube_ds = self.spec_3d_cube_datasets["image"][zoom]
         target_image_3d_cube, target_spectra_1d_cube = self._aggregate_3d_cube(cutout_data, spec_data)
-        image_cube_ds[self.target_complete_cnt[zoom]] = target_image_3d_cube[:, :, :, 0]  # Writing values
-        image_error_ds = get_error_ds(h5_connector, image_cube_ds)
-        image_error_ds[self.target_complete_cnt[zoom]] = target_image_3d_cube[:, :, :, 1]  # Writing errors
-        spec_cube_ds[self.target_complete_cnt[zoom]] = target_spectra_1d_cube[0, :, 0]  # Writing values
-        spec_error_ds = get_error_ds(h5_connector, spec_cube_ds)
-        spec_error_ds[self.target_complete_cnt[zoom]] = target_spectra_1d_cube[0, :, 1]  # Writing errors
+        if zoom_idx not in self.image_cube_buffer:
+            self.image_cube_buffer[zoom_idx] = np.zeros((batch_size,) + target_image_3d_cube.shape,
+                                                        target_image_3d_cube.dtype)
+        if zoom_idx not in self.spec_cube_buffer:
+            self.spec_cube_buffer[zoom_idx] = np.zeros((batch_size,) + target_spectra_1d_cube.shape,
+                                                       target_spectra_1d_cube.dtype)
+        self.image_cube_buffer[zoom_idx][target_cnt] = target_image_3d_cube
+        self.spec_cube_buffer[zoom_idx][target_cnt] = target_spectra_1d_cube
 
-    def write_references(self, cutout_cube, spec_cube, zoom):
+    def write_references(self, h5_connector, cutout_cube, spec_cube, zoom_idx, offset=None, batch_i=None,
+                         batch_size=None):
+        target_idx = self.target_complete_cnt[zoom_idx]
+        if cutout_cube and len(cutout_cube.data) == len(self.photometry.filter_midpoints):
+            self._write_references_to_buffer(batch_size, cutout_cube, spec_cube, target_idx, zoom_idx)
+        if batch_i == (batch_size - 1):
+            self._write_references_to_datasets(h5_connector, offset, target_idx, zoom_idx)
+
+    def _write_references_to_buffer(self, batch_size, cutout_cube, spec_cube, target_idx, zoom_idx):
+        if self.image_cutout_refs_buffer is None:
+            self.image_cutout_refs_buffer = self.metadata_strategy.get_cutout_buffer_per_wl(batch_size,
+                                                                                            self.config.FILTER_CNT)
+        if self.image_metadata_refs_buffer is None:
+            self.image_metadata_refs_buffer = self.metadata_strategy.get_cutout_buffer_per_wl(batch_size,
+                                                                                              self.config.FILTER_CNT)
+        if self.spec_metadata_refs_buffer is None:
+            self.spec_metadata_refs_buffer = self.metadata_strategy.get_cutout_buffer(batch_size)
         cutout_refs = cutout_cube.image_cutout_refs
         image_metadata_refs = cutout_cube.image_metadata_refs
         spec_metadata_refs = spec_cube.spec_metadata_refs
-        cutout_refs_ds = self.spec_3d_cube_datasets["image_cutout_refs"][zoom]
-        image_metadata_refs_ds = self.spec_3d_cube_datasets["image_metadata_refs"][zoom]
-        spec_metadata_refs_ds = self.spec_3d_cube_datasets["spec_metadata_refs"][zoom]
-        target_idx = self.target_complete_cnt[zoom]
         for i, wl in enumerate(cutout_refs.keys()):
-            cutout_refs_ds[target_idx, i, 0:len(cutout_refs[wl])] = cutout_refs[wl]
-            image_metadata_refs_ds[target_idx, i, 0:len(image_metadata_refs[wl])] = image_metadata_refs[wl]
-        spec_metadata_refs_ds[target_idx, 0:len(spec_metadata_refs)] = spec_metadata_refs
+            number_of_cutouts = len(cutout_refs[wl])
+            self.image_cutout_refs_buffer[zoom_idx, target_idx, i, 0:number_of_cutouts] = cutout_refs[wl]
+            self.image_metadata_refs_buffer[zoom_idx, target_idx, i, 0:number_of_cutouts] = image_metadata_refs[wl]
+        self.spec_metadata_refs_buffer[zoom_idx, target_idx, 0:len(spec_metadata_refs)] = spec_metadata_refs
+        self.target_complete_cnt[zoom_idx] += 1
+
+    def _write_references_to_datasets(self, h5_connector, offset, target_idx, zoom_idx):
+        if max(self.target_complete_cnt.values()) > 0:
+            cutout_refs_ds, image_metadata_refs_ds, spec_metadata_refs_ds = self.get_metadata(h5_connector, zoom_idx)
+            cutout_refs_ds[offset:offset + target_idx, ...] = self.image_cutout_refs_buffer[zoom_idx][
+                                                              0:target_idx, ...]
+            image_metadata_refs_ds[offset:offset + target_idx, ...] = self.image_metadata_refs_buffer[zoom_idx][
+                                                                      0:target_idx, ...]
+            spec_metadata_refs_ds[offset:offset + target_idx, ...] = self.spec_metadata_refs_buffer[zoom_idx][
+                                                                     0:target_idx, ...]
 
     def _process_image_cutouts(self, cutout_wl, image_cutouts, image_region, data_ref=None, metadata_ref=None):
         if image_cutouts is None:
@@ -245,6 +344,31 @@ class MLProcessorStrategy(ABC):
                     image_metadata_refs[wl] = np.array(image_metadata_refs[wl])
         return sparse_cube
 
+    def process_data(self, h5_connector, spectra_index_spec_ids_orig_zoom, target_spatial_indices, offset=None,
+                     max_range=None, batch_size=None):
+        raise NotImplementedError
+
+    def get_targets(self, serial_connector):
+        raise NotImplementedError
+
+    def get_entry_points(self, h5_connector):
+        raise NotImplementedError
+
+    def recreate_datasets(self, serial_connector, dense_grp, target_count):
+        raise NotImplementedError
+
+    def shrink_datasets(self, final_zoom, serial_connector, final_target_cnt):
+        raise NotImplementedError
+
+    def recreate_copy_datasets(self, serial_connector, dense_grp, target_count):
+        raise NotImplementedError
+
+    def copy_slice(self, h5_connector, old_offset, cnt, new_offset):
+        raise NotImplementedError
+
+    def merge_datasets(self, h5_connector):
+        raise NotImplementedError
+
 
 class TreeMLProcessorStrategy(MLProcessorStrategy):
     def __init__(self, config, metadata_strategy: TreeStrategy, photometry: Photometry):
@@ -252,9 +376,9 @@ class TreeMLProcessorStrategy(MLProcessorStrategy):
         self.metadata_strategy: TreeStrategy = metadata_strategy
 
     def _get_spectral_cube(self, spec_datasets):
-        spec_ds = None
         spec_datasets_mean_sigma = self._get_mean_sigma(spec_datasets)
         spectra = SparseTreeCube(spec_datasets_mean_sigma)
+        spec_ds = spec_datasets[-1]
         return spec_ds, spectra
 
     @staticmethod
@@ -275,8 +399,8 @@ class TreeMLProcessorStrategy(MLProcessorStrategy):
 
         for zoom in range(min(self.config.IMG_ZOOM_CNT,
                               self.config.SPEC_ZOOM_CNT)):
-            self._create_datasets_for_zoom(h5_connector, self.config.IMAGE_CUTOUT_SIZE, dense_grp, target_count,
-                                           self.config.REBIN_SAMPLES, zoom)
+            self.create_datasets_for_zoom(h5_connector, self.config.IMAGE_CUTOUT_SIZE, dense_grp, target_count,
+                                          self.config.REBIN_SAMPLES, zoom)
 
         self._append_target_3d_cube(h5_connector, semi_sparse_grp)
         add_nexus_navigation_metadata(h5_connector, self.config)
@@ -304,7 +428,24 @@ class TreeMLProcessorStrategy(MLProcessorStrategy):
     def _write_target_3d_cube(self, h5_connector, spec_ds_dict):
         for zoom, spec_datasets in spec_ds_dict.items():
             cutout_cube, spectra_cube = self._construct_target_dense_cubes(h5_connector, zoom, spec_datasets)
-            self._process_cutout_cube(h5_connector, cutout_cube, spectra_cube, zoom)
+            if cutout_cube:
+                cutout_data = cutout_cube.data
+                spec_data = spectra_cube.data
+                spec_cube_ds = self.spec_3d_cube_datasets["spectrum"][zoom]
+                image_cube_ds = self.spec_3d_cube_datasets["image"][zoom]
+
+                target_image_3d_cube, target_spectra_1d_cube = self._aggregate_3d_cube(cutout_data, spec_data)
+                image_cube_ds[self.target_complete_cnt[zoom]] = target_image_3d_cube[:, :, :, 0]  # Writing values
+                image_error_ds_ref = image_cube_ds.attrs["error_ds"]
+                image_error_ds = h5_connector.file[image_error_ds_ref]
+                image_error_ds[self.target_complete_cnt[zoom]] = target_image_3d_cube[:, :, :, 1]  # Writing errors
+
+                spec_cube_ds[self.target_complete_cnt[zoom]] = target_spectra_1d_cube[:, 0]  # Writing values
+                spec_error_ds_ref = spec_cube_ds.attrs["error_ds"]
+                spec_error_ds = h5_connector.file[spec_error_ds_ref]
+                spec_error_ds[self.target_complete_cnt[zoom]] = target_spectra_1d_cube[:, 1]  # Writing errors
+
+                self.target_complete_cnt[zoom] += 1
 
     def _construct_target_dense_cubes(self, h5_connector, zoom, spec_datasets):
         spec_ds, spectra = self._get_spectral_cube(spec_datasets)
@@ -343,46 +484,78 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
         self.metadata_strategy: DatasetStrategy = metadata_strategy
 
     def create_3d_cube(self, h5_connector):
+        dense_grp, target_count, target_spatial_indices = self.get_targets(h5_connector)
+        dense_grp, spectra_index_spec_ids_orig_zoom = self.get_entry_points(h5_connector)
+        if target_count > 0:
+            final_zoom = self.recreate_datasets(h5_connector, dense_grp, target_count)
+
+            final_cnt = self.process_data(h5_connector, spectra_index_spec_ids_orig_zoom, target_spatial_indices)
+            self.shrink_datasets(final_zoom, h5_connector, final_cnt)
+
+    def get_entry_points(self, h5_connector: H5Connector):
+        dense_grp = h5_connector.get_dense_group()
+        spectrum_db_index_datasets = get_index_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
+                                                        self.config.SPARSE_CUBE_NAME)
+        spectrum_db_index_orig_zoom = spectrum_db_index_datasets[0]
+        spectra_index_spec_ids_orig_zoom = spectrum_db_index_orig_zoom[:, "ds_slice_idx"]
+        return dense_grp, spectra_index_spec_ids_orig_zoom
+
+    def get_targets(self, h5_connector):
         dense_grp = h5_connector.require_dense_group()
         spectrum_db_index_datasets = get_index_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
                                                         self.config.SPARSE_CUBE_NAME)
         spectrum_db_index_orig_zoom = spectrum_db_index_datasets[0]
         spectra_spatial_index_orig_zoom = spectrum_db_index_orig_zoom[:, "spatial"]
-        spectra_index_spec_ids_orig_zoom = spectrum_db_index_orig_zoom[:, "ds_slice_idx"]
         target_spatial_indices = list(self._get_target_spectra_spatial_ranges(spectra_spatial_index_orig_zoom))
         target_count = len(target_spatial_indices)
-        if target_count > 0:
-            dense_grp.attrs["target_count"] = target_count
-            final_zoom = min(self.config.IMG_ZOOM_CNT, self.config.SPEC_ZOOM_CNT)
-            for zoom in range(final_zoom):
-                self._create_datasets_for_zoom(h5_connector, self.config.IMAGE_CUTOUT_SIZE, dense_grp, target_count,
-                                               self.config.REBIN_SAMPLES, zoom)
+        return dense_grp, target_count, target_spatial_indices
 
-            spectra_data = get_data_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
-                                             self.config.SPARSE_CUBE_NAME)
-            spectra_errors = get_error_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
-                                                self.config.SPARSE_CUBE_NAME)
-            iterator = wrap_tqdm(target_spatial_indices, False, "ML cube spectra")
-            for spatial_index, db_index_from, db_index_to in iterator:
-                try:
-                    spec_ids = []
-                    for db_index in range(db_index_from, db_index_to):
-                        spec_ids.append(spectra_index_spec_ids_orig_zoom[db_index])
-                    self._append_target_3d_cube(h5_connector, spectra_data, spectra_errors, spec_ids)
-                except ValueError as e:
-                    self.logger.debug("Unable to create ML cube slice for spectrum %d" % spatial_index)
-                    self.logger.debug(traceback.format_exc())
-            h5_connector.set_target_count(self.target_complete_cnt[0])
-            for zoom in range(final_zoom):
-                image_data_ds = self.spec_3d_cube_datasets["image"][zoom]
-                image_error_ds = get_error_ds(h5_connector, image_data_ds)
-                image_data_ds.resize(self.target_complete_cnt[zoom], axis=0)
-                image_error_ds.resize(self.target_complete_cnt[zoom], axis=0)
-                spec_data_ds = self.spec_3d_cube_datasets["spectrum"][zoom]
-                spec_error_ds = get_error_ds(h5_connector, spec_data_ds)
-                spec_data_ds.resize(self.target_complete_cnt[zoom], axis=0)
-                spec_error_ds.resize(self.target_complete_cnt[zoom], axis=0)
-            add_nexus_navigation_metadata(h5_connector, self.config)
+    def recreate_datasets(self, h5_connector, dense_grp, target_count, copy=False):
+        dense_grp.attrs["target_count"] = target_count
+        final_zoom = min(self.config.IMG_ZOOM_CNT, self.config.SPEC_ZOOM_CNT)
+        for zoom in range(final_zoom):
+            self.create_datasets_for_zoom(h5_connector, self.config.IMAGE_CUTOUT_SIZE, dense_grp, target_count,
+                                          self.config.REBIN_SAMPLES, zoom, copy)
+        add_nexus_navigation_metadata(h5_connector, self.config)
+        return final_zoom
+
+    def recreate_copy_datasets(self, serial_connector, dense_grp, target_count):
+        return self.recreate_datasets(serial_connector, dense_grp, target_count, copy=True)
+
+    def shrink_datasets(self, final_zoom, h5_connector, final_target_cnt):
+        h5_connector.set_target_count(final_target_cnt)
+        for zoom in range(final_zoom):
+            data_datasets = self.get_data(h5_connector, zoom)
+            metadata_datasets = self.get_metadata(h5_connector, zoom)
+            for ds in (data_datasets + metadata_datasets):
+                ds.resize(final_target_cnt, axis=0)
+
+    def process_data(self, h5_connector, spectra_index_spec_ids_orig_zoom, target_spatial_indices, offset=None,
+                     max_range=None, batch_size=None):
+        if not offset:
+            offset = 0
+        if not max_range:
+            max_range = len(target_spatial_indices)
+        if not batch_size:
+            batch_size = len(target_spatial_indices)
+        spectra_data = get_data_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
+                                         self.config.SPARSE_CUBE_NAME)
+        spectra_errors = get_error_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
+                                            self.config.SPARSE_CUBE_NAME)
+        iterator = wrap_tqdm(target_spatial_indices, self.config.MPIO, "ML cube spectra")
+        for zoom_idx in range(min(self.config.SPEC_ZOOM_CNT, self.config.IMG_ZOOM_CNT)):
+            self.target_complete_cnt[zoom_idx] = 0
+        for i, (spatial_index, db_index_from, db_index_to) in enumerate(iterator):
+            try:
+                spec_ids = []
+                for db_index in range(db_index_from, db_index_to):
+                    spec_ids.append(spectra_index_spec_ids_orig_zoom[db_index])
+                self._append_target_3d_cube(h5_connector, spectra_data, spectra_errors, spec_ids, offset, i, batch_size)
+            except ValueError as e:
+                self.logger.debug("Unable to create ML cube slice for spectrum %d" % spatial_index)
+                self.logger.debug(traceback.format_exc())
+        self.clear_buffers()
+        return max(self.target_complete_cnt.values())
 
     def _get_target_spectra_spatial_ranges(self, spectra_spatial_index_orig_zoom):
         spectra_spatial_healpix_ids = np.unique(spectra_spatial_index_orig_zoom)
@@ -390,7 +563,8 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
             yield healpix_id, bisect_left(spectra_spatial_index_orig_zoom, healpix_id), bisect_right(
                 spectra_spatial_index_orig_zoom, healpix_id)
 
-    def _append_target_3d_cube(self, h5_connector, spectra_data, spectra_errors, spec_ids):
+    def _append_target_3d_cube(self, h5_connector, spectra_data, spectra_errors, spec_ids, offset=None, batch_i=None,
+                               batch_size=None):
         target_spectra_multiple_zoom_stacked = []
         for zoom in range(len(spectra_data)):
             target_spectra_multiple_zoom_stacked.append([])
@@ -399,14 +573,16 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
                 target_spectrum_errors = spectra_errors[zoom][spec_idx]
                 target_spectrum_stacked = np.dstack([target_spectrum_data, target_spectrum_errors])
                 target_spectra_multiple_zoom_stacked[zoom].append(target_spectrum_stacked)
-        self._write_target_3d_cube(h5_connector, target_spectra_multiple_zoom_stacked, spec_ids)
+        self._write_target_3d_cube(h5_connector, target_spectra_multiple_zoom_stacked, spec_ids, offset, batch_i,
+                                   batch_size)
 
-    def _write_target_3d_cube(self, h5_connector, target_spectra, spec_ids):
+    def _write_target_3d_cube(self, h5_connector, target_spectra, spec_ids, offset=None, batch_i=None,
+                              batch_size=None):
         spec_metadata_refs = {}
         for zoom, target_spectra in enumerate(target_spectra):
             cutout_cube, spectra_cube = self._construct_target_dense_cubes(h5_connector, spec_metadata_refs,
                                                                            target_spectra, zoom, spec_ids)
-            self._process_cutout_cube(h5_connector, cutout_cube, spectra_cube, zoom)
+            self._process_cutout_cube(h5_connector, cutout_cube, spectra_cube, zoom, offset, batch_i, batch_size)
 
     def _construct_target_dense_cubes(self, h5_connector, spec_metadata_refs, target_spectra, zoom, spec_ids):
         image_cutouts = None
@@ -474,3 +650,35 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
             else:
                 break  # necessary because of how null object references are tested in h5py dataset
         return self._construct_cutout_cube(image_cutouts, cutout_data)
+
+    def copy_slice(self, h5_connector, old_offset, cnt, new_offset):
+        for zoom in range(min(self.config.IMG_ZOOM_CNT, self.config.SPEC_ZOOM_CNT)):
+            orig_data_datasets = self.get_data(h5_connector, zoom)
+            orig_metadata_datasets = self.get_metadata(h5_connector, zoom)
+            copy_data_datasets = self.get_data(h5_connector, zoom, copy=True)
+            copy_metadata_datasets = self.get_metadata(h5_connector, zoom, copy=True)
+            self.__copy_items(orig_data_datasets, copy_data_datasets, old_offset, cnt, new_offset)
+            self.__copy_items(orig_metadata_datasets, copy_metadata_datasets, old_offset, cnt, new_offset)
+
+    @staticmethod
+    def __copy_items(old_datasets, new_datasets, old_offset, cnt, new_offset):
+        for old_ds, new_ds in zip(old_datasets, new_datasets):
+            new_ds[new_offset:new_offset + cnt, ...] = old_ds[old_offset:old_offset + cnt, ...]
+
+    def merge_datasets(self, h5_connector):
+        for zoom in range(min(self.config.IMG_ZOOM_CNT, self.config.SPEC_ZOOM_CNT)):
+            orig_data_datasets = self.get_data(h5_connector, zoom)
+            orig_metadata_datasets = self.get_metadata(h5_connector, zoom)
+            copy_data_datasets = self.get_data(h5_connector, zoom, copy=True)
+            copy_metadata_datasets = self.get_metadata(h5_connector, zoom, copy=True)
+            self.__merge_dataset_list(h5_connector, orig_data_datasets, copy_data_datasets)
+            self.__merge_dataset_list(h5_connector, orig_metadata_datasets, copy_metadata_datasets)
+
+    @staticmethod
+    def __merge_dataset_list(h5_connector, orig_datasets, copy_datasets):
+        for orig_ds, copy_ds in zip(orig_datasets, copy_datasets):
+            ds_path = orig_ds.name
+            copy_ds_path = copy_ds.name
+            del h5_connector.file[ds_path]
+            h5_connector.file[ds_path] = copy_ds
+            del h5_connector.file[copy_ds_path]

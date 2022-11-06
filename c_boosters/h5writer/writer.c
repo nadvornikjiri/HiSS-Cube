@@ -345,7 +345,7 @@ hid_t create_regref_ds(hid_t grp, PyObject *node) {
     PyObject *repr, *str;
     hid_t dcpl = H5Pcreate(H5P_DATASET_CREATE);
     H5Pset_alloc_time(dcpl, H5D_ALLOC_TIME_EARLY);
-    H5Pset_fill_time(dcpl, H5D_FILL_TIME_NEVER);
+    H5Pset_fill_time(dcpl, H5D_FILL_TIME_ALLOC);
     hid_t fspace;
     hsize_t x = 0;
     get_regref_dims(node, &x);

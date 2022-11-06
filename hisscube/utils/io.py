@@ -113,6 +113,9 @@ class H5Connector(ABC):
         set_nx_entry(grp, self)
         return grp
 
+    def get_dense_group(self):
+        return self.file[self.config.DENSE_CUBE_NAME]
+
     def require_group(self, parent_grp, name, track_order=False):
         if not name in parent_grp:
             self.grp_cnt += 1

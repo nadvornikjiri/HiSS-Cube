@@ -13,14 +13,14 @@ from hisscube.director import HiSSCubeConstructionDirector
 from hisscube.processors.data import float_compress
 from hisscube.utils.astrometry import is_cutout_whole
 from hisscube.utils.config import Config
-from hisscube.utils.io import truncate
+from hisscube.utils.io import truncate, H5Connector
 from hisscube.utils.logging import wrap_tqdm
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import numpy as np
 
-H5_PATH = "../../results/SDSS_cube_big.h5"
+H5_PATH = "../../results/SDSS_cube.h5"
 INPUT_PATH = "../../data/raw"
 
 
@@ -46,7 +46,7 @@ def get_test_director(args, test_images, test_spectra, image_pattern, spectra_pa
 class TestSerialBuilder(unittest.TestCase):
 
     def setup_method(self, test_method):
-        # truncate(H5_PATH)
+        truncate(H5_PATH)
         self.config = get_default_config()
         self.dependency_provider = HiSSCubeProvider(H5_PATH, input_path=INPUT_PATH, config=self.config)
 
@@ -115,15 +115,15 @@ class TestSerialBuilder(unittest.TestCase):
             director.construct()
 
     def test_add_spec_refs(self):
-        self.run_link_spectra()
-        with h5py.File(H5_PATH) as h5_file:
-            spec_datasets = self._get_test_spec_ds(h5_file)
-            self._assert_image_cutout_sizes(h5_file, spec_datasets)
+        dependency_provider = self.run_link_spectra()
+        with dependency_provider.h5_serial_writer as h5_connector:
+            spec_datasets = self._get_test_spec_ds(h5_connector.file)
+            self._assert_image_cutout_sizes(h5_connector, spec_datasets)
 
     def run_link_spectra(self, config=None):
         image_pattern = "frame-r-004136-3-0129.fits"
         spectra_pattern = "spec-0412-51871-0308.fits"
-        self._insert_links(image_pattern, spectra_pattern, config)
+        return self._insert_links(image_pattern, spectra_pattern, config)
 
     @staticmethod
     def _get_test_spec_ds(h5_file):
@@ -137,28 +137,29 @@ class TestSerialBuilder(unittest.TestCase):
             spec_datasets.append(spec_ds)
         return spec_datasets
 
-    def _assert_image_cutout_sizes(self, h5_file, spec_datasets):
+    def _assert_image_cutout_sizes(self, h5_connector, spec_datasets):
         assert bool(spec_datasets[0].parent.parent.parent["image_cutouts_0"][0])
         for spec_dataset in spec_datasets:
             for zoom in range(self.dependency_provider.config.SPEC_ZOOM_CNT):
                 cutout_list = spec_dataset.parent.parent.parent["image_cutouts_%d" % zoom]
-                self.assert_cutouts(h5_file, cutout_list, 0, 1)
+                self.assert_cutouts(h5_connector, cutout_list, 0, 1)
 
-    def assert_cutouts(self, h5_file, cutout_list, x_idx, y_idx):
+    def assert_cutouts(self, h5_connector: H5Connector, cutout_list, x_idx, y_idx):
         assert cutout_list[0]
         for cutout in cutout_list:
             if not cutout:
                 break
-            cutout_shape = h5_file[cutout][cutout].shape
+            cutout = h5_connector.dereference_region_ref(cutout)
+            cutout_shape = cutout.shape
             assert (0 <= cutout_shape[x_idx] <= 64)
             assert (0 <= cutout_shape[y_idx] <= 64)
 
     def test_add_spec_refs_dataset_strategy(self):
         self.config.METADATA_STRATEGY = "DATASET"
-        self.run_link_spectra(self.config)
-        with h5py.File(H5_PATH) as h5_file:
-            cutout_list = self._get_test_cutout_ds(h5_file)
-            self.assert_cutouts(h5_file, cutout_list, 1, 2)
+        dependency_provider = self.run_link_spectra(self.config)
+        with dependency_provider.h5_serial_writer as h5_connector:
+            cutout_list = self._get_test_cutout_ds(h5_connector.file)
+            self.assert_cutouts(h5_connector, cutout_list, 0, 1)
 
     @staticmethod
     def _get_test_cutout_ds(h5_file):
@@ -169,7 +170,7 @@ class TestSerialBuilder(unittest.TestCase):
         test_images = "../../data/raw/galaxy_small/images"
         test_spectra = "../../data/raw/galaxy_tiny/spectra"
         args = Mock()
-        args.truncate = False
+        args.truncate = True
         args.command = "update"
         args.fits_metadata_cache = True
         args.metadata = True
@@ -181,6 +182,7 @@ class TestSerialBuilder(unittest.TestCase):
         dependency_provider, director = get_test_director(args, test_images, test_spectra, image_pattern,
                                                           spectra_pattern, config=config)
         director.construct()
+        return dependency_provider
 
     def test_is_cutout_whole(self):
         test1 = [[[735, 1849],
