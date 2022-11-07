@@ -35,7 +35,10 @@ class Config:
         self.METADATA_CHUNK_SIZE = self.config.getint('Handler', 'METADATA_CHUNK_SIZE')
 
         self.COMPRESSION = self.config.get('Writer', 'COMPRESSION')
-        self.COMPRESSION_OPTS = self.config.getint('Writer', 'COMPRESSION_OPTS')
+        try:
+            self.COMPRESSION_OPTS = self.config.getint('Writer', 'COMPRESSION_OPTS')
+        except TypeError:
+            self.COMPRESSION_OPTS = None
         self.FLOAT_COMPRESS = self.config.getboolean('Writer', 'FLOAT_COMPRESS')
         self.SHUFFLE = self.config.getboolean('Writer', 'SHUFFLE')
         self.IMAGE_PATTERN = self.config.get('Writer', 'IMAGE_PATTERN')
