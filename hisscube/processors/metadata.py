@@ -114,7 +114,7 @@ class MetadataProcessor:
         if "fits_spectra_metadata" in h5_connector.file:
             del h5_connector.file["fits_spectra_metadata"]
 
-    @log_timing("fits_headers")
+    # @log_timing("fits_headers")
     def _write_fits_header(self, h5_connector, buf, buf_i, fits_cnt, fits_path, header_ds, offset):
         if buf_i >= self.config.FITS_HEADER_BATCH_SIZE:
             header_ds.write_direct(buf, source_sel=np.s_[0:buf_i], dest_sel=np.s_[offset:offset + buf_i])

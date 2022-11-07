@@ -63,7 +63,7 @@ class ImageMetadataStrategy(ABC):
             self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets, range_min,
                                              batch_size)
 
-    @log_timing("process_image_metadata")
+    # @log_timing("process_image_metadata")
     def _write_metadata_from_header(self, h5_connector, fits_path, header, no_attrs, no_datasets, offset=0,
                                     batch_size=None):
         self._set_connector(h5_connector)

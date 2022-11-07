@@ -63,7 +63,7 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
             self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets, range_min,
                                              batch_size)
 
-    @log_timing("process_spectrum_metadata")
+    # @log_timing("process_spectrum_metadata")
     def _write_metadata_from_header(self, h5_connector, fits_path, header, no_attrs, no_datasets, offset=0,
                                     batch_size=None):
         fits_path = fits_path.decode('utf-8')
