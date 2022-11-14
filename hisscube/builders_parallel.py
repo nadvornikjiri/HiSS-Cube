@@ -233,28 +233,38 @@ class ParallelDataBuilder(ParallelBuilder):
         self.image_processor = image_processor
         self.spectrum_processor = spectrum_processor
         self.photometry = photometry
+        self.should_process_images = True
+        self.should_process_spectra = True
 
     def build(self):
         self.mpi_helper.barrier()
         with self.h5_connector as h5_connector:
-            if self.rank == 0:
-                img_cnt = h5_connector.get_image_count()
-                image_paths = get_str_paths(get_image_header_dataset(h5_connector))
-                self.distribute_work(h5_connector, image_paths, self.image_processor, self.config.IMAGE_DATA_BATCH_SIZE,
-                                     "Image data", total=img_cnt)
-            else:
-                self.process_image_data(h5_connector, self.process_image)
-                self.image_processor.metadata_strategy.clear_buffers()
-            self.mpi_helper.barrier()
-            if self.mpi_helper.rank == 0:
-                spec_cnt = h5_connector.get_spectrum_count()
-                spectra_paths = get_str_paths(get_spectrum_header_dataset(h5_connector))
-                self.distribute_work(h5_connector, spectra_paths, self.spectrum_processor,
-                                     self.config.SPECTRUM_DATA_BATCH_SIZE, "Spectrum data", total=spec_cnt)
-            else:
-                self.process_spectra_data(h5_connector, self.process_spectrum)
-                self.spectrum_processor.metadata_strategy.clear_buffers()
-            self.mpi_helper.barrier()
+            if self.should_process_images:
+                self.build_image_data(h5_connector)
+            if self.should_process_spectra:
+                self.build_spectrum_data(h5_connector)
+
+    def build_spectrum_data(self, h5_connector):
+        if self.mpi_helper.rank == 0:
+            spec_cnt = h5_connector.get_spectrum_count()
+            spectra_paths = get_str_paths(get_spectrum_header_dataset(h5_connector))
+            self.distribute_work(h5_connector, spectra_paths, self.spectrum_processor,
+                                 self.config.SPECTRUM_DATA_BATCH_SIZE, "Spectrum data", total=spec_cnt)
+        else:
+            self.process_spectra_data(h5_connector, self.process_spectrum)
+            self.spectrum_processor.metadata_strategy.clear_buffers()
+        self.mpi_helper.barrier()
+
+    def build_image_data(self, h5_connector):
+        if self.rank == 0:
+            img_cnt = h5_connector.get_image_count()
+            image_paths = get_str_paths(get_image_header_dataset(h5_connector))
+            self.distribute_work(h5_connector, image_paths, self.image_processor, self.config.IMAGE_DATA_BATCH_SIZE,
+                                 "Image data", total=img_cnt)
+        else:
+            self.process_image_data(h5_connector, self.process_image)
+            self.image_processor.metadata_strategy.clear_buffers()
+        self.mpi_helper.barrier()
 
     @abstractmethod
     def process_image_data(self, h5_connector, process_func, *args, **kwargs):

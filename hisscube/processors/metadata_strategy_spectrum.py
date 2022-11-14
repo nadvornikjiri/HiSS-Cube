@@ -701,7 +701,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         fact = 2 ** self.config.SPEC_SPAT_INDEX_ORDER
         pix_ids = get_overlapping_healpix_pixel_ids(metadata, nside, fact,
                                                     self.config.IMG_DIAMETER_ANG_MIN)
-        if not index_dataset_orig_res:
+        if index_dataset_orig_res is None:
             index_dataset_orig_res = get_index_datasets(self.h5_connector, "images", self.config.IMG_ZOOM_CNT,
                                                         self.config.SPARSE_CUBE_NAME)[0]
         yield from self._get_image_ids_from_pix_ids(pix_ids, index_dataset_orig_res)

@@ -331,7 +331,8 @@ class Photometry:
     def _get_rebinned_spectrum(orig_wavs, flux_sigma_orig_res, flux_mean_orig_res, rebin_min, rebin_max,
                                rebin_samples):
         new_wavs = np.linspace(rebin_min, rebin_max, rebin_samples)
-        rebinned_flux, rebinned_sigma = spectres.spectres(new_wavs, orig_wavs, flux_mean_orig_res, flux_sigma_orig_res)
+        rebinned_flux, rebinned_sigma = spectres.spectres(new_wavs, orig_wavs, flux_mean_orig_res, flux_sigma_orig_res,
+                                                          verbose=False)
 
         return new_wavs, rebinned_flux, rebinned_sigma
 

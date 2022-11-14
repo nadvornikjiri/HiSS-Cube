@@ -43,6 +43,10 @@ if __name__ == '__main__':
     update_parser.add_argument('--metadata', action='store_true',
                                help="Recreate the semi-sparse group and everything beneath.")
     update_parser.add_argument('--data', action='store_true',
+                               help="Update all the image datasets within the semi-sparse group.")
+    update_parser.add_argument('--data-image', action='store_true',
+                               help="Update all the spectra datasets within the semi-sparse group.")
+    update_parser.add_argument('--data-spectrum', action='store_true',
                                help="Update all the image and spectra datasets within the semi-sparse group.")
     update_parser.add_argument('--link', action='store_true',
                                help="Recreate the image references for each spectrum.")
