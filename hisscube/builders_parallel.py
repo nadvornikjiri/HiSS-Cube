@@ -12,6 +12,7 @@ from hisscube.processors.image import ImageProcessor
 from hisscube.processors.metadata import MetadataProcessor
 from hisscube.processors.metadata_strategy import require_zoom_grps
 from hisscube.processors.metadata_strategy_cube_ml import DatasetMLProcessorStrategy
+from hisscube.processors.metadata_strategy_dataset import get_index_datasets
 from hisscube.processors.metadata_strategy_image import DatasetImageStrategy
 from hisscube.processors.metadata_strategy_spectrum import DatasetSpectrumStrategy
 from hisscube.processors.spectrum import SpectrumProcessor
@@ -397,11 +398,14 @@ class ParallelLinkBuilder(ParallelBuilder):
                 self.distribute_work(h5_connector, spectrum_range, self.spectrum_processor,
                                      self.config.LINK_BATCH_SIZE, "Linking spectra", total=spectrum_count)
             else:
-                self.link(h5_connector)
+                if self.config.CACHE_INDEX_FOR_LINKING:
+                    image_db_index = get_index_datasets(h5_connector, "images", self.config.IMG_ZOOM_CNT,
+                                                        self.config.SPARSE_CUBE_NAME)[0][:]
+                self.link(h5_connector, image_db_index)
                 self.spectrum_strategy.clear_buffers()
         self.mpi_helper.barrier()
 
-    def link(self, h5_connector):
+    def link(self, h5_connector, image_db_index):
         status = self.mpi_helper.MPI.Status()
         range_list, offset = self.mpi_helper.receive_work_parsed(status)
         while status.Get_tag() != self.mpi_helper.KILL_TAG:
@@ -409,7 +413,7 @@ class ParallelLinkBuilder(ParallelBuilder):
             try:
                 inserted_cnt = self.spectrum_processor.link_spectra_to_images(h5_connector, offset,
                                                                               offset + batch_size,
-                                                                              batch_size)
+                                                                              batch_size, image_db_index)
             except Exception as e:
                 self.logger.warning("Could not process %s, message: %s" % (range_list, str(e)))
                 print(traceback.format_exc())

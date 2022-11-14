@@ -103,7 +103,8 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def link_spectra_to_images(self, h5_connector, min_range=None, max_range=None, batch_size=None):
+    def link_spectra_to_images(self, h5_connector, min_range=None, max_range=None, batch_size=None,
+                               image_db_index=None):
         raise NotImplementedError
 
     @abstractmethod
@@ -156,7 +157,8 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
             spec_datasets.append(ds)
         return spec_datasets
 
-    def link_spectra_to_images(self, h5_connector, min_range=None, max_range=None, batch_size=None):
+    def link_spectra_to_images(self, h5_connector, min_range=None, max_range=None, batch_size=None,
+                               image_db_index=None):
         self.h5_connector = h5_connector
         self._add_image_refs(h5_connector.file)
 
@@ -433,7 +435,8 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         return get_dataset_resolution_groups(h5_connector, self.config.SPARSE_CUBE_NAME, self.config.SPEC_ZOOM_CNT,
                                              "spectra")
 
-    def link_spectra_to_images(self, h5_connector: H5Connector, range_min=None, range_max=None, batch_size=None):
+    def link_spectra_to_images(self, h5_connector: H5Connector, range_min=None, range_max=None, batch_size=None,
+                               image_db_index=None):
         self.h5_connector = h5_connector
         self.spec_cnt = 0
         self.target_with_cutout_cnt = 0
@@ -455,7 +458,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             try:
                 self._add_image_links_to_spectra(spectra_metadata_ds, image_data_cutout_ds,
                                                  image_error_cutout_ds, image_metadata_cutout_ds, range_min, i,
-                                                 batch_size)
+                                                 batch_size, image_db_index)
             except JSONDecodeError:
                 self.logger.debug("Could not link images for spectrum %d" % i)
         self.clear_buffers()  # necessary because linking doesn't always rewrite buffer
@@ -548,7 +551,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
 
     def _add_image_links_to_spectra(self, spec_metadata_datasets_multiple_zoom, image_data_cutout_ds_multiple_zoom,
                                     image_error_cutout_ds_multiple_zoom, image_metadata_cutout_ds_multiple_zoom,
-                                    range_min=None, batch_i=None, batch_size=None):
+                                    range_min=None, batch_i=None, batch_size=None, image_db_index=None):
         """
         Adds HDF5 Region references of image cut-outs to spectra attribute "sparse_cube". Throws NoCoverageFoundError
         if the cut-out does not span the whole cutout path_size for any reason.
@@ -568,7 +571,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         original_resolution_dataset = spec_metadata_datasets_multiple_zoom[0]
         spectrum_metadata = self.h5_connector.read_serialized_fits_header(original_resolution_dataset,
                                                                           idx=range_min + self.spec_cnt)
-        for image_idx in self._find_images_overlapping_spectrum(spectrum_metadata):
+        for image_idx in self._find_images_overlapping_spectrum(spectrum_metadata, image_db_index):
             for image_zoom in range(self.config.IMG_ZOOM_CNT):
                 image_data_dataset, image_error_dataset, image_metadata_dataset = self._get_image_ds(
                     image_data_datasets, image_error_datasets, image_metadata_datasets, image_zoom)
@@ -693,13 +696,14 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         region_ref = self.h5_connector.get_region_ref(image_ds, cutout_bounds, image_idx)
         return region_ref
 
-    def _find_images_overlapping_spectrum(self, metadata):
+    def _find_images_overlapping_spectrum(self, metadata, index_dataset_orig_res=None):
         nside = 2 ** (self.config.IMG_SPAT_INDEX_ORDER - 1)
         fact = 2 ** self.config.SPEC_SPAT_INDEX_ORDER
         pix_ids = get_overlapping_healpix_pixel_ids(metadata, nside, fact,
                                                     self.config.IMG_DIAMETER_ANG_MIN)
-        index_dataset_orig_res = get_index_datasets(self.h5_connector, "images", self.config.IMG_ZOOM_CNT,
-                                                    self.config.SPARSE_CUBE_NAME)[0]
+        if not index_dataset_orig_res:
+            index_dataset_orig_res = get_index_datasets(self.h5_connector, "images", self.config.IMG_ZOOM_CNT,
+                                                        self.config.SPARSE_CUBE_NAME)[0]
         yield from self._get_image_ids_from_pix_ids(pix_ids, index_dataset_orig_res)
 
     @staticmethod

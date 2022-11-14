@@ -60,6 +60,7 @@ class Config:
         self.POLL_INTERVAL = self.config.getfloat('MPI', 'POLL_INTERVAL')
         self.LINK_BATCH_SIZE = self.config.getint('MPI', 'LINK_BATCH_SIZE')
         self.ML_BATCH_SIZE = self.config.getint('MPI', 'ML_BATCH_SIZE')
+        self.CACHE_INDEX_FOR_LINKING = self.config.getboolean('MPI', 'CACHE_INDEX_FOR_LINKING')
 
         self.OUTPUT_HEAL_ORDER = self.config.getint('Reader', 'OUTPUT_HEAL_ORDER')
 
@@ -83,6 +84,3 @@ class Config:
             self.IMG_Y_SIZE_ANG_MIN = self.config.getfloat('SDSS', 'IMG_Y_SIZE_ANG_MIN')
         except ValueError:
             self.IMG_Y_SIZE_ANG_MIN = None
-
-
-
