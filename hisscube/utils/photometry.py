@@ -159,7 +159,7 @@ class Photometry:
         return fits_header, multiple_resolution_cube
 
     def mag_to_flux(self, fits_header, img_mag):
-        return img_mag * 3e-5 * 3.631e-6 / (self.filter_midpoints[fits_header["FILTER"]] ** 2)
+        return img_mag * 3.631e-6 * 2.99792458e-5 / (self.filter_midpoints[fits_header["FILTER"]] ** 2)
 
     def get_photometry_params(self, flux, wl):
         band, transmission_ratio, wl_trans = self._get_transmission_ratio(wl)
