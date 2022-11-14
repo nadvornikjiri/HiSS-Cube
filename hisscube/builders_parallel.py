@@ -35,7 +35,7 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
         status = self.mpi_helper.MPI.Status()
         batches = chunks(path_list, batch_size)
         offset = 0
-        pbar = tqdm(desc=desc, total=total)
+        pbar = tqdm(desc=desc, total=total, smoothing=0)
         for i, batch in enumerate(batches, 1):
             batch = list(batch)
             next_batch_size = len(batch)
