@@ -262,7 +262,8 @@ class TreeVisualizationProcessorStrategy(VisualizationProcessorStrategy):
                         self.output_counter += image_5d.shape[0]
                     except ValueError as e:
                         self.logger.error("Could not process region for %s, message: %s" % (spectrum_ds.name, str(e)))
-                        self.logger.error(traceback.format_exc())
+                        self.logger.debug(traceback.format_exc())
+                        raise e
                 else:
                     break  # necessary because of how null object references are tested in h5py dataset
 
@@ -387,7 +388,8 @@ class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
                     self.output_counter += image_5d.shape[0]
                 except ValueError as e:
                     self.logger.error("Could not process region for %s, message: %s" % (spectrum_ds, str(e)))
-                    self.logger.error(traceback.format_exc())
+                    self.logger.debug(traceback.format_exc())
+                    raise e
             else:
                 break  # necessary because of how null object references are tested in h5py dataset
 

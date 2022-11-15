@@ -12,7 +12,7 @@ from hisscube.processors.image import ImageProcessor
 from hisscube.processors.metadata import MetadataProcessor
 from hisscube.processors.metadata_strategy import require_zoom_grps
 from hisscube.processors.metadata_strategy_cube_ml import DatasetMLProcessorStrategy
-from hisscube.processors.metadata_strategy_dataset import get_index_datasets
+from hisscube.processors.metadata_strategy_dataset import get_index_datasets, get_wcs_datasets
 from hisscube.processors.metadata_strategy_image import DatasetImageStrategy
 from hisscube.processors.metadata_strategy_spectrum import DatasetSpectrumStrategy
 from hisscube.processors.spectrum import SpectrumProcessor
@@ -75,6 +75,9 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
                     process_func(h5_connector, i, path, offset, batch_size, *args, **kwargs)
                 except Exception as e:
                     self.logger.warning("Could not process %s, message: %s" % (path, str(e)))
+                    if self.config.LOG_LEVEL == "DEBUG":
+                        self.logger.debug(traceback.format_exc())
+                        raise e
             self.mpi_helper.comm.send(obj=None, tag=self.mpi_helper.FINISHED_TAG, dest=0)
             path_list, offset = self.mpi_helper.receive_work_parsed(status)
 
@@ -152,6 +155,9 @@ class ParallelMetadataCacheBuilder(ParallelBuilder):
             except Exception as e:
                 self.logger.warning("Could not process %s, message: %s" % (path_list, str(e)))
                 inserted_cnt = 0
+                if self.config.LOG_LEVEL == "DEBUG":
+                    self.logger.debug(traceback.format_exc())
+                    raise e
             self.mpi_helper.comm.send(obj=inserted_cnt, tag=self.mpi_helper.FINISHED_TAG, dest=0)
             path_list, offset = self.mpi_helper.receive_work_parsed(status)
 
@@ -175,9 +181,8 @@ class ParallelMetadataBuilder(ParallelBuilder):
     def build(self):
         if self.rank == 0:
             with self.h5_connector as h5_connector:
-                self.metadata_processor.clear_sparse_cube(h5_connector)
-                self.image_strategy.require_datasets(h5_connector)
-                self.spectrum_strategy.require_datasets(h5_connector)
+                self.image_strategy.recreate_datasets(h5_connector)
+                self.spectrum_strategy.recreate_datasets(h5_connector)
                 self.image_count = h5_connector.get_image_count()
                 self.spectrum_count = h5_connector.get_spectrum_count()
         self.mpi_helper.barrier()
@@ -220,6 +225,9 @@ class ParallelMetadataBuilder(ParallelBuilder):
             except Exception as e:
                 self.logger.warning("Could not process %s, message: %s" % (range_list, str(e)))
                 inserted_cnt = 0
+                if self.config.LOG_LEVEL == "DEBUG":
+                    self.logger.debug(traceback.format_exc())
+                    raise e
             self.mpi_helper.comm.send(obj=inserted_cnt, tag=self.mpi_helper.FINISHED_TAG, dest=0)
             range_list, offset = self.mpi_helper.receive_work_parsed(status)
 
@@ -408,14 +416,20 @@ class ParallelLinkBuilder(ParallelBuilder):
                 self.distribute_work(h5_connector, spectrum_range, self.spectrum_processor,
                                      self.config.LINK_BATCH_SIZE, "Linking spectra", total=spectrum_count)
             else:
+
+                image_db_index = get_index_datasets(h5_connector, "images", self.config.IMG_ZOOM_CNT,
+                                                    self.config.SPARSE_CUBE_NAME)[0]
+                image_wcs_datasets = get_wcs_datasets(h5_connector, "images", self.config.IMG_ZOOM_CNT,
+                                                      self.config.SPARSE_CUBE_NAME)
                 if self.config.CACHE_INDEX_FOR_LINKING:
-                    image_db_index = get_index_datasets(h5_connector, "images", self.config.IMG_ZOOM_CNT,
-                                                        self.config.SPARSE_CUBE_NAME)[0][:]
-                self.link(h5_connector, image_db_index)
+                    image_db_index = image_db_index[:]
+                if self.config.CACHE_WCS_FOR_LINKING:
+                    image_wcs_datasets = [ds[:] for ds in image_wcs_datasets]
+                self.link(h5_connector, image_db_index, image_wcs_datasets)
                 self.spectrum_strategy.clear_buffers()
         self.mpi_helper.barrier()
 
-    def link(self, h5_connector, image_db_index):
+    def link(self, h5_connector, image_db_index, image_wcs_data):
         status = self.mpi_helper.MPI.Status()
         range_list, offset = self.mpi_helper.receive_work_parsed(status)
         while status.Get_tag() != self.mpi_helper.KILL_TAG:
@@ -423,10 +437,13 @@ class ParallelLinkBuilder(ParallelBuilder):
             try:
                 inserted_cnt = self.spectrum_processor.link_spectra_to_images(h5_connector, offset,
                                                                               offset + batch_size,
-                                                                              batch_size, image_db_index)
+                                                                              batch_size, image_db_index,
+                                                                              image_wcs_data)
             except Exception as e:
                 self.logger.warning("Could not process %s, message: %s" % (range_list, str(e)))
-                print(traceback.format_exc())
+                if self.config.LOG_LEVEL == "DEBUG":
+                    self.logger.debug(traceback.format_exc())
+                    raise e
             self.mpi_helper.comm.send(obj=inserted_cnt, tag=self.mpi_helper.FINISHED_TAG, dest=0)
             range_list, offset = self.mpi_helper.receive_work_parsed(status)
 
@@ -494,7 +511,9 @@ class ParallelMLCubeBuilder(ParallelBuilder):
                                                               batch_size)
             except Exception as e:
                 self.logger.warning("Could not process %s, message: %s" % (target_spatial_indices, str(e)))
-                print(traceback.format_exc())
+                if self.config.LOG_LEVEL == "DEBUG":
+                    self.logger.debug(traceback.format_exc())
+                    raise e
             self.mpi_helper.comm.send(obj=(offset, inserted_cnt), tag=self.mpi_helper.FINISHED_TAG, dest=0)
             target_spatial_indices, offset = self.mpi_helper.receive_work_parsed(status)
 

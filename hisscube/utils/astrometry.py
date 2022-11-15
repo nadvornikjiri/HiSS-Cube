@@ -54,7 +54,13 @@ def get_optimized_wcs(image_fits_header):
     w.wcs.cd = np.array([[image_fits_header["CD1_1"], image_fits_header["CD1_2"]],
                          [image_fits_header["CD2_1"], image_fits_header["CD2_2"]]])
     w.wcs.crval = [image_fits_header["CRVAL1"], image_fits_header["CRVAL2"]]
-    w.wcs.ctype = [image_fits_header["CTYPE1"], image_fits_header["CTYPE2"]]
+    if isinstance(image_fits_header["CTYPE1"], np.bytes_):
+        ctype1 = image_fits_header["CTYPE1"].decode('utf-8')
+        ctype2 = image_fits_header["CTYPE2"].decode('utf-8')
+        ctype = [ctype1, ctype2]
+    else:
+        ctype = [image_fits_header["CTYPE1"], image_fits_header["CTYPE2"]]
+    w.wcs.ctype = ctype
     return w
 
 
@@ -120,9 +126,9 @@ def is_cutout_whole(cutout_bounds, image_ds, img_idx=None):
     else:
         img_shape = image_ds.shape
     result = 0 <= cutout_bounds[0][0][0] <= cutout_bounds[0][1][0] <= img_shape[1] and \
-           0 <= cutout_bounds[1][0][0] <= cutout_bounds[1][1][0] <= img_shape[1] and \
-           0 <= cutout_bounds[0][0][1] <= cutout_bounds[0][1][1] <= img_shape[0] and \
-           0 <= cutout_bounds[1][0][1] <= cutout_bounds[1][1][1] <= img_shape[0]
+             0 <= cutout_bounds[1][0][0] <= cutout_bounds[1][1][0] <= img_shape[1] and \
+             0 <= cutout_bounds[0][0][1] <= cutout_bounds[0][1][1] <= img_shape[0] and \
+             0 <= cutout_bounds[1][0][1] <= cutout_bounds[1][1][1] <= img_shape[0]
     return result
 
 
@@ -152,21 +158,22 @@ def get_overlapping_healpix_pixel_ids(fits_header, nside, fact, radius_arcmin, i
         radius_rad = radius_arcmin * math.pi / (60 * 180)
         pix_ids = hp.query_disc(nside, vec, inclusive=True, fact=fact, radius=radius_rad, nest=True)
     else:
-        center_ra = SkyCoord(spec_ra, spec_dec, unit='deg')
-        potential_image_region = RectangleSkyRegion
-
-        half_image_x = image_size_x / 60 / 2
-        half_image_y = image_size_y / 60 / 2
-        ra_poly, dec_poly = (np.array())
-        bound_0 = (spec_ra + half_image_y, spec_dec - half_image_x)
-        vec_0 = hp.ang2vec(bound_0[0], bound_0[1], lonlat=True)
-        bound_1 = (spec_ra + half_image_y, spec_dec + half_image_x)
-        vec_1 = hp.ang2vec(bound_1[0], bound_1[1], lonlat=True)
-        bound_2 = (spec_ra - half_image_y, spec_dec - half_image_x)
-        vec_2 = hp.ang2vec(bound_2[0], bound_2[1], lonlat=True)
-        bound_3 = (spec_ra - half_image_y, spec_dec + half_image_x)
-        vec_3 = hp.ang2vec(bound_3[0], bound_3[1], lonlat=True)
-        pix_ids = hp.query_polygon(nside, [vec_0, vec_1, vec_2, vec_3], inclusive=True, fact=fact)
+        raise NotImplementedError
+        # center_ra = SkyCoord(spec_ra, spec_dec, unit='deg')
+        # potential_image_region = RectangleSkyRegion
+        #
+        # half_image_x = image_size_x / 60 / 2
+        # half_image_y = image_size_y / 60 / 2
+        # ra_poly, dec_poly = (np.array())
+        # bound_0 = (spec_ra + half_image_y, spec_dec - half_image_x)
+        # vec_0 = hp.ang2vec(bound_0[0], bound_0[1], lonlat=True)
+        # bound_1 = (spec_ra + half_image_y, spec_dec + half_image_x)
+        # vec_1 = hp.ang2vec(bound_1[0], bound_1[1], lonlat=True)
+        # bound_2 = (spec_ra - half_image_y, spec_dec - half_image_x)
+        # vec_2 = hp.ang2vec(bound_2[0], bound_2[1], lonlat=True)
+        # bound_3 = (spec_ra - half_image_y, spec_dec + half_image_x)
+        # vec_3 = hp.ang2vec(bound_3[0], bound_3[1], lonlat=True)
+        # pix_ids = hp.query_polygon(nside, [vec_0, vec_1, vec_2, vec_3], inclusive=True, fact=fact)
     return pix_ids
 
 
@@ -190,7 +197,7 @@ def get_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx=0
      [image_fits_header["CD2_1"], image_fits_header["CD2_2"]]] = w.wcs.cd
     image_fits_header["CRVAL1"], image_fits_header["CRVAL2"] = w.wcs.crval
     image_fits_header["CTYPE1"], image_fits_header["CTYPE2"] = w.wcs.ctype
-    return image_fits_header
+    return image_fits_header, w.wcs
 
 
 def get_heal_path_from_coords(metadata, config, ra=None, dec=None, order=None):

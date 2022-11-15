@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from ast import literal_eval
 from pathlib import Path
 
+import h5py
 import numpy as np
 import ujson
 from tqdm.auto import tqdm
@@ -10,7 +11,7 @@ from tqdm.auto import tqdm
 from hisscube.processors.data import float_compress
 from hisscube.processors.metadata_strategy import MetadataStrategy, require_zoom_grps
 from hisscube.processors.metadata_strategy_dataset import get_data_datasets, get_index_datasets, get_healpix_id, \
-    get_dataset_resolution_groups, write_dataset, create_additional_datasets
+    get_dataset_resolution_groups, write_dataset, recreate_additional_datasets
 from hisscube.processors.metadata_strategy_tree import require_spatial_grp
 from hisscube.utils.astrometry import get_heal_path_from_coords, get_image_center_coords
 from hisscube.utils.config import Config
@@ -18,6 +19,14 @@ from hisscube.utils.io import H5Connector, get_image_header_dataset
 from hisscube.utils.logging import log_timing, HiSSCubeLogger, wrap_tqdm
 from hisscube.utils.nexus import set_nx_data, set_nx_interpretation
 from hisscube.utils.photometry import Photometry
+
+
+def recreate_wcs_ds(h5_connector: H5Connector, max_entries, wcs_dtype, grp):
+    ds_name = "wcs"
+    if ds_name in grp:
+        del grp[ds_name]
+    wcs_ds = h5_connector.create_dataset(grp, ds_name, (max_entries,), dataset_type=wcs_dtype)
+    return wcs_ds
 
 
 class ImageMetadataStrategy(ABC):
@@ -33,8 +42,6 @@ class ImageMetadataStrategy(ABC):
                                 batch_size=None):
         self._set_connector(h5_connector)
         fits_headers = get_image_header_dataset(h5_connector)
-        if not self.config.MPIO:
-            self.metadata_strategy.clear_sparse_cube(h5_connector)
         self.write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets, range_min, range_max,
                                        batch_size)
 
@@ -234,16 +241,32 @@ class DatasetImageStrategy(ImageMetadataStrategy):
         self.buffer = {}
         self.metadata_header_buffer = {}
         self.metadata_index_buffer = {}
+        self.metadata_wcs_buffer = {}
         self.datasets_created = False
         self.index_dtype = [("spatial", np.int64), ("time", np.float32), ("wl", np.int32), ("ds_slice_idx", np.int64)]
+        ctype_str_dtype = h5py.string_dtype(encoding="utf-8", length=8)
+        self.wcs_dtype = [("NAXIS1", np.int16),
+                          ("NAXIS2", np.int16),
+                          ("CRPIX1", np.float32),
+                          ("CRPIX2", np.float32),
+                          ("CD1_1", np.float32),
+                          ("CD1_2", np.float32),
+                          ("CD2_1", np.float32),
+                          ("CD2_2", np.float32),
+                          ("CRVAL1", np.float32),
+                          ("CRVAL2", np.float32),
+                          ("CTYPE1", ctype_str_dtype),
+                          ("CTYPE2", ctype_str_dtype)]
 
     def clear_buffers(self):
         del self.buffer
         del self.metadata_index_buffer
         del self.metadata_header_buffer
+        del self.metadata_wcs_buffer
         self.buffer = {}
         self.metadata_header_buffer = {}
         self.metadata_index_buffer = {}
+        self.metadata_wcs_buffer = {}
 
     def write_datasets(self, res_grp_list, data, file_name, offset, batch_i, batch_size=1):
         return write_dataset(data, res_grp_list, self.config.FLOAT_COMPRESS, offset, buffer=self.buffer,
@@ -256,13 +279,13 @@ class DatasetImageStrategy(ImageMetadataStrategy):
     def write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs=False, no_datasets=False, range_min=None,
                                   range_max=None, batch_size=None):
         if not self.config.MPIO:
-            self.require_datasets(h5_connector)
+            self.recreate_datasets(h5_connector)
         super().write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets, range_min, range_max,
                                           batch_size)
         if not self.config.MPIO:
             self.sort_indices(h5_connector)
 
-    def require_datasets(self, h5_connector):
+    def recreate_datasets(self, h5_connector):
         self.h5_connector = h5_connector
         img_count = h5_connector.get_image_count()
         img_zoom_groups = require_zoom_grps("images", h5_connector, self.config.IMG_ZOOM_CNT)
@@ -274,30 +297,38 @@ class DatasetImageStrategy(ImageMetadataStrategy):
                                          self.config.SPARSE_CUBE_NAME)
         fits_name = Path(fits_path).name
         if not no_attrs:
-            self.metadata_strategy.add_metadata(self.h5_connector, metadata, img_datasets, self.img_cnt, batch_size,
-                                                offset, fits_name, self.metadata_header_buffer)
+            self.metadata_strategy.add_metadata(self.h5_connector, metadata, img_datasets, self.img_cnt,
+                                                batch_size, offset, fits_name,
+                                                self.metadata_header_buffer, self.metadata_wcs_buffer,
+                                                recalculate_wcs=True)
         self.add_index_entry(metadata, img_datasets, offset, self.img_cnt, batch_size)
 
     def create_datasets(self, img_zoom_groups, img_count):
         for img_zoom, img_zoom_group in enumerate(img_zoom_groups):
-            chunk_size = None
-            img_shape = (img_count,
-                         int(self.config.IMG_RES_Y / (2 ** img_zoom)),
-                         int(self.config.IMG_RES_X / (2 ** img_zoom)))
-            if self.config.DATASET_STRATEGY_CHUNKED:
-                if self.config.IMAGE_DATA_BATCH_SIZE > img_count:
-                    chunk_stack_size = 1
-                else:
-                    chunk_stack_size = self.config.IMAGE_DATA_BATCH_SIZE
-                chunk_size = (chunk_stack_size,) + img_shape[1:]
-            img_ds = self.h5_connector.create_image_h5_dataset(img_zoom_group, "data", img_shape, chunk_size)
-            self.h5_connector.set_attr(img_ds, "mime-type", "image")
+            if "data" not in img_zoom_group or "errors" not in img_zoom_group:
+                chunk_size = None
+                img_shape = (img_count,
+                             int(self.config.IMG_RES_Y / (2 ** img_zoom)),
+                             int(self.config.IMG_RES_X / (2 ** img_zoom)))
+                if self.config.DATASET_STRATEGY_CHUNKED:
+                    if self.config.IMAGE_DATA_BATCH_SIZE > img_count:
+                        chunk_stack_size = 1
+                    else:
+                        chunk_stack_size = self.config.IMAGE_DATA_BATCH_SIZE
+                    chunk_size = (chunk_stack_size,) + img_shape[1:]
+                img_ds = self.h5_connector.create_image_h5_dataset(img_zoom_group, "data", img_shape, chunk_size)
+                error_ds = self.h5_connector.create_image_h5_dataset(img_zoom_group, "errors", img_shape, chunk_size)
+            else:
+                img_ds = img_zoom_group["data"]
+                error_ds = img_zoom_group["errors"]
             set_nx_interpretation(img_ds, "image", self.h5_connector)
-            error_ds = self.h5_connector.create_image_h5_dataset(img_zoom_group, "errors", img_shape, chunk_size)
+            self.h5_connector.set_attr(img_ds, "mime-type", "image")
             self.h5_connector.set_attr(img_ds, "error_ds_ref", error_ds.ref)
-            create_additional_datasets(img_count, img_ds, img_zoom_group, self.index_dtype, self.h5_connector,
-                                       self.config.FITS_IMAGE_MAX_HEADER_SIZE, self.config.FITS_MAX_PATH_SIZE,
-                                       self.config.METADATA_CHUNK_SIZE)
+            recreate_additional_datasets(img_count, img_ds, img_zoom_group, self.index_dtype, self.h5_connector,
+                                         self.config.FITS_IMAGE_MAX_HEADER_SIZE, self.config.FITS_MAX_PATH_SIZE,
+                                         self.config.METADATA_CHUNK_SIZE)
+            wcs_ds = recreate_wcs_ds(self.h5_connector, img_count, self.wcs_dtype, img_zoom_group)
+            self.h5_connector.set_attr(img_ds, "wcs_ds_ref", wcs_ds.ref)
 
     def add_index_entry(self, metadata, img_datasets, offset, batch_i, batch_size):
         for zoom_idx, img_ds in enumerate(img_datasets):

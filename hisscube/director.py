@@ -18,7 +18,7 @@ class HiSSCubeConstructionDirector:
             truncate(self.h5_path)
             self.append_metadata_cache_builder()
             self.append_metadata_builder()
-            self.append_data_builder()
+            self.append_data_builder(True, True, True)
             if self.config.CREATE_REFERENCES:
                 self.append_link_builder()
             if self.config.CREATE_VISUALIZATION_CUBE:

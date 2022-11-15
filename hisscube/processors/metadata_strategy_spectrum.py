@@ -1,4 +1,5 @@
 import os
+import traceback
 from abc import ABC, abstractmethod, ABCMeta
 from json import JSONDecodeError
 from pathlib import Path
@@ -13,7 +14,7 @@ from hisscube.processors.data import float_compress
 from hisscube.processors.metadata_strategy import MetadataStrategy, require_zoom_grps
 from hisscube.processors.metadata_strategy_dataset import get_cutout_data_datasets, \
     get_cutout_error_datasets, get_cutout_metadata_datasets, get_data_datasets, get_error_datasets, get_index_datasets, \
-    get_metadata_datasets, get_healpix_id, get_dataset_resolution_groups, write_dataset, create_additional_datasets
+    get_metadata_datasets, get_healpix_id, get_dataset_resolution_groups, write_dataset, recreate_additional_datasets
 from hisscube.processors.metadata_strategy_tree import require_spatial_grp, TreeStrategy
 from hisscube.utils import astrometry
 from hisscube.utils.astrometry import NoCoverageFoundError, get_heal_path_from_coords, \
@@ -104,7 +105,7 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
 
     @abstractmethod
     def link_spectra_to_images(self, h5_connector, min_range=None, max_range=None, batch_size=None,
-                               image_db_index=None):
+                               image_db_index=None, image_wcs_data=None):
         raise NotImplementedError
 
     @abstractmethod
@@ -158,7 +159,7 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
         return spec_datasets
 
     def link_spectra_to_images(self, h5_connector, min_range=None, max_range=None, batch_size=None,
-                               image_db_index=None):
+                               image_db_index=None, image_wcs_data=None):
         self.h5_connector = h5_connector
         self._add_image_refs(h5_connector.file)
 
@@ -436,7 +437,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
                                              "spectra")
 
     def link_spectra_to_images(self, h5_connector: H5Connector, range_min=None, range_max=None, batch_size=None,
-                               image_db_index=None):
+                               image_db_index=None, image_wcs_data=None):
         self.h5_connector = h5_connector
         self.spec_cnt = 0
         self.target_with_cutout_cnt = 0
@@ -458,9 +459,12 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             try:
                 self._add_image_links_to_spectra(spectra_metadata_ds, image_data_cutout_ds,
                                                  image_error_cutout_ds, image_metadata_cutout_ds, range_min, i,
-                                                 batch_size, image_db_index)
-            except JSONDecodeError:
+                                                 batch_size, image_db_index, image_wcs_data)
+            except JSONDecodeError as e:
                 self.logger.debug("Could not link images for spectrum %d" % i)
+                if self.config.LOG_LEVEL == "DEBUG":
+                    traceback.format_exc()
+                    raise e
         self.clear_buffers()  # necessary because linking doesn't always rewrite buffer
         return self.spec_cnt
 
@@ -478,13 +482,13 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
     def _write_metadata_from_cache(self, h5_connector, fits_headers, no_attrs=False, no_datasets=False, range_min=None,
                                    range_max=None, batch_size=None):
         if not self.config.MPIO:
-            self.require_datasets(h5_connector)
+            self.recreate_datasets(h5_connector)
         super()._write_metadata_from_cache(h5_connector, fits_headers, no_attrs, no_datasets, range_min, range_max,
                                            batch_size)
         if not self.config.MPIO:
             self.sort_indices(h5_connector)
 
-    def require_datasets(self, h5_connector):
+    def recreate_datasets(self, h5_connector):
         self.h5_connector = h5_connector
         spectrum_count = h5_connector.get_spectrum_count()
         spectrum_zoom_groups = require_zoom_grps("spectra", h5_connector, self.config.SPEC_ZOOM_CNT)
@@ -501,24 +505,29 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
 
     def create_datasets(self, spec_zoom_groups, spec_count):
         for spec_zoom, spec_zoom_group in enumerate(spec_zoom_groups):
-            chunk_size = None
-            spec_shape = (spec_count, int(self.config.REBIN_SAMPLES / (2 ** spec_zoom)))
-            if self.config.DATASET_STRATEGY_CHUNKED:
-                if self.config.SPECTRUM_DATA_BATCH_SIZE > spec_count:
-                    chunk_stack_size = 1
-                else:
-                    chunk_stack_size = self.config.SPECTRUM_DATA_BATCH_SIZE
-                chunk_size = (chunk_stack_size,) + spec_shape[1:]
-            spec_ds = self.h5_connector.create_spectrum_h5_dataset(spec_zoom_group, "data", spec_shape, chunk_size)
-            self.h5_connector.set_attr(spec_ds, "mime-type", "spectrum")
-            set_nx_interpretation(spec_ds, "spectrum", self.h5_connector)
-            error_ds = self.h5_connector.create_spectrum_h5_dataset(spec_zoom_group, "errors", spec_shape, chunk_size)
+            if "data" not in spec_zoom_group or "errors" not in spec_zoom_group:
+                chunk_size = None
+                spec_shape = (spec_count, int(self.config.REBIN_SAMPLES / (2 ** spec_zoom)))
+                if self.config.DATASET_STRATEGY_CHUNKED:
+                    if self.config.SPECTRUM_DATA_BATCH_SIZE > spec_count:
+                        chunk_stack_size = 1
+                    else:
+                        chunk_stack_size = self.config.SPECTRUM_DATA_BATCH_SIZE
+                    chunk_size = (chunk_stack_size,) + spec_shape[1:]
+                spec_ds = self.h5_connector.create_spectrum_h5_dataset(spec_zoom_group, "data", spec_shape, chunk_size)
+                self.h5_connector.set_attr(spec_ds, "mime-type", "spectrum")
+                error_ds = self.h5_connector.create_spectrum_h5_dataset(spec_zoom_group, "errors", spec_shape,
+                                                                        chunk_size)
+                self.h5_connector.create_spectrum_h5_dataset(spec_zoom_group, "wl", (spec_shape[1],))
+            else:
+                spec_ds = spec_zoom_group["data"]
+                error_ds = spec_zoom_group["errors"]
             self.h5_connector.set_attr(spec_ds, "error_ds_ref", error_ds.ref)
-            self.h5_connector.create_spectrum_h5_dataset(spec_zoom_group, "wl", (spec_shape[1],))
             set_nx_axes(spec_zoom_group, [".", "wl"], self.h5_connector)
-            create_additional_datasets(spec_count, spec_ds, spec_zoom_group, self.index_dtype, self.h5_connector,
-                                       self.config.FITS_SPECTRUM_MAX_HEADER_SIZE, self.config.FITS_MAX_PATH_SIZE,
-                                       self.config.METADATA_CHUNK_SIZE)
+            set_nx_interpretation(spec_ds, "spectrum", self.h5_connector)
+            recreate_additional_datasets(spec_count, spec_ds, spec_zoom_group, self.index_dtype, self.h5_connector,
+                                         self.config.FITS_SPECTRUM_MAX_HEADER_SIZE, self.config.FITS_MAX_PATH_SIZE,
+                                         self.config.METADATA_CHUNK_SIZE)
 
     def recreate_link_datasets(self, h5_connector, spec_count, spec_zoom_groups):
         self.h5_connector = h5_connector
@@ -551,7 +560,8 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
 
     def _add_image_links_to_spectra(self, spec_metadata_datasets_multiple_zoom, image_data_cutout_ds_multiple_zoom,
                                     image_error_cutout_ds_multiple_zoom, image_metadata_cutout_ds_multiple_zoom,
-                                    range_min=None, batch_i=None, batch_size=None, image_db_index=None):
+                                    range_min=None, batch_i=None, batch_size=None, image_db_index=None,
+                                    image_wcs_data=None):
         """
         Adds HDF5 Region references of image cut-outs to spectra attribute "sparse_cube". Throws NoCoverageFoundError
         if the cut-out does not span the whole cutout path_size for any reason.
@@ -584,7 +594,8 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
                                                       image_idx,
                                                       image_zoom,
                                                       spectrum_metadata,
-                                                      range_min)
+                                                      range_min,
+                                                      image_wcs_data[image_zoom])
         self._convert_arrays(image_data_refs, image_error_refs, image_metadata_refs)
         for spec_zoom in range(self.config.SPEC_ZOOM_CNT):
             image_data_dataset, image_error_dataset, image_metadata_dataset = self._get_image_ds(
@@ -629,7 +640,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
     def _write_region_ref_from_image_idx(self, image_data_refs, image_error_refs, image_metadata_refs,
                                          image_data_dataset,
                                          image_error_dataset, image_metadata_dataset, image_idx, image_zoom,
-                                         spectrum_metadata, offset):
+                                         spectrum_metadata, offset, image_wcs_data=None):
 
         if image_zoom not in image_data_refs:
             image_data_refs[image_zoom] = []
@@ -641,10 +652,10 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         try:
             data_region_ref = self._get_region_ref(image_zoom, image_metadata_dataset, image_data_dataset, image_idx,
                                                    spectrum_metadata,
-                                                   self.config.IMAGE_CUTOUT_SIZE)
+                                                   self.config.IMAGE_CUTOUT_SIZE, image_wcs_data)
             error_region_ref = self._get_region_ref(image_zoom, image_metadata_dataset, image_error_dataset, image_idx,
                                                     spectrum_metadata,
-                                                    self.config.IMAGE_CUTOUT_SIZE)
+                                                    self.config.IMAGE_CUTOUT_SIZE, image_wcs_data)
             metadata_region_ref = self.h5_connector.get_metadata_ref(image_metadata_dataset, image_idx)
             image_data_refs[image_zoom].append(data_region_ref)
             image_error_refs[image_zoom].append(error_region_ref)
@@ -676,7 +687,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
                                          dest_sel=np.s_[range_min:range_min + batch_i + 1, ...])
 
     def _get_region_ref(self, image_zoom, image_metadata_dataset, image_ds, image_idx, spec_fits_header,
-                        image_cutout_size):
+                        image_cutout_size, image_wcs_data=None):
         """
         Gets the region reference for a given resolution from an ds.
 
@@ -689,7 +700,11 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         -------
 
         """
-        image_fits_header = self.h5_connector.read_serialized_fits_header(image_metadata_dataset, idx=image_idx)
+
+        if image_wcs_data is not None:
+            image_fits_header = image_wcs_data[image_idx]
+        else:
+            image_fits_header = self.h5_connector.read_serialized_fits_header(image_metadata_dataset, idx=image_idx)
         cutout_bounds = get_cutout_bounds(image_fits_header, image_zoom, spec_fits_header, image_cutout_size)
         if not is_cutout_whole(cutout_bounds, image_ds, image_idx):
             raise NoCoverageFoundError("Cutout not whole.")
@@ -701,9 +716,6 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         fact = 2 ** self.config.SPEC_SPAT_INDEX_ORDER
         pix_ids = get_overlapping_healpix_pixel_ids(metadata, nside, fact,
                                                     self.config.IMG_DIAMETER_ANG_MIN)
-        if index_dataset_orig_res is None:
-            index_dataset_orig_res = get_index_datasets(self.h5_connector, "images", self.config.IMG_ZOOM_CNT,
-                                                        self.config.SPARSE_CUBE_NAME)[0]
         yield from self._get_image_ids_from_pix_ids(pix_ids, index_dataset_orig_res)
 
     @staticmethod

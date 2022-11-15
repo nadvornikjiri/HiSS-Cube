@@ -29,7 +29,7 @@ def require_spatial_grp(h5_connector, order, prev, coord):
 class TreeStrategy(MetadataStrategy):
 
     def add_metadata(self, h5_connector, metadata, datasets, batch_i=None, batch_size=None, offset=None, fits_name=None,
-                     metadata_header_buffer=None):
+                     metadata_header_buffer=None, metadata_wcs_buffer=None, recalculate_wcs=False):
         """
         Adds metadata to the HDF5 data sets of the same image or spectrum in multiple resolutions. It also modifies the
         metadata for image where needed and adds the COMMENT and HISTORY attributes as datasets for optimization

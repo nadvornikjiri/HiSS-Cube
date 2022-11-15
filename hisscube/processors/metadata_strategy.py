@@ -9,7 +9,9 @@ from hisscube.utils.nexus import set_nx_data, set_nx_signal
 import numpy as np
 
 
-def get_header_ds(h5_connector: H5Connector, max_entries, path_size, header_size, grp, ds_name, chunk_size=None):
+def recreate_header_ds(h5_connector: H5Connector, max_entries, path_size, header_size, grp, ds_name, chunk_size=None):
+    if ds_name in grp:
+        del grp[ds_name]
     path_dtype = h5py.string_dtype(encoding="utf-8", length=path_size)
     header_dtype = h5py.string_dtype(encoding="utf-8", length=header_size)
     header_ds_dtype = [("path", path_dtype), ("header", header_dtype)]
@@ -18,7 +20,6 @@ def get_header_ds(h5_connector: H5Connector, max_entries, path_size, header_size
     header_ds = h5_connector.create_dataset(grp, ds_name, (max_entries,), chunk_size=(chunk_size,),
                                             dataset_type=header_ds_dtype)
     return header_ds, header_ds_dtype
-
 
 class MetadataStrategy(ABC):
     def __init__(self, config: Config):
@@ -30,7 +31,7 @@ class MetadataStrategy(ABC):
 
     @abstractmethod
     def add_metadata(self, h5_connector, metadata, datasets, batch_i=None, batch_size=None, offset=None, fits_name=None,
-                     metadata_header_buffer=None):
+                     metadata_header_buffer=None, metadata_wcs_buffer=None, recalculate_wcs=False):
         raise NotImplementedError
 
     def clear_sparse_cube(self, h5_connector):

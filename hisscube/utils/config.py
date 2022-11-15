@@ -61,6 +61,7 @@ class Config:
         self.LINK_BATCH_SIZE = self.config.getint('MPI', 'LINK_BATCH_SIZE')
         self.ML_BATCH_SIZE = self.config.getint('MPI', 'ML_BATCH_SIZE')
         self.CACHE_INDEX_FOR_LINKING = self.config.getboolean('MPI', 'CACHE_INDEX_FOR_LINKING')
+        self.CACHE_WCS_FOR_LINKING = self.config.getboolean('MPI', 'CACHE_WCS_FOR_LINKING')
 
         self.OUTPUT_HEAL_ORDER = self.config.getint('Reader', 'OUTPUT_HEAL_ORDER')
 
