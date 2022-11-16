@@ -459,6 +459,7 @@ class ParallelMLCubeBuilder(ParallelBuilder):
         self.parallel_connector = parallel_h5_connector
         self.inserted_target_counts = None
         self.is_building_finished = False
+        self.total_target_count = 0
 
     def build(self):
         if self.rank == 0:
@@ -466,7 +467,7 @@ class ParallelMLCubeBuilder(ParallelBuilder):
                 dense_grp, target_count, target_spatial_indices = self.ml_processor.get_targets(serial_connector)
                 if target_count > 0:
                     final_zoom = self.ml_processor.recreate_datasets(serial_connector, dense_grp, target_count)
-                    self.inserted_target_counts = [None] * math.ceil(target_count / self.config.ML_BATCH_SIZE)
+                    self.inserted_target_counts = [(0,0)] * math.ceil(target_count / self.config.ML_BATCH_SIZE)
         self.mpi_helper.barrier()
         with self.parallel_connector as h5_connector:
             if self.rank == 0:
@@ -484,17 +485,19 @@ class ParallelMLCubeBuilder(ParallelBuilder):
         self.is_building_finished = True
         with self.parallel_connector as h5_connector:
             if self.rank == 0:
+                print (self.inserted_target_counts)
                 new_offsets = self.prefix_sum(self.inserted_target_counts)
                 self.distribute_work(h5_connector, new_offsets, self.ml_processor,
                                      1, "Shrinking ML cube", total=len(new_offsets))
+                for old_offset, cnt, new_offset in new_offsets:
+                    self.total_target_count += cnt
             else:
                 self.copy_slice(h5_connector)
         self.mpi_helper.barrier()
         if self.rank == 0:
             with self.h5_connector as serial_connector:
-                old_offset, cnt, new_offset = new_offsets[-1]
                 self.ml_processor.merge_datasets(serial_connector)
-                self.ml_processor.shrink_datasets(final_zoom, serial_connector, new_offset + cnt)
+                self.ml_processor.shrink_datasets(final_zoom, serial_connector, self.total_target_count)
         self.mpi_helper.barrier()
 
     def build_ml_cube(self, h5_connector):
