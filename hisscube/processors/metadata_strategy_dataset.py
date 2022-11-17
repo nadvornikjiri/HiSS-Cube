@@ -29,6 +29,7 @@ class DatasetStrategy(MetadataStrategy):
 
         fits_header_metadata = dict(metadata)
         for zoom_idx, ds in enumerate(datasets):
+            wcs, wcs_ds = None, None
             if recalculate_wcs:
                 if zoom_idx > 0:
                     fits_header_metadata, wcs = self._get_lower_res_metadata(offset + batch_i, ds, h5_connector,
@@ -36,22 +37,23 @@ class DatasetStrategy(MetadataStrategy):
                                                                              zoom_idx)
                 else:
                     wcs = get_optimized_wcs(fits_header_metadata).wcs
+            ds_shape = h5_connector.get_shape(ds)[1:]  # 1st dimension is number of images or spectra
+            write_naxis_values(fits_header_metadata, ds_shape)
+            if wcs is not None:
                 wcs_ds = self.process_wcs(batch_i, batch_size, ds, fits_header_metadata, h5_connector,
                                           metadata_wcs_buffer,
                                           wcs, zoom_idx)
-                if batch_i == (batch_size - 1):
-                    wcs_ds.write_direct(metadata_wcs_buffer[zoom_idx], source_sel=np.s_[0:batch_size],
-                                        dest_sel=np.s_[offset:offset + batch_i + 1])
             metadata_ds = self.process_header(batch_i, batch_size, ds, fits_header_metadata, fits_name, h5_connector,
                                               metadata_header_buffer, zoom_idx)
             if batch_i == (batch_size - 1):
                 metadata_ds.write_direct(metadata_header_buffer[zoom_idx], source_sel=np.s_[0:batch_size],
                                          dest_sel=np.s_[offset:offset + batch_i + 1])
+                if wcs_ds is not None:
+                    wcs_ds.write_direct(metadata_wcs_buffer[zoom_idx], source_sel=np.s_[0:batch_size],
+                                        dest_sel=np.s_[offset:offset + batch_i + 1])
 
     def process_header(self, batch_i, batch_size, ds, fits_header_metadata, fits_name, h5_connector,
                        metadata_header_buffer, zoom_idx):
-        ds_shape = h5_connector.get_shape(ds)[1:]  # 1st dimension is number of images or spectra
-        write_naxis_values(fits_header_metadata, ds_shape)
         metadata_ds_ref = h5_connector.get_attr(ds, "metadata_ds_ref")
         metadata_ds = h5_connector.file[metadata_ds_ref]
         if zoom_idx not in metadata_header_buffer:

@@ -1,4 +1,5 @@
 import os
+import traceback
 from abc import ABC, abstractmethod
 from ast import literal_eval
 from pathlib import Path
@@ -82,6 +83,9 @@ class ImageMetadataStrategy(ABC):
         except RuntimeError as e:
             self.logger.warning(
                 "Unable to ingest image %s, message: %s" % (fits_path, str(e)))
+            if self.config.LOG_LEVEL == "DEBUG":
+                traceback.format_exc()
+                raise e
 
     def clear_buffers(self):
         pass

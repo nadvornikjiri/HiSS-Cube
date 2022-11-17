@@ -485,7 +485,6 @@ class ParallelMLCubeBuilder(ParallelBuilder):
         self.is_building_finished = True
         with self.parallel_connector as h5_connector:
             if self.rank == 0:
-                print (self.inserted_target_counts)
                 new_offsets = self.prefix_sum(self.inserted_target_counts)
                 self.distribute_work(h5_connector, new_offsets, self.ml_processor,
                                      1, "Shrinking ML cube", total=len(new_offsets))

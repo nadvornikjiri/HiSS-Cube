@@ -54,7 +54,7 @@ def write_naxis_values(fits_header, ds_shape):
     naxis = len(ds_shape)
     fits_header["NAXIS"] = naxis
     for axis in range(naxis):
-        fits_header["NAXIS%d" % (axis + 1)] = ds_shape[axis]
+        fits_header["NAXIS%d" % (axis + 1)] = ds_shape[naxis - axis - 1]
 
 
 def get_lower_res_image_metadata(image_fits_header, orig_image_fits_header, res_idx):
