@@ -93,7 +93,7 @@ class FITSProcessor(VisualizationProcessor):
         with fits.open(image_path, memmap=True) as image_hdul:
             image_header = image_hdul[0].header
             w = wcs.WCS(image_header)
-            image_size = np.array((image_header["NAXIS2"], image_header["NAXIS1"]))
+            image_size = np.array((image_header["NAXIS1"], image_header["NAXIS2"]))
             cutout_bounds = astrometry.process_cutout_bounds(w, image_size, spectrum_header,
                                                              self.config.IMAGE_CUTOUT_SIZE)
             image_data = image_hdul[0].data

@@ -103,7 +103,7 @@ def process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, zoom
     """
     pixel_coords = np.array(skycoord_to_pixel(
         SkyCoord(ra=spectrum_fits_header["PLUG_RA"], dec=spectrum_fits_header["PLUG_DEC"], unit='deg'), w))
-    if 0 <= pixel_coords[0] <= image_size[1] and 0 <= pixel_coords[1] <= image_size[0]:
+    if 0 <= pixel_coords[0] <= image_size[0] and 0 <= pixel_coords[1] <= image_size[1]:
         pixel_coords = (pixel_coords[0], pixel_coords[1])
         region_size = int(cutout_size / (2 ** zoom_idx))
         top_left = np.array((int(pixel_coords[0]) - (region_size / 2),
