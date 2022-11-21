@@ -116,7 +116,7 @@ def process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, zoom
                                   [bot_left, bot_right]], dtype=int)
         return cutout_bounds
     else:
-        raise NoCoverageFoundError("The spectrum pixel is not within image bounds.")
+        raise NoCoverageFoundError("The spectrum pixel %f %f is not within image bounds: %s" % (spectrum_fits_header["PLUG_RA"], spectrum_fits_header["PLUG_DEC"], w))
 
 
 def is_cutout_whole(cutout_bounds, image_ds, img_idx=None):
