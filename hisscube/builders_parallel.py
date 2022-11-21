@@ -467,7 +467,7 @@ class ParallelMLCubeBuilder(ParallelBuilder):
                 dense_grp, target_count, target_spatial_indices = self.ml_processor.get_targets(serial_connector)
                 if target_count > 0:
                     final_zoom = self.ml_processor.recreate_datasets(serial_connector, dense_grp, target_count)
-                    self.inserted_target_counts = [(0,0)] * math.ceil(target_count / self.config.ML_BATCH_SIZE)
+                    self.inserted_target_counts = [(0, 0)] * math.ceil(target_count / self.config.ML_BATCH_SIZE)
         self.mpi_helper.barrier()
         with self.parallel_connector as h5_connector:
             if self.rank == 0:

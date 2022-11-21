@@ -57,8 +57,8 @@ def write_naxis_values(fits_header, ds_shape):
         fits_header["NAXIS%d" % (axis + 1)] = ds_shape[naxis - axis - 1]
 
 
-def get_lower_res_image_metadata(image_fits_header, orig_image_fits_header, res_idx):
-    return get_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx)
+def get_lower_res_image_metadata(image_fits_header, orig_image_fits_header, res_idx, wcs=False):
+    return get_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx, wcs)
 
 
 def require_zoom_grps(dataset_type, h5_connector, zoom_cnt):

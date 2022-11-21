@@ -576,8 +576,10 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
                     spec_ids.append(spectra_index_spec_ids_orig_zoom[db_index])
                 self._append_target_3d_cube(h5_connector, spectra_data, spectra_errors, spec_ids, offset, i, batch_size)
             except ValueError as e:
-                self.logger.debug("Unable to create ML cube slice for spectrum %d" % spatial_index)
-                self.logger.debug(traceback.format_exc())
+                self.logger.warning("Unable to create ML cube slice for spectrum %d" % spatial_index)
+                if self.config.LOG_LEVEL == "DEBUG":
+                    traceback.format_exc()
+                    raise e
         self.clear_buffers()
         return self.target_cnt
 

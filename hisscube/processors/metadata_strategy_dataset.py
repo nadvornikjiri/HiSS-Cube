@@ -92,7 +92,7 @@ class DatasetStrategy(MetadataStrategy):
         if h5_connector.get_attr(ds, "mime-type") == "image":
             image_header_ds_orig_res = get_image_header_dataset(h5_connector)
             orig_image_fits_header = h5_connector.read_serialized_fits_header(image_header_ds_orig_res, idx=idx)
-            fits_header, wcs = get_lower_res_image_metadata(fits_header, orig_image_fits_header, res_idx)
+            fits_header, wcs = get_lower_res_image_metadata(fits_header, orig_image_fits_header, res_idx, wcs=True)
         return fits_header, wcs
 
 

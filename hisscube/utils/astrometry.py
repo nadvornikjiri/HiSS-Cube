@@ -102,8 +102,7 @@ def process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, zoom
 
     """
     pixel_coords = np.array(skycoord_to_pixel(
-        SkyCoord(ra=spectrum_fits_header["PLUG_RA"], dec=spectrum_fits_header["PLUG_DEC"], unit='deg'),
-        w))
+        SkyCoord(ra=spectrum_fits_header["PLUG_RA"], dec=spectrum_fits_header["PLUG_DEC"], unit='deg'), w))
     if 0 <= pixel_coords[0] <= image_size[1] and 0 <= pixel_coords[1] <= image_size[0]:
         pixel_coords = (pixel_coords[0], pixel_coords[1])
         region_size = int(cutout_size / (2 ** zoom_idx))
@@ -177,7 +176,7 @@ def get_overlapping_healpix_pixel_ids(fits_header, nside, fact, radius_arcmin, i
     return pix_ids
 
 
-def get_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx=0):
+def get_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx=0, wcs=False):
     """
     Modifies the FITS WCS parameters for lower resolutions of the image so it is still correct.
     Parameters
@@ -197,7 +196,10 @@ def get_image_lower_res_wcs(orig_image_fits_header, image_fits_header, res_idx=0
      [image_fits_header["CD2_1"], image_fits_header["CD2_2"]]] = w.wcs.cd
     image_fits_header["CRVAL1"], image_fits_header["CRVAL2"] = w.wcs.crval
     image_fits_header["CTYPE1"], image_fits_header["CTYPE2"] = w.wcs.ctype
-    return image_fits_header, w.wcs
+    if wcs:
+        return image_fits_header, w.wcs
+    else:
+        return image_fits_header
 
 
 def get_heal_path_from_coords(metadata, config, ra=None, dec=None, order=None):

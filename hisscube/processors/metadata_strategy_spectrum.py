@@ -714,17 +714,17 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
     def _find_images_overlapping_spectrum(self, metadata, index_dataset_orig_res=None):
         nside = 2 ** (self.config.IMG_SPAT_INDEX_ORDER - 1)
         fact = 2 ** self.config.SPEC_SPAT_INDEX_ORDER
-        pix_ids = get_overlapping_healpix_pixel_ids(metadata, nside, fact,
-                                                    self.config.IMG_DIAMETER_ANG_MIN)
+        pix_ids = get_overlapping_healpix_pixel_ids(metadata, nside, fact, self.config.IMG_DIAMETER_ANG_MIN)
         yield from self._get_image_ids_from_pix_ids(pix_ids, index_dataset_orig_res)
 
     @staticmethod
     def _get_image_ids_from_pix_ids(pix_ids, image_db_index_orig_res):
         for pix_id in pix_ids:
-            image_idx = np.searchsorted(image_db_index_orig_res["spatial"], pix_id)
-            while image_idx < len(image_db_index_orig_res) and image_db_index_orig_res["spatial"][image_idx] == pix_id:
-                yield image_idx
-                image_idx += 1
+            db_idx = np.searchsorted(image_db_index_orig_res["spatial"], pix_id)
+            while db_idx < len(image_db_index_orig_res) and image_db_index_orig_res["spatial"][db_idx] == pix_id:
+                img_idx = image_db_index_orig_res[db_idx]["ds_slice_idx"]
+                db_idx += 1
+                yield img_idx
 
     @staticmethod
     def convert_refs_to_array(image_refs, dtype=None):
