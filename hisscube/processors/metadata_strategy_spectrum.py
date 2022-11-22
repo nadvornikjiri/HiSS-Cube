@@ -667,9 +667,9 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
                     self.spec_cnt + offset, image_idx, str(e)))
         return
 
-    def _write_image_cutout(self, image_cutout_ds, zoom_idx, image_refs, no_references, range_min=None, batch_i=None,
+    def _write_image_cutout(self, image_cutout_ds, zoom_idx, image_refs, number_of_refs, range_min=None, batch_i=None,
                             batch_size=None, buffer_idx=None):
-        if no_references > 0:
+        if number_of_refs > 0:
             if buffer_idx == 0 and self.cutout_data_buffer is None:
                 self.buffer = []
                 self.cutout_data_buffer = self.metadata_strategy.get_cutout_buffer(batch_size)
@@ -680,9 +680,18 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             elif buffer_idx == 2 and self.cutout_metadata_buffer is None:
                 self.cutout_metadata_buffer = self.metadata_strategy.get_cutout_buffer(batch_size)
                 self.buffer.append(self.cutout_metadata_buffer)
-            self.buffer[buffer_idx][zoom_idx, batch_i, 0:no_references] = image_refs[zoom_idx]
+            self.buffer[buffer_idx][zoom_idx, batch_i, 0:number_of_refs] = image_refs[zoom_idx]
             self.target_with_cutout_cnt += 1
         if batch_i == (batch_size - 1) and self.target_with_cutout_cnt:
+            for cutout_idx in range(batch_size):
+                try:
+                    cutout_ref = self.buffer[buffer_idx][zoom_idx][cutout_idx]
+                    cutout = self.h5_connector.file[cutout_ref][cutout_ref]
+                except RuntimeError as e:
+                    traceback.format_exc()
+                    self.logger.error("The cutouts for range_min %d are not correct " % range_min)
+
+
             image_cutout_ds.write_direct(self.buffer[buffer_idx][zoom_idx], source_sel=np.s_[0:batch_size, ...],
                                          dest_sel=np.s_[range_min:range_min + batch_i + 1, ...])
 
