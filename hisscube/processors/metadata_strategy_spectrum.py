@@ -441,6 +441,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         self.h5_connector = h5_connector
         self.spec_cnt = 0
         self.target_with_cutout_cnt = 0
+        self.clear_buffers()  # necessary because linking doesn't always rewrite buffer
         total_spectrum_count = h5_connector.get_spectrum_count()
         if not self.config.MPIO:
             spectrum_zoom_groups = require_zoom_grps("spectra", h5_connector, self.config.SPEC_ZOOM_CNT)
@@ -465,7 +466,6 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
                 if self.config.LOG_LEVEL == "DEBUG":
                     traceback.format_exc()
                     raise e
-        self.clear_buffers()  # necessary because linking doesn't always rewrite buffer
         return self.spec_cnt
 
     def _get_datasets_for_linking(self, h5_connector):
@@ -682,18 +682,9 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
                 self.buffer.append(self.cutout_metadata_buffer)
             self.buffer[buffer_idx][zoom_idx, batch_i, 0:number_of_refs] = image_refs[zoom_idx]
             self.target_with_cutout_cnt += 1
-        if batch_i == (batch_size - 1) and self.target_with_cutout_cnt:
-            for cutout_idx in range(batch_size):
-                try:
-                    cutout_ref = self.buffer[buffer_idx][zoom_idx][cutout_idx]
-                    cutout = self.h5_connector.file[cutout_ref][cutout_ref]
-                except RuntimeError as e:
-                    traceback.format_exc()
-                    self.logger.error("The cutouts for range_min %d are not correct " % range_min)
-
-
+        if batch_i == (batch_size - 1) and self.target_with_cutout_cnt > 0:
             image_cutout_ds.write_direct(self.buffer[buffer_idx][zoom_idx], source_sel=np.s_[0:batch_size, ...],
-                                         dest_sel=np.s_[range_min:range_min + batch_i + 1, ...])
+                                         dest_sel=np.s_[range_min:range_min + batch_size, ...])
 
     def _get_region_ref(self, image_zoom, image_metadata_dataset, image_ds, image_idx, spec_fits_header,
                         image_cutout_size, image_wcs_data=None):

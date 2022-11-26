@@ -76,6 +76,8 @@ class Config:
         self.IMG_RES_Y = self.config.getint('SDSS', 'IMG_RES_Y')
         self.IMG_DIAMETER_ANG_MIN = self.config.getfloat('SDSS', 'IMG_DIAMETER_ANG_MIN')
         self.FILTER_CNT = self.config.getint('SDSS', 'FILTER_CNT')
+        self.SPECTRUM_FIBER_DIAMETER = self.config.getfloat('SDSS', 'SPECTRUM_FIBER_DIAMETER')
+        self.IMAGE_PIXEL_SIZE = self.config.getfloat('SDSS', 'IMAGE_PIXEL_SIZE')
 
         try:
             self.IMG_X_SIZE_ANG_MIN = self.config.getfloat('SDSS', 'IMG_X_SIZE_ANG_MIN')

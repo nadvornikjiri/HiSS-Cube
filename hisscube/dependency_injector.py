@@ -38,7 +38,7 @@ class HiSSCubeProvider:
             self.config = config
         self.image_list = image_list
         self.spectra_list = spectra_list
-        self.photometry = Photometry()
+        self.photometry = Photometry(self.config)
         if self.config.METADATA_STRATEGY == "TREE":
             self.io_strategy = SerialTreeIOStrategy()
         else:

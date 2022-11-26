@@ -1,11 +1,13 @@
 from hisscube.utils import photometry as utils
 import numpy as np
 
+from hisscube.utils.config import Config
+
 
 class TestCubeUtils:
 
     def setup_method(self, test_method):
-        self.cube_utils = utils.Photometry()
+        self.cube_utils = utils.Photometry(Config())
 
     def test_get_spectrum_lower_resolution(self):
         test_spectrum = "../../data/raw/spectra/spec-4500-55543-0331.fits"

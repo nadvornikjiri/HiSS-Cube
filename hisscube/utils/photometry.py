@@ -1,4 +1,5 @@
 import csv
+import math
 import pathlib
 
 import cv2
@@ -9,10 +10,12 @@ from astropy.io import ascii
 from astropy.io import fits
 from scipy import ndimage
 
+from hisscube.utils.config import Config
+
 
 class Photometry:
 
-    def __init__(self, fits_mem_map=True):
+    def __init__(self, config: Config, fits_mem_map=True):
         """
         Initializes the parameters of SDSS photometry from the ccd_gain and ccd_dark_var files. The transmission curves
         are initialized directly here.
@@ -26,6 +29,7 @@ class Photometry:
         self.ccd_gain_config = self._read_config(ccd_gain_path)
         self.ccd_dark_variance_config = self._read_config(ccd_dark_var_path)
         self.fits_mem_map = fits_mem_map
+        self.config = config
 
         self.filter_midpoints = {
             "u": 3551,
@@ -149,17 +153,26 @@ class Photometry:
         img_orig_res_flux = self.mag_to_flux(fits_header, img_orig_res_flux)
         img_orig_res_flux_sigma = self.mag_to_flux(fits_header, img_orig_res_flux_sigma)
 
+        img_orig_res_flux_density = self.flux_to_flux_density(img_orig_res_flux)
+        img_orig_res_flux_density_sigma = self.flux_to_flux_density(img_orig_res_flux_sigma)
+
         multiple_resolution_cube.append({"zoom_idx": (x_orig_res, y_orig_res),
-                                         "flux_mean": img_orig_res_flux,
-                                         "flux_sigma": img_orig_res_flux_sigma})
+                                         "flux_mean": img_orig_res_flux_density,
+                                         "flux_sigma": img_orig_res_flux_density_sigma})
         if img_zoom_cnt > 0:
             img_zoom_cnt -= 1
-            self._append_lower_resolution_2d(multiple_resolution_cube, img_orig_res_flux, img_orig_res_flux_sigma,
-                                             img_zoom_cnt)
+            self._append_lower_resolution_2d(multiple_resolution_cube, img_orig_res_flux_density,
+                                             img_orig_res_flux_density_sigma, img_zoom_cnt)
         return fits_header, multiple_resolution_cube
 
     def mag_to_flux(self, fits_header, img_mag):
         return img_mag * 3.631e-6 * 2.99792458e-5 / (self.filter_midpoints[fits_header["FILTER"]] ** 2)
+
+    def flux_to_flux_density(self, img_flux):
+        pixel_area = self.config.IMAGE_PIXEL_SIZE ** 2
+        fiber_area = math.pi * self.config.SPECTRUM_FIBER_DIAMETER ** 2
+        area_ratio = fiber_area / pixel_area
+        return img_flux * area_ratio
 
     def get_photometry_params(self, flux, wl):
         band, transmission_ratio, wl_trans = self._get_transmission_ratio(wl)
