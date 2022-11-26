@@ -492,7 +492,7 @@ class TreeMLProcessorStrategy(MLProcessorStrategy):
                 except ValueError as e:
                     self.logger.error(
                         "Could not process region for %s, message: %s" % (spec_ds.name, str(e)))
-                    self.logger.debug(traceback.format_exc())
+                    self.logger.error(traceback.format_exc())
                     raise e
             else:
                 break  # necessary because of how null object references are tested in h5py dataset
@@ -686,8 +686,8 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
                                                                          data_ref, metadata_ref)
                 except (ValueError, NoCoverageFoundError) as e:
                     self.logger.error(
-                        "Could not process region for spectrum ID %d, message: %s" % (spec_idx, str(e)))
-                    self.logger.debug(traceback.format_exc())
+                            "Could not process region for spectrum ID %d, image ref: %s, message: %s" % (spec_idx, data_ref, str(e)))
+                    self.logger.error(traceback.format_exc())
                     raise e
             else:
                 break  # necessary because of how null object references are tested in h5py dataset

@@ -438,7 +438,8 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
 
     def link_spectra_to_images(self, h5_connector: H5Connector, range_min=None, range_max=None, batch_size=None,
                                image_db_index=None, image_wcs_data=None):
-        self.h5_connector = h5_connector
+        self.h5_connector = h5_connector 
+        self.clear_buffers()  # necessary because linking doesn't always rewrite buffer
         self.spec_cnt = 0
         self.target_with_cutout_cnt = 0
         self.clear_buffers()  # necessary because linking doesn't always rewrite buffer
@@ -662,8 +663,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             image_metadata_refs[image_zoom].append(metadata_region_ref)
 
         except NoCoverageFoundError as e:
-            self.logger.debug(
-                "No coverage found for spectrum %s and image %s, reason %s" % (
+            self.logger.debug("No coverage found for spectrum %s and image %s, reason %s" % (
                     self.spec_cnt + offset, image_idx, str(e)))
         return
 
