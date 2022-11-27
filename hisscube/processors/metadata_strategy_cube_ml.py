@@ -10,14 +10,16 @@ from tqdm.auto import tqdm
 
 from hisscube.processors.metadata_strategy import MetadataStrategy
 from hisscube.processors.metadata_strategy_dataset import DatasetStrategy, get_cutout_data_datasets, \
-    get_cutout_metadata_datasets, get_data_datasets, get_error_datasets, get_index_datasets, get_metadata_datasets
+    get_cutout_metadata_datasets, get_data_datasets, get_error_datasets, get_index_datasets, get_metadata_datasets, \
+    get_wl_datasets
 from hisscube.processors.metadata_strategy_tree import TreeStrategy
 from hisscube.processors.metadata_strategy_spectrum import get_spectrum_time
 from hisscube.utils.astrometry import get_cutout_pixel_coords, NoCoverageFoundError
 from hisscube.utils.io import get_spectrum_header_dataset, H5Connector, get_error_ds
 from hisscube.utils.io_strategy import get_orig_header
 from hisscube.utils.logging import HiSSCubeLogger, wrap_tqdm
-from hisscube.utils.nexus import add_nexus_navigation_metadata, set_nx_data, set_nx_interpretation, set_nx_signal
+from hisscube.utils.nexus import add_nexus_navigation_metadata, set_nx_data, set_nx_interpretation, set_nx_signal, \
+    set_nx_axes
 from hisscube.utils.photometry import Photometry
 
 
@@ -109,7 +111,7 @@ class MLProcessorStrategy(ABC):
         return target_image_3d_cube, target_spectra_1d_cube1d_cube
 
     def create_datasets_for_zoom(self, h5_connector: H5Connector, cutout_size, dense_grp, target_count, rebin_samples,
-                                 zoom, copy=False):
+                                 zoom, spec_wl_datasets=None, copy=False):
         spectral_dshape = (target_count,
                            int(rebin_samples / 2 ** zoom))
         if self.config.ML_CUBE_CHUNK_SIZE > target_count:
@@ -125,6 +127,7 @@ class MLProcessorStrategy(ABC):
         dtype = np.dtype('<f4')  # both mean and sigma values are float
         if not copy:
             image_ml_grp, spec_ml_grp = self.recreate_groups(dense_grp, h5_connector, zoom)
+            self.add_wl_ds(h5_connector, spec_wl_datasets, zoom, spec_ml_grp)
         else:
             res_grp = dense_grp[str(zoom)]
             image_ml_grp = res_grp["ml_image"]
@@ -133,6 +136,7 @@ class MLProcessorStrategy(ABC):
                                     spectral_chunk_size, spectral_dshape, zoom, copy)
         self.recreate_index_datasets(h5_connector, zoom, image_ml_grp, spec_ml_grp, target_count, copy)
         self.current_target_cnt[zoom] = 0
+
 
     def recreate_index_datasets(self, h5_connector: H5Connector, zoom, image_ml_grp, spec_ml_grp, target_count,
                                 copy=False):
@@ -365,6 +369,13 @@ class MLProcessorStrategy(ABC):
                     image_metadata_refs[wl] = np.array(image_metadata_refs[wl])
         return sparse_cube
 
+    @staticmethod
+    def add_wl_ds(h5_connector, spec_wl_datasets, zoom, spec_ml_grp):
+        if "wl" in spec_ml_grp:
+            del spec_ml_grp["wl"]
+        spec_ml_grp["wl"] = spec_wl_datasets[zoom]
+        set_nx_axes(spec_ml_grp, [".", "wl"], h5_connector)
+
     def process_data(self, h5_connector, spectra_index_spec_ids_orig_zoom, target_spatial_indices, offset=None,
                      max_range=None, batch_size=None):
         raise NotImplementedError
@@ -536,9 +547,10 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
     def recreate_datasets(self, h5_connector, dense_grp, target_count, copy=False):
         dense_grp.attrs["target_count"] = target_count
         final_zoom = min(self.config.IMG_ZOOM_CNT, self.config.SPEC_ZOOM_CNT)
+        spec_wl_datasets = get_wl_datasets(h5_connector, "spectra", final_zoom, self.config.SPARSE_CUBE_NAME)
         for zoom in range(final_zoom):
             self.create_datasets_for_zoom(h5_connector, self.config.IMAGE_CUTOUT_SIZE, dense_grp, target_count,
-                                          self.config.REBIN_SAMPLES, zoom, copy)
+                                          self.config.REBIN_SAMPLES, zoom, spec_wl_datasets, copy)
         add_nexus_navigation_metadata(h5_connector, self.config)
         return final_zoom
 
@@ -680,13 +692,13 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
                     image_metadata_region = h5_connector.dereference_region_ref(metadata_ref)
                     image_fits_header = ujson.loads(image_metadata_region["header"])
                     image_region = np.dstack([image_data_region, image_error_region])
-                    cutout_bounds, time, w, cutout_wl = self.metadata_strategy.get_cutout_bounds_from_spectrum(
-                        image_fits_header, zoom, spectrum_metadata, self.photometry)
+                    cutout_wl = self.photometry.get_image_wl(image_fits_header)
                     cutout_data, image_cutouts = self._get_image_cutouts(cutout_wl, image_cutouts, image_region,
                                                                          data_ref, metadata_ref)
                 except (ValueError, NoCoverageFoundError) as e:
                     self.logger.error(
-                            "Could not process region for spectrum ID %d, image ref: %s, message: %s" % (spec_idx, data_ref, str(e)))
+                        "Could not process region for spectrum ID %d, image ref: %s, message: %s" % (
+                        spec_idx, data_ref, str(e)))
                     self.logger.error(traceback.format_exc())
                     raise e
             else:
