@@ -83,7 +83,13 @@ def get_cutout_bounds(image_fits_header, zoom_idx, spectrum_fits_header, cutout_
 
     """
     w = get_optimized_wcs(image_fits_header)
-    image_size = np.array((image_fits_header["NAXIS1"], image_fits_header["NAXIS2"]))
+    if "NAXIS" in image_fits_header and image_fits_header["NAXIS"] == 3:
+        image_x = image_fits_header["NAXIS2"]
+        image_y = image_fits_header["NAXIS3"]
+    else:
+        image_x = image_fits_header["NAXIS1"]
+        image_y = image_fits_header["NAXIS2"]
+    image_size = np.array((image_x, image_y))
     return process_cutout_bounds(w, image_size, spectrum_fits_header, cutout_size, zoom_idx)
 
 

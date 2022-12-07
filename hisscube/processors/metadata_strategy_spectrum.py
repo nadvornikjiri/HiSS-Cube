@@ -14,7 +14,8 @@ from hisscube.processors.data import float_compress
 from hisscube.processors.metadata_strategy import MetadataStrategy, require_zoom_grps
 from hisscube.processors.metadata_strategy_dataset import get_cutout_data_datasets, \
     get_cutout_error_datasets, get_cutout_metadata_datasets, get_data_datasets, get_error_datasets, get_index_datasets, \
-    get_metadata_datasets, get_healpix_id, get_dataset_resolution_groups, write_dataset, recreate_additional_datasets
+    get_metadata_datasets, get_healpix_id, get_dataset_resolution_groups, write_dataset, recreate_additional_datasets, \
+    get_wcs_datasets
 from hisscube.processors.metadata_strategy_tree import require_spatial_grp, TreeStrategy
 from hisscube.utils import astrometry
 from hisscube.utils.astrometry import NoCoverageFoundError, get_heal_path_from_coords, \
@@ -447,6 +448,12 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         if not self.config.MPIO:
             spectrum_zoom_groups = require_zoom_grps("spectra", h5_connector, self.config.SPEC_ZOOM_CNT)
             self.recreate_link_datasets(h5_connector, total_spectrum_count, spectrum_zoom_groups)
+        if image_db_index is None:
+            image_db_index = get_index_datasets(h5_connector, "images", self.config.IMG_ZOOM_CNT,
+                                                self.config.SPARSE_CUBE_NAME)[0]
+        if image_wcs_data is None:
+            image_wcs_data = get_wcs_datasets(h5_connector, "images", self.config.IMG_ZOOM_CNT,
+                             self.config.SPARSE_CUBE_NAME)
         image_data_cutout_ds, image_error_cutout_ds, image_metadata_cutout_ds, spectra_metadata_ds = self._get_datasets_for_linking(
             h5_connector)
         if not range_min:

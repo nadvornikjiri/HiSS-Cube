@@ -127,7 +127,8 @@ class MLProcessorStrategy(ABC):
         dtype = np.dtype('<f4')  # both mean and sigma values are float
         if not copy:
             image_ml_grp, spec_ml_grp = self.recreate_groups(dense_grp, h5_connector, zoom)
-            self.add_wl_ds(h5_connector, spec_wl_datasets, zoom, spec_ml_grp)
+            if spec_wl_datasets:
+                self.add_wl_ds(h5_connector, spec_wl_datasets, zoom, spec_ml_grp)
         else:
             res_grp = dense_grp[str(zoom)]
             image_ml_grp = res_grp["ml_image"]
@@ -136,7 +137,6 @@ class MLProcessorStrategy(ABC):
                                     spectral_chunk_size, spectral_dshape, zoom, copy)
         self.recreate_index_datasets(h5_connector, zoom, image_ml_grp, spec_ml_grp, target_count, copy)
         self.current_target_cnt[zoom] = 0
-
 
     def recreate_index_datasets(self, h5_connector: H5Connector, zoom, image_ml_grp, spec_ml_grp, target_count,
                                 copy=False):
@@ -698,7 +698,7 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
                 except (ValueError, NoCoverageFoundError) as e:
                     self.logger.error(
                         "Could not process region for spectrum ID %d, image ref: %s, message: %s" % (
-                        spec_idx, data_ref, str(e)))
+                            spec_idx, data_ref, str(e)))
                     self.logger.error(traceback.format_exc())
                     raise e
             else:
