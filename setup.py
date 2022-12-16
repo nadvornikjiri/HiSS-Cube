@@ -3,12 +3,14 @@ from distutils.core import setup, Extension
 
 setup_path = pathlib.Path(__file__).parent.absolute()
 
-include_dirs = ['%s/ext_lib/hdf5-1.12.2/hdf5/include' % setup_path,
+hdf5_version = "1.13.1"
+
+include_dirs = ['%s/ext_lib/hdf5-%s/hdf5/include' % (setup_path, hdf5_version),
                 '/usr/lib/x86_64-linux-gnu/openmpi/include',
                 '/usr/lib/x86_64-linux-gnu/openmpi/include/openmpi/opal/mca/event/libevent2022/libevent',
                 '/usr/lib/x86_64-linux-gnu/openmpi/include/openmpi/opal/mca/event/libevent2022/libevent/include']
 
-library_dirs = ['%s/ext_lib/hdf5-1.12.2/hdf5/lib' % setup_path]
+library_dirs = ['%s/ext_lib/hdf5-%s/hdf5/lib' % (setup_path, hdf5_version)]
 libraries = ['hdf5', 'hdf5_hl']
 h5writer_module = Extension('h5writer',
                             include_dirs=include_dirs,
