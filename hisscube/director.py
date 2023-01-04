@@ -41,6 +41,8 @@ class HiSSCubeConstructionDirector:
                 self.builders.append(self.serial_builders.visualization_cube_builder)
             if self.args.ml_cube:
                 self.append_ml_cube_builder()
+            if  self.args.sfr:
+                self.builders.append(self.serial_builders.sfr_builder)
 
         for builder in self.builders:
             builder.build()

@@ -2,7 +2,7 @@ import string
 from pathlib import Path
 
 from hisscube.builders import SingleImageBuilder, SingleSpectrumBuilder, MetadataCacheBuilder, MetadataBuilder, \
-    CBoosterMetadataBuilder, DataBuilder, LinkBuilder, MLCubeBuilder, VisualizationCubeBuilder
+    CBoosterMetadataBuilder, DataBuilder, LinkBuilder, MLCubeBuilder, VisualizationCubeBuilder, SFRBuilder
 from hisscube.builders_parallel import ParallelMWMRDataBuilder, ParallelSWMRDataBuilder, ParallelMetadataCacheBuilder, \
     ParallelMetadataBuilder, ParallelLinkBuilder, ParallelMLCubeBuilder
 from hisscube.processors.cube_ml import MLProcessor
@@ -12,13 +12,15 @@ from hisscube.processors.image import ImageProcessor
 from hisscube.processors.metadata_strategy_cube_ml import TreeMLProcessorStrategy, DatasetMLProcessorStrategy
 from hisscube.processors.metadata_strategy_cube_visualization import TreeVisualizationProcessorStrategy, \
     DatasetVisualizationProcessorStrategy
+from hisscube.processors.sfr import SFRProcessor
 from hisscube.processors.spectrum import SpectrumProcessor
 from hisscube.processors.metadata_strategy_dataset import DatasetStrategy
 from hisscube.processors.metadata_strategy_tree import TreeStrategy
 from hisscube.processors.metadata_strategy_image import TreeImageStrategy, DatasetImageStrategy
 from hisscube.processors.metadata_strategy_spectrum import TreeSpectrumStrategy, DatasetSpectrumStrategy
 from hisscube.utils.config import Config
-from hisscube.utils.io import SerialH5Writer, ParallelH5Writer, CBoostedMetadataBuildWriter, SerialH5Reader
+from hisscube.utils.io import SerialH5Writer, ParallelH5Writer, CBoostedMetadataBuildWriter, SerialH5Reader, \
+    PandasHDFWriter
 from hisscube.utils.io_strategy import SerialTreeIOStrategy, CBoostedTreeIOStrategy, SerialDatasetIOStrategy, \
     ParallelDatasetIOStrategy
 from hisscube.utils.mpi_helper import MPIHelper
@@ -27,7 +29,8 @@ from hisscube.utils.photometry import Photometry
 
 class HiSSCubeProvider:
     def __init__(self, h5_output_path, input_path=None, image_path=None, spectra_path=None, image_pattern=None,
-                 spectra_pattern=None, config=None, image_list=None, spectra_list=None):
+                 spectra_pattern=None, config=None, image_list=None, spectra_list=None, gal_info_path=None,
+                 gal_sfr_path=None):
         if not image_path and input_path:
             image_path = Path(input_path).joinpath("images")
         if not spectra_path and input_path:
@@ -53,6 +56,7 @@ class HiSSCubeProvider:
         self.h5_c_boosted_serial_writer = CBoostedMetadataBuildWriter(h5_output_path, self.config,
                                                                       self.c_boosted_strategy)
         self.h5_parallel_writer = ParallelH5Writer(h5_output_path, self.config, self.io_strategy)
+        self.h5_pandas_writer = PandasHDFWriter(h5_output_path, self.config, None)
 
         self.mpi_helper = MPIHelper(self.config)
         self.processors: ProcessorProvider = ProcessorProvider(self.photometry, self.config, self.image_list,
@@ -62,7 +66,10 @@ class HiSSCubeProvider:
                                                                             self.h5_c_boosted_serial_writer,
                                                                             self.processors, self.photometry,
                                                                             fits_image_pattern=image_pattern,
-                                                                            fits_spectra_pattern=spectra_pattern)
+                                                                            fits_spectra_pattern=spectra_pattern,
+                                                                            h5_pandas_writer=self.h5_pandas_writer,
+                                                                            gal_info_path=gal_info_path,
+                                                                            gal_sfr_path=gal_sfr_path)
         self.parallel_builders: ParallelBuilderProvider = ParallelBuilderProvider(image_path, spectra_path, self.config,
                                                                                   self.h5_serial_writer,
                                                                                   self.h5_parallel_writer,
@@ -98,13 +105,15 @@ class ProcessorProvider:
                                                              self.spectrum_metadata_strategy)
         self.ml_cube_processor = MLProcessor(self.ml_cube_strategy)
         self.visualization_cube_processor = VisualizationProcessor(self.visualization_cube_strategy)
+        self.sfr_processor = SFRProcessor()
 
 
 class SerialBuilderProvider:
     def __init__(self, fits_image_path: string, fits_spectra_path: string, config: Config,
                  h5_connector: SerialH5Writer, c_boosted_connector: CBoostedMetadataBuildWriter,
                  processors: ProcessorProvider,
-                 photometry: Photometry, fits_image_pattern=None, fits_spectra_pattern=None):
+                 photometry: Photometry, fits_image_pattern=None, fits_spectra_pattern=None, h5_pandas_writer=None,
+                 gal_info_path=None, gal_sfr_path=None):
         self.single_image_builder = SingleImageBuilder(config, h5_connector, processors.image_metadata_processor,
                                                        photometry)
         self.single_spectrum_builder = SingleSpectrumBuilder(config, h5_connector,
@@ -125,6 +134,9 @@ class SerialBuilderProvider:
         self.ml_cube_builder = MLCubeBuilder(config, h5_connector, processors.ml_cube_processor)
         self.visualization_cube_builder = VisualizationCubeBuilder(config, h5_connector,
                                                                    processors.visualization_cube_processor)
+        if gal_info_path and gal_sfr_path:
+            self.sfr_builder = SFRBuilder(config, h5_connector, h5_pandas_writer, processors.sfr_processor,
+                                          gal_info_path, gal_sfr_path)
 
 
 class ParallelBuilderProvider:

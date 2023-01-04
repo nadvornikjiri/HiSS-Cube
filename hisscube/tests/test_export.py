@@ -39,6 +39,7 @@ class TestExport(unittest.TestCase):
         args.link = True
         args.visualization_cube = True
         args.ml_cube = True
+        args.sfr=False
         args.output_path = H5PATH
         self.config = Config()
         self.config.MPIO = False

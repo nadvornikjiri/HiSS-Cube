@@ -54,12 +54,22 @@ if __name__ == '__main__':
                                help="Recreate the Visualization cube.")
     update_parser.add_argument('--ml-cube', action='store_true',
                                help="Recreate the Machine Learning cube.")
+    update_parser.add_argument('--sfr', action='store_true',
+                               help="Import the Star formation rates.")
+    update_parser.add_argument('--gal-info', dest='gal_info', action='store', nargs='?', type=str,
+                        help="Path to the gal_info as specified in https://wwwmpa.mpa-garching.mpg.de/SDSS/DR7/raw_data.html.")
+    update_parser.add_argument('--gal-sfr', dest='gal_sfr', action='store', nargs='?', type=str,
+                        help="Path to the galaxy SFRs as specified in https://wwwmpa.mpa-garching.mpg.de/SDSS/DR7/sfrs.html")
 
     args = parser.parse_args()
 
+    if args.sfr and not (args.gal_info and args.gal_sfr):
+        parser.error("If you want to import SFR, you need to specify --gal-info and --gal-sfr paths.")
+
     dependencies = HiSSCubeProvider(args.output_path, input_path=args.input_path, image_pattern=args.image_pattern,
                                     spectra_pattern=args.spectra_pattern, image_list=args.image_list,
-                                    spectra_list=args.spectra_list)
+                                    spectra_list=args.spectra_list,
+                                    gal_info_path=args.gal_info, gal_sfr_path=args.gal_sfr)
     cli_command_invoker = CLICommandInvoker(args, dependencies)
     cli_command_invoker.execute()
     dependencies.mpi_helper.log_proc_stats()
