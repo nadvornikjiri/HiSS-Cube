@@ -7,6 +7,7 @@ from sys import getsizeof, stderr
 import h5py
 import mpi4py.MPI
 import numpy as np
+import pandas as pd
 from astropy.time import Time
 
 from hisscube.processors.data import get_property_list
@@ -75,7 +76,7 @@ def truncate(h5_path):
 
 
 class H5Connector(ABC):
-    def __init__(self, h5_path, config: Config, io_strategy: IOStrategy):
+    def __init__(self, h5_path, config: Config, io_strategy: IOStrategy = None):
         self.h5_path = h5_path
         self.config = config
         self.strategy = io_strategy
@@ -151,7 +152,7 @@ class H5Connector(ABC):
             chunk_size = self.config.LINK_BATCH_SIZE
         if wl_count:
             ds_shape = (item_count, wl_count, self.config.MAX_CUTOUT_REFS)
-            chunk_shape =(chunk_size, wl_count, self.config.MAX_CUTOUT_REFS)
+            chunk_shape = (chunk_size, wl_count, self.config.MAX_CUTOUT_REFS)
         else:
             ds_shape = (item_count, self.config.MAX_CUTOUT_REFS)
             chunk_shape = (chunk_size, self.config.MAX_CUTOUT_REFS)
@@ -341,6 +342,12 @@ class CBoostedMetadataBuildWriter(SerialH5Writer):
     @staticmethod
     def set_attr_ref(obj, key, obj2):
         obj["attrs"][key] = obj2["path"]  # the obj2["path"] is not needed ATM.
+
+
+class PandasHDFWriter(H5Connector):
+
+    def open_h5_file(self, truncate_file=False):
+        self.file = pd.HDFStore(self.h5_path)
 
 
 def get_image_header_dataset(h5_connector):

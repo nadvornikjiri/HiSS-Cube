@@ -11,6 +11,7 @@ from hisscube.processors.cube_ml import MLProcessor
 from hisscube.processors.cube_visualization import VisualizationProcessor
 from hisscube.processors.metadata import MetadataProcessor
 from hisscube.processors.image import ImageProcessor
+from hisscube.processors.sfr import SFRProcessor
 from hisscube.processors.spectrum import SpectrumProcessor
 from hisscube.utils.config import Config
 from hisscube.utils.io import H5Connector, CBoostedMetadataBuildWriter, get_image_str_paths, get_spectra_str_paths
@@ -256,3 +257,23 @@ class VisualizationCubeBuilder(SerialBuilder):
         with self.h5_connector as h5_connector:
             self.logger.info("Creating the visualization dense cube.")
             self.visualization_processor.create_visualization_cube(h5_connector)
+
+
+class SFRBuilder(SerialBuilder):
+    def __init__(self, config: Config, h5_connector: H5Connector, h5_pandas_writer: H5Connector,
+                 sfr_processor: SFRProcessor, gal_info_path, gal_sfr_path):
+        super().__init__(config, h5_connector)
+        self.sfr_processor = sfr_processor
+        self.h5_pandas_writer = h5_pandas_writer
+        self.gal_info_path = gal_info_path
+        self.gal_sfr_path = gal_sfr_path
+
+    def _build(self):
+        self.logger.info("Importing the SFR tables.")
+        with self.h5_pandas_writer as pandas_writer:
+            sfr_df = self.sfr_processor.write_sfr(pandas_writer, self.gal_info_path, self.gal_sfr_path)
+        with self.h5_connector as h5py_reader:
+            spec_headers_df = self.sfr_processor.get_spectrum_metadata(h5py_reader)
+        with self.h5_pandas_writer as pandas_writer:
+            merged_df = self.sfr_processor.write_spec_metadata_with_sfr(pandas_writer, spec_headers_df, sfr_df)
+        return merged_df

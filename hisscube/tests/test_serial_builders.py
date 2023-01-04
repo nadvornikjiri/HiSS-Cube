@@ -88,6 +88,7 @@ class TestSerialBuilder(unittest.TestCase):
         args.link = False
         args.visualization_cube = False
         args.ml_cube = False
+        args.sfr = False
         args.output_path = H5_PATH
         dependency_provider, director = get_test_director(args, test_images, test_spectra, image_pattern,
                                                           spectra_pattern, config)
@@ -178,6 +179,7 @@ class TestSerialBuilder(unittest.TestCase):
         args.link_images_spectra = True
         args.visualization_cube = False
         args.ml_cube = False
+        args.sfr = False
         args.output_path = H5_PATH
         dependency_provider, director = get_test_director(args, test_images, test_spectra, image_pattern,
                                                           spectra_pattern, config=config)

@@ -1,6 +1,10 @@
 import configparser
 import pathlib
 
+from mpi4py import MPI
+comm = MPI.COMM_WORLD
+mpi_size = comm.Get_size()
+
 
 class Config:
     def __init__(self):
@@ -12,7 +16,10 @@ class Config:
         self.CREATE_REFERENCES = self.config.getboolean('Builder', 'CREATE_REFERENCES')
         self.CREATE_VISUALIZATION_CUBE = self.config.getboolean('Builder', 'CREATE_VISUALIZATION_CUBE')
         self.CREATE_ML_CUBE = self.config.getboolean('Builder', 'CREATE_ML_CUBE')
-        self.MPIO = self.config.getboolean('Builder', 'MPIO')
+        if mpi_size < 2:
+            self.MPIO = False
+        else:
+            self.MPIO = True
         self.PARALLEL_MODE = self.config.get('Builder', 'PARALLEL_MODE')
         self.C_BOOSTER = self.config.getboolean('Builder', 'C_BOOSTER')
         self.METADATA_STRATEGY = self.config.get('Builder', 'METADATA_STRATEGY')
