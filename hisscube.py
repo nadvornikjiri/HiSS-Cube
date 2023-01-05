@@ -30,6 +30,13 @@ if __name__ == '__main__':
     parser.add_argument('--spectra-list', dest='spectra_list', action='store', nargs='?', type=str,
                         help="CSV format for list of Plates to search the spectra by.")
 
+    parser.add_argument('--sfr', action='store_true',
+                               help="Import the Star formation rates.")
+    parser.add_argument('--gal-info', dest='gal_info', action='store', nargs='?', type=str,
+                               help="Path to the gal_info as specified in https://wwwmpa.mpa-garching.mpg.de/SDSS/DR7/raw_data.html.")
+    parser.add_argument('--gal-sfr', dest='gal_sfr', action='store', nargs='?', type=str,
+                               help="Path to the galaxy SFRs as specified in https://wwwmpa.mpa-garching.mpg.de/SDSS/DR7/sfrs.html")
+
     subparsers = parser.add_subparsers(help='commands', dest="command")
     create_parser = subparsers.add_parser("create",
                                           help="This command allows you to create the whole h5 file in one go.")
@@ -54,12 +61,6 @@ if __name__ == '__main__':
                                help="Recreate the Visualization cube.")
     update_parser.add_argument('--ml-cube', action='store_true',
                                help="Recreate the Machine Learning cube.")
-    update_parser.add_argument('--sfr', action='store_true',
-                               help="Import the Star formation rates.")
-    update_parser.add_argument('--gal-info', dest='gal_info', action='store', nargs='?', type=str,
-                        help="Path to the gal_info as specified in https://wwwmpa.mpa-garching.mpg.de/SDSS/DR7/raw_data.html.")
-    update_parser.add_argument('--gal-sfr', dest='gal_sfr', action='store', nargs='?', type=str,
-                        help="Path to the galaxy SFRs as specified in https://wwwmpa.mpa-garching.mpg.de/SDSS/DR7/sfrs.html")
 
     args = parser.parse_args()
 
