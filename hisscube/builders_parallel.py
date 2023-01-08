@@ -1,5 +1,6 @@
 import math
 import string
+import sys
 import traceback
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
@@ -35,26 +36,28 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
         status = self.mpi_helper.MPI.Status()
         batches = chunks(path_list, batch_size)
         offset = 0
-        pbar = tqdm(desc=desc, total=total, smoothing=0)
-        for i, batch in enumerate(batches, 1):
-            batch = list(batch)
-            next_batch_size = len(batch)
-            if i < self.mpi_helper.size:
-                self.mpi_helper.send_work(batch, dest=i, offset=offset)
-                pbar.update(next_batch_size)
-                self.mpi_helper.active_workers += 1
-            else:
-                self.mpi_helper.wait_for_message(source=self.mpi_helper.MPI.ANY_SOURCE,
-                                                 tag=self.mpi_helper.FINISHED_TAG, status=status)
+        with open("output.txt", "a") as output_file:
+            pbar = tqdm(desc=desc, total=total, smoothing=0, file=output_file)
+            for i, batch in enumerate(batches, 1):
+                batch = list(batch)
+                next_batch_size = len(batch)
+                if i < self.mpi_helper.size:
+                    self.mpi_helper.send_work(batch, dest=i, offset=offset)
+                    pbar.update(next_batch_size)
+                    self.mpi_helper.active_workers += 1
+                else:
+                    self.mpi_helper.wait_for_message(source=self.mpi_helper.MPI.ANY_SOURCE,
+                                                     tag=self.mpi_helper.FINISHED_TAG, status=status)
+                    self.process_response(h5_connector, processor, status)
+                    self.mpi_helper.send_work(batch, status.Get_source(), offset=offset)
+                    pbar.update(next_batch_size)
+                offset += next_batch_size
+            for i in range(1, self.mpi_helper.size):
+                self.mpi_helper.send_work_finished(dest=i)
+            for i in range(0, self.mpi_helper.active_workers):
                 self.process_response(h5_connector, processor, status)
-                self.mpi_helper.send_work(batch, status.Get_source(), offset=offset)
-                pbar.update(next_batch_size)
-            offset += next_batch_size
-        for i in range(1, self.mpi_helper.size):
-            self.mpi_helper.send_work_finished(dest=i)
-        for i in range(0, self.mpi_helper.active_workers):
-            self.process_response(h5_connector, processor, status)
-        self.mpi_helper.active_workers = 0
+            self.mpi_helper.active_workers = 0
+            pbar.close()
         return offset
 
     def process_response(self, h5_connector, processor, status):
