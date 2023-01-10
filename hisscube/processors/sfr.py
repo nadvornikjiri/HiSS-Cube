@@ -43,5 +43,6 @@ class SFRProcessor:
     def write_spec_metadata_with_sfr(pytables_connector, parsed_spectrum_headers, sfr_table):
         headers_sfr_merged_df = pd.merge(parsed_spectrum_headers, sfr_table, on=["PLATEID", "MJD", "FIBERID"],
                                          how="left")
+        convert_str_cols(headers_sfr_merged_df)
         pytables_connector.file.put("fits_spectra_metadata_star_formation_rates", headers_sfr_merged_df)
         return headers_sfr_merged_df
