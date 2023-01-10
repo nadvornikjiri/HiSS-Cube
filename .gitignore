@@ -2,6 +2,7 @@
 *.fits
 h5dump
 data/
+SFR
 galaxy_small_decompressed/
 disk_benchmark/
 HDFits/
