@@ -5,6 +5,7 @@ import traceback
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 
+import h5py
 from tqdm.auto import tqdm
 
 from hisscube.builders import Builder
@@ -420,16 +421,21 @@ class ParallelLinkBuilder(ParallelBuilder):
                                      self.config.LINK_BATCH_SIZE, "Linking spectra", total=spectrum_count)
             else:
 
-                image_db_index = get_index_datasets(h5_connector, "images", self.config.IMG_ZOOM_CNT,
+                image_db_index_uncached = get_index_datasets(h5_connector, "images", self.config.IMG_ZOOM_CNT,
                                                     self.config.SPARSE_CUBE_NAME)[0]
-                image_wcs_datasets = get_wcs_datasets(h5_connector, "images", self.config.IMG_ZOOM_CNT,
+                image_wcs_datasets_uncached = get_wcs_datasets(h5_connector, "images", self.config.IMG_ZOOM_CNT,
                                                       self.config.SPARSE_CUBE_NAME)
                 if self.config.CACHE_INDEX_FOR_LINKING:
-                    image_db_index = image_db_index[:]
+                    image_db_index = image_db_index_uncached[:]
+                else:
+                    image_db_index = image_db_index_uncached
                 if self.config.CACHE_WCS_FOR_LINKING:
-                    image_wcs_datasets = [ds[:] for ds in image_wcs_datasets]
+                    image_wcs_datasets = [ds[:] for ds in image_wcs_datasets_uncached]
+                else:
+                    image_wcs_datasets = image_wcs_datasets_uncached
                 self.link(h5_connector, image_db_index, image_wcs_datasets)
                 self.spectrum_strategy.clear_buffers()
+            self.logger.error("Ref count for h5 file: %d " % h5py.h5i.get_ref(h5_connector.file.id))
         self.mpi_helper.barrier()
 
     def link(self, h5_connector, image_db_index, image_wcs_data):
