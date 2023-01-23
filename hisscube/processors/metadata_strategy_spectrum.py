@@ -687,7 +687,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
             elif buffer_idx == 2 and self.cutout_metadata_buffer is None:
                 self.cutout_metadata_buffer = self.metadata_strategy.get_cutout_buffer(batch_size)
                 self.buffer.append(self.cutout_metadata_buffer)
-            self.buffer[buffer_idx][zoom_idx, batch_i, 0:number_of_refs] = image_refs[zoom_idx]
+            self.buffer[buffer_idx][zoom_idx, batch_i, 0:number_of_refs] = image_refs[zoom_idx][:self.config.MAX_CUTOUT_REFS]
             self.target_with_cutout_cnt += 1
         if batch_i == (batch_size - 1) and self.target_with_cutout_cnt > 0:
             image_cutout_ds.write_direct(self.buffer[buffer_idx][zoom_idx], source_sel=np.s_[0:batch_size, ...],
