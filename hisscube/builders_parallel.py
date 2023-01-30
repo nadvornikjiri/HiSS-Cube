@@ -36,14 +36,16 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
         status = self.mpi_helper.MPI.Status()
         batches = chunks(path_list, batch_size)
         offset = 0
-        with open("output.txt", "a") as output_file:
+        with open("%s_output.txt" % Path(h5_connector.h5_path).name, "a") as output_file:
             pbar = tqdm(desc=desc, total=total, smoothing=0, file=output_file)
+            pbar_sout = tqdm(desc=desc, total=total, smoothing=0)
             for i, batch in enumerate(batches, 1):
                 batch = list(batch)
                 next_batch_size = len(batch)
                 if i < self.mpi_helper.size:
                     self.mpi_helper.send_work(batch, dest=i, offset=offset)
                     pbar.update(next_batch_size)
+                    pbar_sout.update(next_batch_size)
                     self.mpi_helper.active_workers += 1
                 else:
                     self.mpi_helper.wait_for_message(source=self.mpi_helper.MPI.ANY_SOURCE,
@@ -51,6 +53,7 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
                     self.process_response(h5_connector, processor, status)
                     self.mpi_helper.send_work(batch, status.Get_source(), offset=offset)
                     pbar.update(next_batch_size)
+                    pbar_sout.update(next_batch_size)
                 offset += next_batch_size
             for i in range(1, self.mpi_helper.size):
                 self.mpi_helper.send_work_finished(dest=i)
@@ -58,6 +61,7 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
                 self.process_response(h5_connector, processor, status)
             self.mpi_helper.active_workers = 0
             pbar.close()
+            pbar_sout.close()
         return offset
 
     def process_response(self, h5_connector, processor, status):
