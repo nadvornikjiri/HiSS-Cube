@@ -100,6 +100,9 @@ class MPIHelper:
         if not comm:
             comm = self.comm
         sleep_time = self.config.POLL_INTERVAL
+        if sleep_time == 0:
+            comm.Barrier()
+            return
         size = comm.Get_size()
         if size == 1:
             return
