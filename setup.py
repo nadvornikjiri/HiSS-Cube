@@ -3,7 +3,7 @@ from distutils.core import setup, Extension
 
 setup_path = pathlib.Path(__file__).parent.absolute()
 
-hdf5_version = "1.13.1"
+hdf5_version = "devel"
 
 include_dirs = ['%s/ext_lib/hdf5-%s/hdf5/include' % (setup_path, hdf5_version),
                 '/usr/lib/x86_64-linux-gnu/openmpi/include',

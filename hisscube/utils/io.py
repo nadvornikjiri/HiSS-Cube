@@ -9,6 +9,8 @@ import mpi4py.MPI
 import numpy as np
 import pandas as pd
 from astropy.time import Time
+from h5py import h5f
+from h5py.h5p import PropFAID
 
 from hisscube.processors.data import get_property_list
 from hisscube.utils.config import Config
@@ -69,8 +71,15 @@ def get_path_patterns(config, image_pattern=None, spectra_pattern=None):
     return image_pattern, spectra_pattern
 
 
-def truncate(h5_path):
-    if rank == 0:
+def truncate(h5_path, config=None):
+    if config and config.USE_SUBFILING:
+        f = h5py.File(h5_path, 'w', driver='mpio', comm=mpi4py.MPI.COMM_WORLD, libver="latest",
+                      ioc_thread_pool_size=config.IOC_THREADPOOL_SIZE,
+                      ioc_selection=config.IOC_SELECTION,
+                      stripe_size=config.STRIPE_SIZE,
+                      stripe_count=config.STRIPE_COUNT)
+        f.close()
+    elif rank == 0:
         f = h5py.File(h5_path, 'w', fs_strategy="page", fs_page_size=4096, libver="latest")
         f.close()
 
@@ -262,8 +271,17 @@ class ParallelH5Writer(H5Connector):
             self.comm = mpi4py.MPI.COMM_WORLD
 
     def open_h5_file(self, truncate_file=False):
-        self.file = h5py.File(self.h5_path, 'r+', driver='mpio',
-                              comm=self.comm, libver="latest")
+        if truncate_file:
+             truncate(self.h5_path, self.config)
+        if not self.config.USE_SUBFILING:
+            self.file = h5py.File(self.h5_path, 'r+', driver='mpio',
+                                  comm=self.comm, libver="latest")
+        else:
+            self.file = h5py.File(self.h5_path, 'r+', driver='mpio', comm=self.comm, libver="latest",
+                                  ioc_thread_pool_size=self.config.IOC_THREADPOOL_SIZE,
+                                  ioc_selection=self.config.IOC_SELECTION,
+                                  stripe_size=self.config.STRIPE_SIZE,
+                                  stripe_count=self.config.STRIPE_COUNT)
 
 
 class CBoostedMetadataBuildWriter(SerialH5Writer):

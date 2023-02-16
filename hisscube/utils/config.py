@@ -70,6 +70,12 @@ class Config:
         self.CACHE_INDEX_FOR_LINKING = self.config.getboolean('MPI', 'CACHE_INDEX_FOR_LINKING')
         self.CACHE_WCS_FOR_LINKING = self.config.getboolean('MPI', 'CACHE_WCS_FOR_LINKING')
 
+        self.USE_SUBFILING = self.config.getboolean('Subfiling', 'USE_SUBFILING')
+        self.IOC_THREADPOOL_SIZE = self.config.getint('Subfiling', 'IOC_THREADPOOL_SIZE')
+        self.IOC_SELECTION = self.config.get('Subfiling', 'IOC_SELECTION')
+        self.STRIPE_COUNT = self.config.getint('Subfiling', 'STRIPE_COUNT')
+        self.STRIPE_SIZE = self.config.getint('Subfiling', 'STRIPE_SIZE')
+
         self.OUTPUT_HEAL_ORDER = self.config.getint('Reader', 'OUTPUT_HEAL_ORDER')
 
         self.APPLY_TRANSMISSION_ONLINE = self.config.get('Processor', 'APPLY_TRANSMISSION_ONLINE')

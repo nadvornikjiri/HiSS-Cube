@@ -15,7 +15,7 @@ class HiSSCubeConstructionDirector:
     def construct(self):
 
         if self.args.command == "create":
-            truncate(self.h5_path)
+            truncate(self.h5_path, self.config)
             self.append_metadata_cache_builder()
             self.append_metadata_builder()
             self.append_data_builder(True, True, True)
@@ -28,7 +28,7 @@ class HiSSCubeConstructionDirector:
 
         elif self.args.command == "update":
             if self.args.truncate:
-                truncate(self.h5_path)
+                truncate(self.h5_path, self.config)
             if self.args.fits_metadata_cache:
                 self.append_metadata_cache_builder()
             if self.args.metadata:
