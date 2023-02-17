@@ -85,9 +85,10 @@ def truncate(h5_path, config=None):
 
 
 class H5Connector(ABC):
-    def __init__(self, h5_path, config: Config, io_strategy: IOStrategy = None):
+    def __init__(self, h5_path, config: Config, io_strategy: IOStrategy = None, mpi_comm=None):
         self.h5_path = h5_path
         self.config = config
+        self.comm = mpi_comm
         self.strategy = io_strategy
         self.grp_cnt = 0
         self.fits_total_cnt = 0
@@ -227,14 +228,22 @@ class H5Connector(ABC):
 
 class SerialH5Writer(H5Connector):
 
-    def __init__(self, h5_path, config, io_strategy: IOStrategy):
-        super().__init__(h5_path, config, io_strategy)
+    def __init__(self, h5_path, config, io_strategy: IOStrategy, mpi_comm):
+        super().__init__(h5_path, config, io_strategy, mpi_comm)
 
     def open_h5_file(self, truncate_file=False):
         try:
-            self.file = h5py.File(self.h5_path, 'r+', libver="latest")
+            if not self.config.USE_SUBFILING:
+                self.file = h5py.File(self.h5_path, 'r+', libver="latest")
+            else:
+                self.file = h5py.File(self.h5_path, 'r+', driver="mpio", comm=self.comm, libver="latest",
+                                      ioc_thread_pool_size=self.config.IOC_THREADPOOL_SIZE,
+                                      ioc_selection=self.config.IOC_SELECTION,
+                                      stripe_size=self.config.STRIPE_SIZE,
+                                      stripe_count=self.config.STRIPE_COUNT)
+
         except FileNotFoundError:
-            truncate(self.h5_path)
+            truncate(self.h5_path, self.config)
             self.open_h5_file()
 
 
@@ -272,7 +281,7 @@ class ParallelH5Writer(H5Connector):
 
     def open_h5_file(self, truncate_file=False):
         if truncate_file:
-             truncate(self.h5_path, self.config)
+            truncate(self.h5_path, self.config)
         if not self.config.USE_SUBFILING:
             self.file = h5py.File(self.h5_path, 'r+', driver='mpio',
                                   comm=self.comm, libver="latest")
@@ -287,7 +296,7 @@ class ParallelH5Writer(H5Connector):
 class CBoostedMetadataBuildWriter(SerialH5Writer):
 
     def __init__(self, h5_path, config, io_strategy: IOStrategy):
-        super().__init__(h5_path, config, io_strategy)
+        super().__init__(h5_path, config, io_strategy, None)
         self.c_timing_log = get_c_timings_path()
         self.h5_file_structure = {"name": ""}
 

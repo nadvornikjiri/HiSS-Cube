@@ -50,15 +50,16 @@ class HiSSCubeProvider:
             else:
                 self.io_strategy = SerialDatasetIOStrategy()
 
+        self.mpi_helper = MPIHelper(self.config)
         self.c_boosted_strategy = CBoostedTreeIOStrategy()
-        self.h5_serial_writer = SerialH5Writer(h5_output_path, self.config, self.io_strategy)
+        self.h5_serial_writer = SerialH5Writer(h5_output_path, self.config, self.io_strategy,
+                                               self.mpi_helper.serial_comm)
         self.h5_serial_reader = SerialH5Reader(h5_output_path, self.config, self.io_strategy)
         self.h5_c_boosted_serial_writer = CBoostedMetadataBuildWriter(h5_output_path, self.config,
                                                                       self.c_boosted_strategy)
         self.h5_parallel_writer = ParallelH5Writer(h5_output_path, self.config, self.io_strategy)
         self.h5_pandas_writer = PandasHDFWriter(h5_output_path, self.config, None)
 
-        self.mpi_helper = MPIHelper(self.config)
         self.processors: ProcessorProvider = ProcessorProvider(self.photometry, self.config, self.image_list,
                                                                self.spectra_list)
         self.serial_builders: SerialBuilderProvider = SerialBuilderProvider(image_path, spectra_path, self.config,

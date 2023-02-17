@@ -53,6 +53,7 @@ class MPIHelper:
         self.comm = mpi4py.MPI.COMM_WORLD
         self.size = self.comm.Get_size()
         self.rank = self.comm.Get_rank()
+        self.serial_comm = self.comm.Split(color=rank, key=rank)
         self.sent_work_cnt = 0
         self.received_work_cnt = 0
         self.received_result_cnt = 0
