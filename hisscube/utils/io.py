@@ -71,9 +71,9 @@ def get_path_patterns(config, image_pattern=None, spectra_pattern=None):
     return image_pattern, spectra_pattern
 
 
-def truncate(h5_path, config=None):
+def truncate(h5_path, config=None, comm=mpi4py.MPI.COMM_WORLD):
     if config and config.USE_SUBFILING:
-        f = h5py.File(h5_path, 'w', driver='mpio', comm=mpi4py.MPI.COMM_WORLD, libver="latest",
+        f = h5py.File(h5_path, 'w', driver='mpio', comm=comm, libver="latest",
                       ioc_thread_pool_size=config.IOC_THREADPOOL_SIZE,
                       ioc_selection=config.IOC_SELECTION,
                       stripe_size=config.STRIPE_SIZE,
@@ -242,8 +242,8 @@ class SerialH5Writer(H5Connector):
                                       stripe_size=self.config.STRIPE_SIZE,
                                       stripe_count=self.config.STRIPE_COUNT)
 
-        except FileNotFoundError:
-            truncate(self.h5_path, self.config)
+        except (FileNotFoundError, OSError):
+            truncate(self.h5_path, self.config, self.comm)
             self.open_h5_file()
 
 
