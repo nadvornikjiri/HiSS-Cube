@@ -5,13 +5,13 @@ from hisscube.utils.logging import HiSSCubeLogger
 
 
 class SpectrumProcessor:
-    def __init__(self, config, metadata_handler, metadata_strategy: SpectrumMetadataStrategy):
+    def __init__(self, config, metadata_handler, metadata_strategy: SpectrumMetadataStrategy, logger: HiSSCubeLogger):
         self.metadata_strategy = metadata_strategy
         self.metadata_processor = metadata_handler
         self.metadata = None
         self.h5_connector = None
         self.config = config
-        self.logger = HiSSCubeLogger.logger
+        self.logger = logger
         self.spec_cnt = 0
         self.spectrum_length = 0
 

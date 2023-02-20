@@ -37,6 +37,8 @@ if __name__ == '__main__':
                                help="Path to the gal_info as specified in https://wwwmpa.mpa-garching.mpg.de/SDSS/DR7/raw_data.html.")
     parser.add_argument('--gal-sfr', dest='gal_sfr', action='store', nargs='?', type=str,
                                help="Path to the galaxy SFRs as specified in https://wwwmpa.mpa-garching.mpg.de/SDSS/DR7/sfrs.html")
+    parser.add_argument('--config', dest='config_path', action='store', nargs='?', type=str,
+                        help="Relative path to the HiSSCube config file.")
 
     subparsers = parser.add_subparsers(help='commands', dest="command")
     create_parser = subparsers.add_parser("create",
@@ -71,7 +73,8 @@ if __name__ == '__main__':
     dependencies = HiSSCubeProvider(args.output_path, input_path=args.input_path, image_pattern=args.image_pattern,
                                     spectra_pattern=args.spectra_pattern, image_list=args.image_list,
                                     spectra_list=args.spectra_list,
-                                    gal_info_path=args.gal_info, gal_sfr_path=args.gal_sfr)
+                                    gal_info_path=args.gal_info, gal_sfr_path=args.gal_sfr,
+                                    config_path=args.config_path)
     cli_command_invoker = CLICommandInvoker(args, dependencies)
     cli_command_invoker.execute()
     dependencies.mpi_helper.log_proc_stats()

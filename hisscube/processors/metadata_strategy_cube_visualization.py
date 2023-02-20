@@ -22,11 +22,11 @@ from hisscube.utils.photometry import Photometry
 
 class VisualizationProcessorStrategy(ABC):
 
-    def __init__(self, config):
+    def __init__(self, config, logger: HiSSCubeLogger):
         self.h5_connector = None
         self.spectrum_metadata = None
         self.config = config
-        self.logger = HiSSCubeLogger.logger
+        self.logger = logger
         if self.config.INCLUDE_ADDITIONAL_METADATA:  # TODO add the grouprefs to the images and spectra from dense cube
             self.array_type = [('heal_id', '<i8'), ('ra', '<f4'), ('dec', '<f4'), ('time', '<f4'), ('wl', '<f4'),
                                ('mean', '<f4'), ('sigma', '<f4'), ('spec_ra', '<f4'), ('spec_dec', '<f4'),
@@ -314,8 +314,8 @@ class TreeVisualizationProcessorStrategy(VisualizationProcessorStrategy):
 
 class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
 
-    def __init__(self, config, photometry: Photometry, metadata_strategy: DatasetStrategy):
-        super().__init__(config)
+    def __init__(self, config, photometry: Photometry, metadata_strategy: DatasetStrategy, logger):
+        super().__init__(config, logger)
         self.photometry = photometry
         self.metadata_strategy = metadata_strategy
         self.spec_cnt = 0
@@ -343,7 +343,7 @@ class DatasetVisualizationProcessorStrategy(VisualizationProcessorStrategy):
         cutout_data_refs = cutout_data_datasets_multiple_zoom[self.output_zoom]
         cutout_error_refs = cutout_error_datasets_multiple_zoom[self.output_zoom]
         cutout_metadata_refs = cutout_metadata_datasets_multiple_zoom[self.output_zoom]
-        iterator = wrap_tqdm(range(spec_cnt_total), self.config.MPIO, self.__class__.__name__)
+        iterator = wrap_tqdm(range(spec_cnt_total), self.config.MPIO, self.__class__.__name__, self.config)
         for spec_idx in iterator:
             self._construct_spectrum_table(spec_ds, spec_idx, cutout_data_refs, cutout_error_refs, cutout_metadata_refs)
 

@@ -216,7 +216,7 @@ class TestSerialBuilder(unittest.TestCase):
         photometry = self.dependency_provider.photometry
         config = self.dependency_provider.config
         spectra_paths = list(Path(spectra_folder).rglob(spectra_pattern))
-        iterator = wrap_tqdm(spectra_paths, self.config.MPIO, self.__class__.__name__)
+        iterator = wrap_tqdm(spectra_paths, self.config.MPIO, self.__class__.__name__, self.config)
         for spec_path in iterator:
             metadata, data = photometry.get_multiple_resolution_spectrum(
                 spec_path,

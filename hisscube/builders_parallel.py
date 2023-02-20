@@ -27,8 +27,8 @@ from hisscube.utils.photometry import Photometry
 
 class ParallelBuilder(Builder, metaclass=ABCMeta):
 
-    def __init__(self, config: Config, h5_connector: H5Connector, mpi_helper: MPIHelper):
-        super().__init__(config, h5_connector)
+    def __init__(self, config: Config, h5_connector: H5Connector, mpi_helper: MPIHelper, logger):
+        super().__init__(config, h5_connector, logger)
         self.mpi_helper = mpi_helper
         self.comm_buffer = None
 
@@ -92,10 +92,10 @@ class ParallelBuilder(Builder, metaclass=ABCMeta):
 class ParallelMetadataCacheBuilder(ParallelBuilder):
     def __init__(self, fits_image_path: string, fits_spectra_path: string, config: Config,
                  serial_h5_connector: SerialH5Writer, parallel_h5_connector: ParallelH5Writer, mpi_helper: MPIHelper,
-                 metadata_processor: MetadataProcessor,
+                 metadata_processor: MetadataProcessor, logger,
                  fits_image_pattern=None,
                  fits_spectra_pattern=None):
-        super().__init__(config, serial_h5_connector, mpi_helper)
+        super().__init__(config, serial_h5_connector, mpi_helper, logger)
         self.fits_image_path = fits_image_path
         self.fits_spectra_path = fits_spectra_path
         self.metadata_processor = metadata_processor
@@ -174,8 +174,8 @@ class ParallelMetadataBuilder(ParallelBuilder):
                  mpi_helper: MPIHelper,
                  metadata_processor: MetadataProcessor, image_metadata_strategy: DatasetImageStrategy,
                  spectrum_metadata_strategy: DatasetSpectrumStrategy, image_processor: ImageProcessor,
-                 spectrum_processor: SpectrumProcessor):
-        super().__init__(config, serial_h5_connector, mpi_helper)
+                 spectrum_processor: SpectrumProcessor, logger):
+        super().__init__(config, serial_h5_connector, mpi_helper, logger)
         self.metadata_processor = metadata_processor
         self.image_strategy = image_metadata_strategy
         self.spectrum_strategy = spectrum_metadata_strategy
@@ -242,8 +242,8 @@ class ParallelMetadataBuilder(ParallelBuilder):
 class ParallelDataBuilder(ParallelBuilder):
     def __init__(self, config: Config, h5_connector: H5Connector, mpi_helper: MPIHelper,
                  metadata_processor: MetadataProcessor, image_processor: ImageProcessor,
-                 spectrum_processor: SpectrumProcessor, photometry: Photometry):
-        super().__init__(config, h5_connector, mpi_helper)
+                 spectrum_processor: SpectrumProcessor, photometry: Photometry, logger):
+        super().__init__(config, h5_connector, mpi_helper, logger)
         self.metadata_processor = metadata_processor
         self.image_processor = image_processor
         self.spectrum_processor = spectrum_processor
@@ -301,9 +301,9 @@ class ParallelDataBuilder(ParallelBuilder):
 class ParallelMWMRDataBuilder(ParallelDataBuilder):
     def __init__(self, config: Config, h5_connector: H5Connector, mpi_helper: MPIHelper,
                  metadata_processor: MetadataProcessor, image_processor: ImageProcessor,
-                 spectrum_processor: SpectrumProcessor, photometry: Photometry):
+                 spectrum_processor: SpectrumProcessor, photometry: Photometry, logger):
         super().__init__(config, h5_connector, mpi_helper, metadata_processor, image_processor,
-                         spectrum_processor, photometry)
+                         spectrum_processor, photometry, logger)
 
     @staticmethod
     def write_data(metadata, data, h5_connector, fits_path, processor, offset, i, batch_size):
@@ -343,9 +343,9 @@ class ParallelSWMRDataBuilder(ParallelDataBuilder):
 
     def __init__(self, config: Config, h5_connector: H5Connector, mpi_helper: MPIHelper,
                  metadata_processor: MetadataProcessor, image_processor: ImageProcessor,
-                 spectrum_processor: SpectrumProcessor, photometry: Photometry):
+                 spectrum_processor: SpectrumProcessor, photometry: Photometry, logger):
         super().__init__(config, h5_connector, mpi_helper, metadata_processor, image_processor,
-                         spectrum_processor, photometry)
+                         spectrum_processor, photometry, logger)
         self.comm_buffer = bytearray(
             self.config.IMAGE_DATA_BATCH_SIZE * 100 * 1024 * 1024)  # 100 MBs for one image
 
@@ -404,8 +404,8 @@ class ParallelLinkBuilder(ParallelBuilder):
     def __init__(self, config: Config, serial_h5_connector: SerialH5Writer, parallel_h5_connector: ParallelH5Writer,
                  mpi_helper: MPIHelper,
                  spectrum_metadata_strategy: DatasetSpectrumStrategy,
-                 spectrum_processor: SpectrumProcessor):
-        super().__init__(config, serial_h5_connector, mpi_helper)
+                 spectrum_processor: SpectrumProcessor, logger):
+        super().__init__(config, serial_h5_connector, mpi_helper, logger)
         self.spectrum_strategy = spectrum_metadata_strategy
         self.spectrum_processor = spectrum_processor
         self.parallel_connector = parallel_h5_connector
@@ -459,8 +459,8 @@ class ParallelMLCubeBuilder(ParallelBuilder):
     def __init__(self, config: Config, serial_h5_connector: SerialH5Writer, parallel_h5_connector: ParallelH5Writer,
                  mpi_helper: MPIHelper,
                  metadata_strategy: DatasetMLProcessorStrategy,
-                 ml_processor: MLProcessor):
-        super().__init__(config, serial_h5_connector, mpi_helper)
+                 ml_processor: MLProcessor, logger):
+        super().__init__(config, serial_h5_connector, mpi_helper, logger)
         self.spectrum_strategy = metadata_strategy
         self.ml_processor = ml_processor
         self.parallel_connector = parallel_h5_connector

@@ -142,8 +142,7 @@ def get_timings_logger(timings_path, prefix):
     return logger
 
 
-def get_application_logger():
-    config = Config()
+def get_application_logger(config):
     logging.basicConfig()
     logging.captureWarnings(True)
     logging.root.setLevel(config.LOG_LEVEL)
@@ -157,7 +156,8 @@ def get_application_logger():
 
 
 class HiSSCubeLogger:
-    logger = get_application_logger()
+    def __init__(self, config):
+        self.logger = get_application_logger(config)
 
 
 def get_c_timings_path(timings_log="logs/timings.csv"):
@@ -168,8 +168,7 @@ def get_c_timings_path(timings_log="logs/timings.csv"):
     return c_timing_path + "c_" + c_timing_file_name
 
 
-def wrap_tqdm(iterator, mpio, name):
-    config = Config()
+def wrap_tqdm(iterator, mpio, name, config):
     if not mpio or config.LOG_LEVEL == "DEBUG":
         iterator = tqdm(iterator, desc=name, position=0, leave=True)
     return iterator

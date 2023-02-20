@@ -31,12 +31,12 @@ def recreate_wcs_ds(h5_connector: H5Connector, max_entries, wcs_dtype, grp):
 
 
 class ImageMetadataStrategy(ABC):
-    def __init__(self, metadata_strategy: MetadataStrategy, config: Config, photometry: Photometry):
+    def __init__(self, metadata_strategy: MetadataStrategy, config: Config, photometry: Photometry, logger: HiSSCubeLogger):
         self.metadata_strategy = metadata_strategy
         self.config = config
         self.photometry = photometry
         self.h5_connector: H5Connector = None
-        self.logger = HiSSCubeLogger.logger
+        self.logger = logger
         self.img_cnt = 0
 
     def write_metadata_multiple(self, h5_connector, no_attrs=False, no_datasets=False, range_min=None, range_max=None,
@@ -66,7 +66,7 @@ class ImageMetadataStrategy(ABC):
         if not batch_size:
             batch_size = len(fits_headers)
         headers_batch = fits_headers[range_min:range_max]
-        iterator = wrap_tqdm(headers_batch, self.config.MPIO, self.__class__.__name__)
+        iterator = wrap_tqdm(headers_batch, self.config.MPIO, self.__class__.__name__, self.config)
         for fits_path, header in iterator:
             self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets, range_min,
                                              batch_size)
@@ -240,8 +240,8 @@ class TreeImageStrategy(ImageMetadataStrategy):
 
 
 class DatasetImageStrategy(ImageMetadataStrategy):
-    def __init__(self, metadata_strategy: MetadataStrategy, config: Config, photometry: Photometry):
-        super().__init__(metadata_strategy, config, photometry)
+    def __init__(self, metadata_strategy: MetadataStrategy, config: Config, photometry: Photometry, logger):
+        super().__init__(metadata_strategy, config, photometry, logger)
         self.buffer = {}
         self.metadata_header_buffer = {}
         self.metadata_index_buffer = {}

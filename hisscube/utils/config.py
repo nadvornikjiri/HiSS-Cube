@@ -7,11 +7,11 @@ mpi_size = comm.Get_size()
 
 
 class Config:
-    def __init__(self):
+    def __init__(self, config_path="config/config.ini"):
 
         lib_path = pathlib.Path(__file__).parent.absolute()
         self.config = configparser.ConfigParser(allow_no_value=True, inline_comment_prefixes='#')
-        self.config.read("%s/../config.ini" % lib_path)
+        self.config.read("%s/../../%s" % (lib_path, config_path))
 
         self.CREATE_REFERENCES = self.config.getboolean('Builder', 'CREATE_REFERENCES')
         self.CREATE_VISUALIZATION_CUBE = self.config.getboolean('Builder', 'CREATE_VISUALIZATION_CUBE')

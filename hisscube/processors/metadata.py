@@ -13,14 +13,15 @@ from hisscube.utils.logging import log_timing, HiSSCubeLogger, wrap_tqdm
 
 
 class MetadataProcessor:
-    def __init__(self, config, photometry, metadata_strategy: MetadataStrategy, image_list=None, spectra_list=None):
+    def __init__(self, config, photometry, metadata_strategy: MetadataStrategy, logger: HiSSCubeLogger, image_list=None,
+                 spectra_list=None):
         self.spec_csv_file = None
         self.image_csv_file = None
         self.config = config
         self.h5_connector: H5Connector = None
         self.fits_path = None
         self.photometry = photometry
-        self.logger = HiSSCubeLogger.logger
+        self.logger = logger
         self.metadata_strategy = metadata_strategy
         self.image_list = image_list
         self.spectra_list = spectra_list
@@ -86,7 +87,7 @@ class MetadataProcessor:
         buf = np.zeros(shape=(self.config.FITS_HEADER_BATCH_SIZE,), dtype=header_ds_dtype)
         buf_i = 0
         fits_cnt = 0
-        iterator = wrap_tqdm(path_list, self.config.MPIO, self.__class__.__name__)
+        iterator = wrap_tqdm(path_list, self.config.MPIO, self.__class__.__name__, self.config)
         for fits_path in iterator:
             buf_i, fits_cnt, offset = self._write_fits_header(h5_connector, buf, buf_i, fits_cnt, fits_path, header_ds,
                                                               offset)
@@ -100,7 +101,8 @@ class MetadataProcessor:
                                                                     self.config.FITS_IMAGE_MAX_HEADER_SIZE,
                                                                     h5_connector.file, 'fits_images_metadata',
                                                                     chunk_size=self.config.METADATA_CHUNK_SIZE)
-        spec_header_ds, spec_header_ds_dtype = recreate_header_ds(h5_connector, max_spectra, self.config.FITS_MAX_PATH_SIZE,
+        spec_header_ds, spec_header_ds_dtype = recreate_header_ds(h5_connector, max_spectra,
+                                                                  self.config.FITS_MAX_PATH_SIZE,
                                                                   self.config.FITS_SPECTRUM_MAX_HEADER_SIZE,
                                                                   h5_connector.file, 'fits_spectra_metadata',
                                                                   chunk_size=self.config.METADATA_CHUNK_SIZE)

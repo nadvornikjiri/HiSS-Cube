@@ -28,12 +28,12 @@ from hisscube.utils.photometry import Photometry
 
 
 class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
-    def __init__(self, metadata_strategy: MetadataStrategy, config: Config, photometry: Photometry):
+    def __init__(self, metadata_strategy: MetadataStrategy, config: Config, photometry: Photometry, logger: HiSSCubeLogger):
         self.metadata_strategy = metadata_strategy
         self.config = config
         self.photometry = photometry
         self.h5_connector: H5Connector = None
-        self.logger = HiSSCubeLogger.logger
+        self.logger = logger
         self.spec_cnt = 0
 
     def write_metadata_multiple(self, h5_connector, no_attrs=False, no_datasets=False, range_min=None, range_max=None,
@@ -60,7 +60,7 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
         if not batch_size:
             batch_size = len(fits_headers)
         headers_batch = fits_headers[range_min:range_max]
-        iterator = wrap_tqdm(headers_batch, self.config.MPIO, self.__class__.__name__)
+        iterator = wrap_tqdm(headers_batch, self.config.MPIO, self.__class__.__name__, self.config)
         for fits_path, header in iterator:
             self._write_metadata_from_header(h5_connector, fits_path, header, no_attrs, no_datasets, range_min,
                                              batch_size)
@@ -400,9 +400,9 @@ class TreeSpectrumStrategy(SpectrumMetadataStrategy):
 
 class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
 
-    def __init__(self, metadata_strategy: MetadataStrategy, config: Config, photometry: Photometry):
+    def __init__(self, metadata_strategy: MetadataStrategy, config: Config, photometry: Photometry, logger):
 
-        super().__init__(metadata_strategy, config, photometry)
+        super().__init__(metadata_strategy, config, photometry, logger)
 
         self.index_dtype = [("spatial", np.int64), ("time", np.float32), ("ds_slice_idx", np.int64)]
         self.buffer = {}
@@ -463,7 +463,7 @@ class DatasetSpectrumStrategy(SpectrumMetadataStrategy):
         if not batch_size:
             batch_size = range_max
         spectrum_batch = range(len(range(range_min, range_max)))
-        iterator = wrap_tqdm(spectrum_batch, self.config.MPIO, self.__class__.__name__)
+        iterator = wrap_tqdm(spectrum_batch, self.config.MPIO, self.__class__.__name__, self.config)
         for i in iterator:
             try:
                 self._add_image_links_to_spectra(spectra_metadata_ds, image_data_cutout_ds,

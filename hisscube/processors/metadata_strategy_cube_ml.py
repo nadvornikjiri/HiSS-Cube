@@ -60,12 +60,12 @@ class SparseTreeCube:
 
 class MLProcessorStrategy(ABC):
 
-    def __init__(self, config, metadata_strategy: MetadataStrategy, photometry: Photometry):
+    def __init__(self, config, metadata_strategy: MetadataStrategy, photometry: Photometry, logger: HiSSCubeLogger):
         self.metadata_strategy = metadata_strategy
         self.img_region_ref_dtype = metadata_strategy.img_region_ref_dtype
         self.config = config
         self.photometry = photometry
-        self.logger = HiSSCubeLogger.logger
+        self.logger = logger
         self.spectral_3d_cube = None
         self.spec_3d_cube_datasets = {"spectrum": {}, "image": {}, "image_cutout_refs": {}, "image_metadata_refs": {},
                                       "spec_metadata_refs": {}}
@@ -512,8 +512,8 @@ class TreeMLProcessorStrategy(MLProcessorStrategy):
 
 class DatasetMLProcessorStrategy(MLProcessorStrategy):
 
-    def __init__(self, config, metadata_strategy: DatasetStrategy, photometry: Photometry):
-        super().__init__(config, metadata_strategy, photometry)
+    def __init__(self, config, metadata_strategy: DatasetStrategy, photometry: Photometry, logger):
+        super().__init__(config, metadata_strategy, photometry, logger)
         self.photometry = photometry
         self.metadata_strategy: DatasetStrategy = metadata_strategy
 
@@ -578,7 +578,7 @@ class DatasetMLProcessorStrategy(MLProcessorStrategy):
                                          self.config.SPARSE_CUBE_NAME)
         spectra_errors = get_error_datasets(h5_connector, "spectra", self.config.SPEC_ZOOM_CNT,
                                             self.config.SPARSE_CUBE_NAME)
-        iterator = wrap_tqdm(target_spatial_indices, self.config.MPIO, "ML cube spectra")
+        iterator = wrap_tqdm(target_spatial_indices, self.config.MPIO, "ML cube spectra", self.config)
         for zoom_idx in range(min(self.config.SPEC_ZOOM_CNT, self.config.IMG_ZOOM_CNT)):
             self.current_target_cnt[zoom_idx] = 0
         for i, (spatial_index, db_index_from, db_index_to) in enumerate(iterator):

@@ -5,11 +5,11 @@ from hisscube.utils.logging import HiSSCubeLogger
 
 
 class ImageProcessor:
-    def __init__(self, config, metadata_handler, metadata_strategy: ImageMetadataStrategy):
+    def __init__(self, config, metadata_handler, metadata_strategy: ImageMetadataStrategy, logger: HiSSCubeLogger):
         self.h5_connector = None
         self.metadata_processor = metadata_handler
+        self.logger = logger
         self.config = config
-        self.logger = HiSSCubeLogger.logger
         self.metadata_strategy = metadata_strategy
         self.img_cnt = 0
 

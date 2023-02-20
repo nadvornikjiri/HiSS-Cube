@@ -2,6 +2,7 @@ import pathlib
 import string
 from abc import ABC, abstractmethod
 from ast import literal_eval
+from logging import Logger
 from pathlib import Path
 from tqdm import tqdm
 import h5py
@@ -21,9 +22,9 @@ from hisscube.utils.photometry import Photometry
 
 
 class Builder(ABC):
-    def __init__(self, config: Config, h5_connector: H5Connector):
+    def __init__(self, config: Config, h5_connector: H5Connector, logger: Logger):
         self.rank = MPIHelper.rank
-        self.logger = HiSSCubeLogger.logger
+        self.logger = logger
         self.config = config
         self.h5_connector = h5_connector
 
@@ -35,8 +36,8 @@ class Builder(ABC):
 class SingleImageBuilder(Builder):
     def __init__(self, config: Config, h5_connector: H5Connector,
                  image_processor: ImageProcessor,
-                 photometry: Photometry, image_path=None):
-        super().__init__(config, h5_connector)
+                 photometry: Photometry, logger, image_path=None):
+        super().__init__(config, h5_connector, logger)
         self.image_path = image_path
         self.image_processor = image_processor
         self.photometry = photometry
@@ -76,8 +77,8 @@ class SingleImageBuilder(Builder):
 class SingleSpectrumBuilder(Builder):
     def __init__(self, config: Config, h5_connector: H5Connector,
                  spectrum_processor: SpectrumProcessor,
-                 photometry: Photometry, spectrum_path=None):
-        super().__init__(config, h5_connector)
+                 photometry: Photometry, logger, spectrum_path=None):
+        super().__init__(config, h5_connector, logger)
         self.spectrum_path = spectrum_path
         self.spectrum_processor = spectrum_processor
         self.photometry = photometry
@@ -135,9 +136,9 @@ class SerialBuilder(Builder):
 
 class MetadataCacheBuilder(SerialBuilder):
     def __init__(self, fits_image_path: string, fits_spectra_path: string, config: Config,
-                 h5_connector: H5Connector, metadata_processor: MetadataProcessor, fits_image_pattern=None,
+                 h5_connector: H5Connector, metadata_processor: MetadataProcessor, logger, fits_image_pattern=None,
                  fits_spectra_pattern=None):
-        super().__init__(config, h5_connector)
+        super().__init__(config, h5_connector, logger)
         self.fits_image_path = fits_image_path
         self.fits_spectra_path = fits_spectra_path
         self.metadata_processor = metadata_processor
@@ -155,8 +156,8 @@ class MetadataCacheBuilder(SerialBuilder):
 class MetadataBuilder(SerialBuilder):
     def __init__(self, config: Config, h5_connector: H5Connector,
                  image_processor: ImageProcessor,
-                 spectrum_processor: SpectrumProcessor):
-        super().__init__(config, h5_connector)
+                 spectrum_processor: SpectrumProcessor, logger):
+        super().__init__(config, h5_connector, logger)
         self.image_processor = image_processor
         self.spectrum_processor = spectrum_processor
 
@@ -194,8 +195,8 @@ class DataBuilder(SerialBuilder):
                  image_processor: ImageProcessor,
                  spectrum_processor: SpectrumProcessor,
                  single_image_builder: SingleImageBuilder,
-                 single_spectrum_builder: SingleSpectrumBuilder):
-        super().__init__(config, h5_connector)
+                 single_spectrum_builder: SingleSpectrumBuilder, logger):
+        super().__init__(config, h5_connector, logger)
         self.image_processor = image_processor
         self.spectrum_processor = spectrum_processor
         self.single_image_builder = single_image_builder
@@ -205,12 +206,12 @@ class DataBuilder(SerialBuilder):
         with self.h5_connector as h5_connector:
             image_path_list = get_image_str_paths(h5_connector)
             spec_path_list = get_spectra_str_paths(h5_connector)
-            iterator = wrap_tqdm(enumerate(image_path_list), self.config.MPIO, self.__class__.__name__)
+            iterator = wrap_tqdm(enumerate(image_path_list), self.config.MPIO, self.__class__.__name__, self.config)
             for image_offset, image_path in iterator:
                 fits_file_name = Path(image_path).name
                 self.single_image_builder.build_data(h5_connector, image_path, self.image_processor,
                                                      fits_file_name, offset=image_offset)
-            iterator = wrap_tqdm(enumerate(spec_path_list), self.config.MPIO, self.__class__.__name__)
+            iterator = wrap_tqdm(enumerate(spec_path_list), self.config.MPIO, self.__class__.__name__, self.config)
             for spectrum_offset, spec_path in iterator:
                 fits_file_name = Path(spec_path).name
                 self.single_spectrum_builder.build_data(h5_connector, spec_path, self.spectrum_processor,
@@ -219,8 +220,8 @@ class DataBuilder(SerialBuilder):
 
 class LinkBuilder(SerialBuilder):
     def __init__(self, config: Config, h5_connector: H5Connector,
-                 spectrum_processor: SpectrumProcessor):
-        super().__init__(config, h5_connector)
+                 spectrum_processor: SpectrumProcessor, logger):
+        super().__init__(config, h5_connector, logger)
         self.spectrum_processor = spectrum_processor
 
     def _build(self):
@@ -230,8 +231,8 @@ class LinkBuilder(SerialBuilder):
 
 
 class MLCubeBuilder(SerialBuilder):
-    def __init__(self, config: Config, h5_connector: H5Connector, ml_processor: MLProcessor):
-        super().__init__(config, h5_connector)
+    def __init__(self, config: Config, h5_connector: H5Connector, ml_processor: MLProcessor, logger):
+        super().__init__(config, h5_connector, logger)
         self.ml_processor = ml_processor
 
     def _build(self):
@@ -242,8 +243,8 @@ class MLCubeBuilder(SerialBuilder):
 
 class VisualizationCubeBuilder(SerialBuilder):
     def __init__(self, config: Config, h5_connector: H5Connector,
-                 visualization_processor: VisualizationProcessor):
-        super().__init__(config, h5_connector)
+                 visualization_processor: VisualizationProcessor, logger):
+        super().__init__(config, h5_connector, logger)
         self.visualization_processor = visualization_processor
 
     def _build(self):
@@ -261,8 +262,8 @@ class VisualizationCubeBuilder(SerialBuilder):
 
 class SFRBuilder(SerialBuilder):
     def __init__(self, config: Config, h5_connector: H5Connector, h5_pandas_writer: H5Connector,
-                 sfr_processor: SFRProcessor, gal_info_path, gal_sfr_path):
-        super().__init__(config, h5_connector)
+                 sfr_processor: SFRProcessor, gal_info_path, gal_sfr_path, logger):
+        super().__init__(config, h5_connector, logger)
         self.sfr_processor = sfr_processor
         self.h5_pandas_writer = h5_pandas_writer
         self.gal_info_path = gal_info_path

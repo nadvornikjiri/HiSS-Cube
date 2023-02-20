@@ -43,8 +43,8 @@ class MPIHelper:
     size = mpi4py.MPI.COMM_WORLD.Get_size()
     rank = mpi4py.MPI.COMM_WORLD.Get_rank()
 
-    def __init__(self, config):
-        self.logger = HiSSCubeLogger.logger
+    def __init__(self, config, logger: HiSSCubeLogger):
+        self.logger = logger
         self.config = config
         self.WORK_TAG = 0
         self.KILL_TAG = 1
