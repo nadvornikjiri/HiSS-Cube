@@ -1,4 +1,5 @@
 import configparser
+import os
 import pathlib
 
 from mpi4py import MPI
@@ -75,6 +76,8 @@ class Config:
         self.IOC_SELECTION = self.config.get('Subfiling', 'IOC_SELECTION')
         self.STRIPE_COUNT = self.config.getint('Subfiling', 'STRIPE_COUNT')
         self.STRIPE_SIZE = self.config.getint('Subfiling', 'STRIPE_SIZE')
+        if self.IOC_SELECTION == "every_nth_rank" or self.IOC_SELECTION == "total":
+            os.environ["H5FD_SUBFILING_IOC_PER_NODE"] = self.config.get('Subfiling', 'IOC_SELECTION_CRITERIA')
 
         self.OUTPUT_HEAL_ORDER = self.config.getint('Reader', 'OUTPUT_HEAL_ORDER')
 

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from collections import deque
 from datetime import datetime
 from itertools import chain
+from pathlib import Path
 from sys import getsizeof, stderr
 
 import h5py
@@ -72,6 +73,7 @@ def get_path_patterns(config, image_pattern=None, spectra_pattern=None):
 
 
 def truncate(h5_path, config=None, comm=mpi4py.MPI.COMM_WORLD):
+    h5py._errors.unsilence_errors()
     if config and config.USE_SUBFILING:
         f = h5py.File(h5_path, 'w', driver='mpio', comm=comm, libver="latest",
                       ioc_thread_pool_size=config.IOC_THREADPOOL_SIZE,
@@ -232,19 +234,16 @@ class SerialH5Writer(H5Connector):
         super().__init__(h5_path, config, io_strategy, mpi_comm)
 
     def open_h5_file(self, truncate_file=False):
-        try:
-            if not self.config.USE_SUBFILING:
-                self.file = h5py.File(self.h5_path, 'r+', libver="latest")
-            else:
-                self.file = h5py.File(self.h5_path, 'r+', driver="mpio", comm=self.comm, libver="latest",
-                                      ioc_thread_pool_size=self.config.IOC_THREADPOOL_SIZE,
-                                      ioc_selection=self.config.IOC_SELECTION,
-                                      stripe_size=self.config.STRIPE_SIZE,
-                                      stripe_count=self.config.STRIPE_COUNT)
-
-        except (FileNotFoundError, OSError):
+        if not Path(self.h5_path).is_file():
             truncate(self.h5_path, self.config, self.comm)
-            self.open_h5_file()
+        if not self.config.USE_SUBFILING:
+            self.file = h5py.File(self.h5_path, 'r+', libver="latest")
+        else:
+            self.file = h5py.File(self.h5_path, 'r+', driver="mpio", comm=self.comm, libver="latest",
+                                  ioc_thread_pool_size=self.config.IOC_THREADPOOL_SIZE,
+                                  ioc_selection=self.config.IOC_SELECTION,
+                                  stripe_size=self.config.STRIPE_SIZE,
+                                  stripe_count=self.config.STRIPE_COUNT)
 
 
 class SerialH5Reader(H5Connector):
@@ -280,6 +279,7 @@ class ParallelH5Writer(H5Connector):
             self.comm = mpi4py.MPI.COMM_WORLD
 
     def open_h5_file(self, truncate_file=False):
+        h5py._errors.unsilence_errors()
         if truncate_file:
             truncate(self.h5_path, self.config)
         if not self.config.USE_SUBFILING:

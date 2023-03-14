@@ -213,8 +213,8 @@ class VisualizationProcessorStrategy(ABC):
 
 
 class TreeVisualizationProcessorStrategy(VisualizationProcessorStrategy):
-    def __init__(self, config, metadata_strategy: TreeStrategy):
-        super().__init__(config)
+    def __init__(self, config, metadata_strategy: TreeStrategy, logger):
+        super().__init__(config, logger)
         self.metadata_strategy = metadata_strategy
 
     def _construct_multires_spectral_cube_table(self, h5_parent):

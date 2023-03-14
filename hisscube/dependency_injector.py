@@ -93,9 +93,9 @@ class ProcessorProvider:
         if config.METADATA_STRATEGY == "TREE":
             self.metadata_strategy = TreeStrategy(config)
             self.image_metadata_strategy = TreeImageStrategy(self.metadata_strategy, config, photometry, logger)
-            self.spectrum_metadata_strategy = TreeSpectrumStrategy(self.metadata_strategy, config, photometry)
-            self.visualization_cube_strategy = TreeVisualizationProcessorStrategy(config, self.metadata_strategy)
-            self.ml_cube_strategy = TreeMLProcessorStrategy(config, self.metadata_strategy, photometry)
+            self.spectrum_metadata_strategy = TreeSpectrumStrategy(self.metadata_strategy, config, photometry, logger)
+            self.visualization_cube_strategy = TreeVisualizationProcessorStrategy(config, self.metadata_strategy, logger)
+            self.ml_cube_strategy = TreeMLProcessorStrategy(config, self.metadata_strategy, photometry, logger)
         elif config.METADATA_STRATEGY == "DATASET":
             self.metadata_strategy = DatasetStrategy(config)
             self.image_metadata_strategy = DatasetImageStrategy(self.metadata_strategy, config, photometry, logger)

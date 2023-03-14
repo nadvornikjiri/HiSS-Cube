@@ -403,8 +403,8 @@ class MLProcessorStrategy(ABC):
 
 
 class TreeMLProcessorStrategy(MLProcessorStrategy):
-    def __init__(self, config, metadata_strategy: TreeStrategy, photometry: Photometry):
-        super().__init__(config, metadata_strategy, photometry)
+    def __init__(self, config, metadata_strategy: TreeStrategy, photometry: Photometry, logger):
+        super().__init__(config, metadata_strategy, photometry, logger)
         self.metadata_strategy: TreeStrategy = metadata_strategy
 
     def _get_spectral_cube(self, spec_datasets):

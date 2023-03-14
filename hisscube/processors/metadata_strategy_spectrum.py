@@ -130,8 +130,8 @@ class SpectrumMetadataStrategy(ABC, metaclass=ABCMeta):
 
 
 class TreeSpectrumStrategy(SpectrumMetadataStrategy):
-    def __init__(self, metadata_strategy: TreeStrategy, config: Config, photometry: Photometry):
-        super().__init__(metadata_strategy, config, photometry)
+    def __init__(self, metadata_strategy: TreeStrategy, config: Config, photometry: Photometry, logger):
+        super().__init__(metadata_strategy, config, photometry, logger)
 
     def get_resolution_groups(self, metadata, h5_connector: H5Connector):
         self.h5_connector = h5_connector
