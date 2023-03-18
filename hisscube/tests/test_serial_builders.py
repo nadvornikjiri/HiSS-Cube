@@ -46,8 +46,8 @@ def get_test_director(args, test_images, test_spectra, image_pattern, spectra_pa
 class TestSerialBuilder(unittest.TestCase):
 
     def setup_method(self, test_method):
-        truncate(H5_PATH)
         self.config = get_default_config()
+        truncate(H5_PATH, self.config)
         self.dependency_provider = HiSSCubeProvider(H5_PATH, input_path=INPUT_PATH, config=self.config)
 
         warnings.filterwarnings("ignore", category=DeprecationWarning)

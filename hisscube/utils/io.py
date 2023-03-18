@@ -72,17 +72,21 @@ def get_path_patterns(config, image_pattern=None, spectra_pattern=None):
     return image_pattern, spectra_pattern
 
 
-def truncate(h5_path, config=None, comm=mpi4py.MPI.COMM_WORLD):
+def truncate(h5_path, config, comm=mpi4py.MPI.COMM_WORLD):
     h5py._errors.unsilence_errors()
     if config and config.USE_SUBFILING:
         f = h5py.File(h5_path, 'w', driver='mpio', comm=comm, libver="latest",
                       ioc_thread_pool_size=config.IOC_THREADPOOL_SIZE,
                       ioc_selection=config.IOC_SELECTION,
                       stripe_size=config.STRIPE_SIZE,
-                      stripe_count=config.STRIPE_COUNT)
+                      stripe_count=config.STRIPE_COUNT,
+                      alignment_threshold=config.ALIGNMENT_THRESHOLD,
+                      alignment_interval=config.ALIGNMENT_INTERVAL)
         f.close()
     elif rank == 0:
-        f = h5py.File(h5_path, 'w', fs_strategy="page", fs_page_size=4096, libver="latest")
+        f = h5py.File(h5_path, 'w', fs_strategy="page", fs_page_size=4096, libver="latest",
+                      alignment_threshold=config.ALIGNMENT_THRESHOLD,
+                      alignment_interval=config.ALIGNMENT_INTERVAL)
         f.close()
 
 
@@ -237,13 +241,17 @@ class SerialH5Writer(H5Connector):
         if not Path(self.h5_path).is_file():
             truncate(self.h5_path, self.config, self.comm)
         if not self.config.USE_SUBFILING:
-            self.file = h5py.File(self.h5_path, 'r+', libver="latest")
+            self.file = h5py.File(self.h5_path, 'r+', libver="latest",
+                                  alignment_threshold=self.config.ALIGNMENT_THRESHOLD,
+                                  alignment_interval=self.config.ALIGNMENT_INTERVAL)
         else:
             self.file = h5py.File(self.h5_path, 'r+', driver="mpio", comm=self.comm, libver="latest",
                                   ioc_thread_pool_size=self.config.IOC_THREADPOOL_SIZE,
                                   ioc_selection=self.config.IOC_SELECTION,
                                   stripe_size=self.config.STRIPE_SIZE,
-                                  stripe_count=self.config.STRIPE_COUNT)
+                                  stripe_count=self.config.STRIPE_COUNT,
+                                  alignment_threshold=self.config.ALIGNMENT_THRESHOLD,
+                                  alignment_interval=self.config.ALIGNMENT_INTERVAL)
 
 
 class SerialH5Reader(H5Connector):
@@ -284,13 +292,17 @@ class ParallelH5Writer(H5Connector):
             truncate(self.h5_path, self.config)
         if not self.config.USE_SUBFILING:
             self.file = h5py.File(self.h5_path, 'r+', driver='mpio',
-                                  comm=self.comm, libver="latest")
+                                  comm=self.comm, libver="latest",
+                                  alignment_threshold=self.config.ALIGNMENT_THRESHOLD,
+                                  alignment_interval=self.config.ALIGNMENT_INTERVAL)
         else:
             self.file = h5py.File(self.h5_path, 'r+', driver='mpio', comm=self.comm, libver="latest",
                                   ioc_thread_pool_size=self.config.IOC_THREADPOOL_SIZE,
                                   ioc_selection=self.config.IOC_SELECTION,
                                   stripe_size=self.config.STRIPE_SIZE,
-                                  stripe_count=self.config.STRIPE_COUNT)
+                                  stripe_count=self.config.STRIPE_COUNT,
+                                  alignment_threshold=self.config.ALIGNMENT_THRESHOLD,
+                                  alignment_interval=self.config.ALIGNMENT_INTERVAL)
 
 
 class CBoostedMetadataBuildWriter(SerialH5Writer):

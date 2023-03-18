@@ -21,10 +21,10 @@ H5_PATH = "../../results/SDSS_cube_c_par.h5"
 class TestCBoostedBuilder(unittest.TestCase):
 
     def setup_method(self, test_method):
-        truncate(H5_PATH)
         config = Config()
         config.METADATA_STRATEGY = "TREE"
         config.IMG_SPAT_INDEX_ORDER = 9
+        truncate(H5_PATH, config)
         self.dependency_provider = HiSSCubeProvider(H5_PATH, image_path=FITS_IMAGE_PATH,
                                                     spectra_path=FITS_SPECTRA_PATH, config=config)
         self.dependency_provider.config.MPIO = False

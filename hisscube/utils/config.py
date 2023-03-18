@@ -71,6 +71,8 @@ class Config:
         self.ML_BATCH_SIZE = self.config.getint('MPI', 'ML_BATCH_SIZE')
         self.CACHE_INDEX_FOR_LINKING = self.config.getboolean('MPI', 'CACHE_INDEX_FOR_LINKING')
         self.CACHE_WCS_FOR_LINKING = self.config.getboolean('MPI', 'CACHE_WCS_FOR_LINKING')
+        self.ALIGNMENT_THRESHOLD = self.config.getint('MPI', 'ALIGNMENT_THRESHOLD')
+        self.ALIGNMENT_INTERVAL = self.config.getint('MPI', 'ALIGNMENT_INTERVAL')
 
         self.USE_SUBFILING = self.config.getboolean('Subfiling', 'USE_SUBFILING')
         self.IOC_THREADPOOL_SIZE = self.config.getint('Subfiling', 'IOC_THREADPOOL_SIZE')
