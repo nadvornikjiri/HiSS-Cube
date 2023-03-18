@@ -308,7 +308,7 @@ class ParallelMWMRDataBuilder(ParallelDataBuilder):
     @staticmethod
     def write_data(metadata, data, h5_connector, fits_path, processor, offset, i, batch_size):
         res_grps = processor.get_resolution_groups(metadata, h5_connector)
-        file_name = Path(fits_path).name
+        file_name = Path(fits_path.decode('utf-8')).name
         processor.write_datasets(res_grps, data, file_name, offset=offset, batch_i=i, batch_size=batch_size)
 
     def process_image_data(self, h5_connector, process_func, *args, **kwargs):

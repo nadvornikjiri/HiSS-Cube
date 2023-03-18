@@ -123,7 +123,7 @@ class MetadataProcessor:
             offset += buf_i
             buf_i = 0
         serialized_header = ujson.dumps(dict(fitsio.read_header(fits_path)))
-        buf[buf_i] = (str(fits_path), serialized_header)
+        buf[buf_i] = (fits_path, serialized_header)
         buf_i += 1
         fits_cnt += 1
         h5_connector.fits_total_cnt += 1
