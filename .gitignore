@@ -10,6 +10,7 @@ prof/
 *.asc
 *.log
 *.csv
+*.pdf
 zenodo/
 qso/
 results
