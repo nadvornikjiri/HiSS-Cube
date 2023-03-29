@@ -269,9 +269,9 @@ class MLProcessorStrategy(ABC):
             image_error_ds[offset:offset + target_cnt] = self.image_cube_buffer[zoom_idx][
                                                          0:target_cnt, ..., 1]  # Writing errors
             spec_cube_ds[offset:offset + target_cnt] = self.spec_cube_buffer[zoom_idx][
-                                                       0, 0:target_cnt, ..., 0]  # Writing values
+                                                       0:target_cnt, 0, ..., 0]  # Writing values
             spec_error_ds[offset:offset + target_cnt] = self.spec_cube_buffer[zoom_idx][
-                                                        0, 0:target_cnt, ..., 1]  # Writing errors
+                                                        0:target_cnt, 0, ..., 1]  # Writing errors
 
     def _get_cutout_data(self, cutout_cube, spectra_cube):
         cutout_data = cutout_cube.data
