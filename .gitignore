@@ -4,6 +4,7 @@ h5dump
 data/
 SFR
 galaxy_small_decompressed/
+notebooks/SDSS_cube_files/
 disk_benchmark/
 HDFits/
 prof/
@@ -22,6 +23,7 @@ Timing benchmarks.ipynb
 
 photoop/
 .ipynb_checkpoints/
+
 venv*
 
 #Test data
