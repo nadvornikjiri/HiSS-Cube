@@ -64,5 +64,7 @@ jupyterlab
 3. Run all of the cells.
 4. The output HiSS-Cube file is produced in the last cell at the specified output path, default is results/SDSS_Cube.h5.
 
+More information about the notebooks is documented in the notebooks/Readme file.
+
 
 
