@@ -57,12 +57,12 @@ Download the "data.tar.gz" from [Zenodo HiSS Cube](https://zenodo.org/record/427
 
 1. Run the IPython notebook
 ```bash
-jupyter notebook
+jupyterlab
 ````
 
 2. Open the SDSS Cube.ipynb file.
-
-3. Run all of the cells. Note that you should have already opened TOPCAT if running the last cell that tries to send the data via SAMP.
+3. Run all of the cells.
+4. The output HiSS-Cube file is produced in the last cell at the specified output path, default is results/SDSS_Cube.h5.
 
 
 
