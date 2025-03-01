@@ -1,7 +1,8 @@
 # HiSS-Cube
+Authors: Nadvornik Jiri, Skoda Petr, Tvrdik Pavel
 Software package for processing astronomical photometric and spectroscopic Hierarchical Semi-Sparse data within HDF5. Can be extended to any kind of multidimensional data combination and information retrieval.
 
-The whole framework and its usage are described in detail in the [Astronomy&Computing article](https://www.researchgate.net/publication/350585859_HiSS-Cube_A_scalable_framework_for_Hierarchical_Semi-Sparse_Cubes_preserving_uncertainties), while the parallel version is described in this [IEEE Xplore article](https://ieeexplore.ieee.org/document/10278401).
+The whole framework and its usage are described in detail in the [Astronomy&Computing article](https://www.researchgate.net/publication/350585859_HiSS-Cube_A_scalable_framework_for_Hierarchical_Semi-Sparse_Cubes_preserving_uncertainties), while the parallel version is described in this [IEEE Xplore article](https://ieeexplore.ieee.org/document/10278401). Dissertation Thesis based on this software can be found on [Zenodo](https://zenodo.org/records/14884443).
 
 ## Installation instructions
 
